@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://progressiveoverflow.com/schemas/big-o.v1.json",
+  "title": "cse-coach Big-O Trainer contract",
+  "description": "The verbatim-slice + multiple-choice data contract emitted by scripts/export_bigo.py from the hand-curated dashboard/bigo.yml manifest, and consumed by the progressiveoverflow.com Big-O Trainer game. Like showcase.json, every entry carries a curated, byte-identical slice of real solution code (segments, same shape as showcase.json) rather than a hand-pasted paraphrase — but each entry ALSO carries the correct time/space complexity labels plus a fixed set of multiple-choice options for each, drawn from one canonical label pool (scripts/export_bigo.py COMPLEXITY_POOL) so the site can check an answer by exact string equality. schemaVersion is bumped on any breaking change. The manifest is validated against the live source, the tracker's Difficulty column, and the complexity-miss ledger by `export_bigo.py --check`.",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "pool", "entries"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "generatedAt": { "type": "string", "format": "date" },
+    "pool": {
+      "type": "array",
+      "description": "The canonical complexity-label pool (scripts/export_bigo.py COMPLEXITY_POOL), simplest to hardest, so the site never copies the label list.",
+      "items": { "type": "string" }
+    },
+    "entries": {
+      "type": "array",
+      "description": "One entry per manifest row in dashboard/bigo.yml.",
+      "items": { "$ref": "#/definitions/entry" }
+    }
+  },
+  "definitions": {
+    "entry": {
+      "type": "object",
+      "description": "One curated Big-O question: the join key the site uses is `key` (== `lcNumber`, or `${lcNumber}:${variant}` when the manifest named a variant).",
+      "required": [
+        "key", "lcNumber", "variant", "title", "url", "file", "symbol", "attemptDate",
+        "difficulty", "category", "isMiss", "note", "time", "space", "whyTime",
+        "whySpace", "timeOptions", "spaceOptions", "segments"
+      ],
+      "properties": {
+        "key": { "type": "string", "description": "`${lcNumber}` or `${lcNumber}:${variant}` — the manifest's own join key, precomputed here so the site never has to re-derive it." },
+        "lcNumber": { "type": "integer", "minimum": 1 },
+        "variant": { "type": ["string", "null"], "description": "Kebab-case approach id from the manifest's `variant` field, or null when the manifest named none — never a date." },
+        "title": { "type": ["string", "null"], "description": "Problem title, preferring the solution file's own docstring header over the tracker (links.resolve_title_url) — null only if neither source has one." },
+        "url": { "type": ["string", "null"], "description": "Canonical LeetCode/NeetCode URL, same precedence as `title`. null for the rare problem with neither a header nor a tracker URL — the site's leetCodeUrlFor() falls back to a search URL." },
+        "file": { "type": "string", "description": "Repo-root-relative path to the solution file (dashboard/bigo.yml's `file:` when given, else the unique file discovered for lcNumber)." },
+        "symbol": { "type": "string", "description": "The picked def (or class, for a design problem) — explicit via the manifest's `symbol`, or the file's latest dated attempt." },
+        "attemptDate": { "type": ["string", "null"], "format": "date", "description": "ISO date parsed from the symbol's own `_YYYYMMDD` suffix, else an `Attempt · YYYY-MM-DD` banner comment directly above it, else null for an undated legacy def." },
+        "difficulty": { "type": ["string", "null"], "enum": ["Easy", "Medium", "Hard", null], "description": "Joined from the tracker's Difficulty column (effort_budget.parse_rows) by lcNumber. null when the tracker has no row for this number." },
+        "category": { "type": "string", "description": "The solution file's parent folder name (e.g. \"graphs\", \"dp\") — opaque grouping, not a taxonomy the site interprets." },
+        "isMiss": { "type": "boolean", "description": "True when lcNumber appears in the complexity cleanup queue or Ledger tables of docs/foundations/dsa/mastery/complexity_gotchas.md — drives the trainer's \"my complexity misses\" filter." },
+        "note": { "type": ["string", "null"], "description": "A short qualifier shown above the code (e.g. \"per query\"), from the manifest's `note` field." },
+        "time": { "type": "string", "description": "The correct time-complexity label — a COMPLEXITY_POOL member, checked by exact string equality against `timeOptions`." },
+        "space": { "type": "string", "description": "The correct space-complexity label — a COMPLEXITY_POOL member, checked by exact string equality against `spaceOptions`." },
+        "whyTime": { "type": ["string", "null"], "description": "One-line justification for `time`, shown on reveal — from the manifest's `whyTime` field." },
+        "whySpace": { "type": ["string", "null"], "description": "One-line justification for `space`, shown on reveal — from the manifest's `whySpace` field." },
+        "timeOptions": {
+          "type": "array",
+          "description": "Multiple-choice options for `time`, sorted by COMPLEXITY_POOL rank (position never leaks the answer). Deterministic per (key, \"time\", time) — see options_for().",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "type": "string" }
+        },
+        "spaceOptions": {
+          "type": "array",
+          "description": "Multiple-choice options for `space`, same contract as `timeOptions`.",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "type": "string" }
+        },
+        "segments": {
+          "type": "array",
+          "description": "The verbatim code slice, in source order — same shape and contract as showcase.json's `segments` (an optional single-line `container` segment, exactly one `attempt` segment, zero or more `helper` segments).",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/segment" }
+        }
+      }
+    },
+    "segment": {
+      "type": "object",
+      "required": ["kind", "symbol", "startLine", "endLine", "lines"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["container", "attempt", "helper"] },
+        "symbol": { "type": "string", "description": "The class/def name this segment came from." },
+        "startLine": { "type": "integer", "minimum": 1, "description": "1-based source line number in `file`, on GitHub's own line numbering (LF-normalized) — usable directly as a `#L<n>` anchor." },
+        "endLine": { "type": "integer", "minimum": 1, "description": "1-based, inclusive." },
+        "lines": {
+          "type": "array",
+          "description": "The segment's source lines, verbatim and EOL-stripped, `lines[i]` == source line `startLine + i`. Byte-identical to what GitHub serves for this file, never re-indented or re-flowed.",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

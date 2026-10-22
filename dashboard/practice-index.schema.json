@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://progressiveoverflow.com/schemas/practice-index.v1.json",
+  "title": "cse-coach practice-index contract",
+  "description": "Every problem number in practice.json, emitted by scripts/export_practice.py (via scripts/dashboard_indexes.py) so the site can list runnable problems without fetching practice.json. schemaVersion and generatedAt are copied from practice.json.",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "numbers"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "generatedAt": { "type": "string", "format": "date" },
+    "numbers": {
+      "type": "array",
+      "description": "Ascending, unique.",
+      "uniqueItems": true,
+      "items": { "type": "integer", "minimum": 1 }
+    }
+  }
+}

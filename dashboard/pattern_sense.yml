@@ -1,0 +1,18 @@
+# The weekly Pattern Sense decks (scripts/pattern_sense.py). Empty on purpose: until you add a
+# deck, `pattern_sense.py export` writes no dashboard/pattern-sense.json and the site keeps
+# its fallback.
+#
+# One deck per Monday, written by the coach at the weekly build from `propose`'s picks.
+#
+#   week      Monday, on or after cse.config.yml `pattern_sense.starts`
+#   problems  exactly `pattern_sense.per_week` entries, each:
+#               number, slug, family, technique (a techniques.yml name in that family),
+#               prompt (paraphrase incl. one example), constraints, cue (the one feature
+#               that picks the technique), allow_terms (optional: technique names the
+#               prompt may contain)
+#   skipped   optional numbers proposed but not labelled; never proposed again
+#   results   optional block pasted from `pattern_sense.py ingest`
+#
+# The slug and title never reach dashboard/pattern-sense.json.
+schemaVersion: 1
+decks: []

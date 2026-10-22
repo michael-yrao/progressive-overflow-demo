@@ -1,0 +1,30 @@
+name: Engine setup
+description: Python, dependencies, timezone and git identity for the engine's Actions. Run after actions/checkout with fetch-depth 0.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      with:
+        python-version: '3.12'
+        cache: pip
+
+    - name: Install dependencies
+      shell: bash
+      run: pip install -r requirements.txt
+
+    - name: Set environment
+      shell: bash
+      run: |
+        echo 'PYTHONIOENCODING=utf-8' >> "$GITHUB_ENV"
+        tz="$(python scripts/config_value.py timezone --default UTC --zone)"
+        echo "TZ=$tz" >> "$GITHUB_ENV"
+
+    - name: Configure git
+      shell: bash
+      run: |
+        git config user.name 'github-actions[bot]'
+        git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+        # A Windows-authored hook can lose its executable bit; git ignores a non-executable hook.
+        chmod +x .githooks/*
+        git config core.hooksPath .githooks

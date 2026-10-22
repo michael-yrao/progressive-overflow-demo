@@ -1,0 +1,13 @@
+# The curated pick for the site's grounded-solutions showcase: one entry per (lc, variant).
+# Empty on purpose: until you add an entry, scripts/export_showcase.py writes no
+# dashboard/showcase.json and the site shows the author's showcase instead.
+#
+# Entry shape (see the docstring of scripts/export_showcase.py):
+#   - lc: 733                  # LeetCode number
+#     variant: bfs             # kebab-case approach name, never a date
+#     symbol: floodFill        # the def to show (container defaults to "Solution";
+#                              #   `container: null` when the symbol IS a top-level class)
+#     file: dsa/leetcode/...   # only when the number has more than one solution file
+#     helpers: [ListNode]      # optional extra module-level symbols to show alongside
+schemaVersion: 1
+entries: []

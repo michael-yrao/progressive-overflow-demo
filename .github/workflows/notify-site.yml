@@ -1,0 +1,36 @@
+name: Notify site
+
+# Tells the site repo that dashboard data changed so it can rebuild. The target is the SITE_REPO
+# repository variable (owner/name); the token is the SITE_DISPATCH_TOKEN secret. Skips cleanly,
+# with a notice naming which one is missing, when either is not set.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dashboard/**'
+  # fold-attempts.yml calls this workflow after it pushes a fold.
+  workflow_call:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    env:
+      SITE_DISPATCH_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}
+      SITE_REPO: ${{ vars.SITE_REPO }}
+    steps:
+      - name: Skip when the token is missing
+        if: env.SITE_DISPATCH_TOKEN == ''
+        run: echo "::notice::SITE_DISPATCH_TOKEN not set; skipping site dispatch"
+
+      - name: Skip when the target is missing
+        if: env.SITE_REPO == ''
+        run: echo "::notice::SITE_REPO variable not set; skipping site dispatch"
+
+      - name: Dispatch to the site repo
+        if: env.SITE_DISPATCH_TOKEN != '' && env.SITE_REPO != ''
+        uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 # v3.0.0
+        with:
+          token: ${{ env.SITE_DISPATCH_TOKEN }}
+          repository: ${{ env.SITE_REPO }}
+          event-type: cse-progress-updated

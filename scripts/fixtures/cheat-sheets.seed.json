@@ -1,0 +1,1643 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-20T01:00:05Z",
+  "signals": [
+    {
+      "see": "Sorted array + \"find a pair/triple summing to target\"",
+      "reach": "two-pointer",
+      "note": "converge from ends"
+    },
+    {
+      "see": "Sorted, or \"smallest/largest x that works\", or \"find position\"",
+      "reach": "binary-search",
+      "note": "min/max boundary"
+    },
+    {
+      "see": "\"Contiguous subarray/substring\" + a constraint (≤ k distinct, sum, longest/shortest)",
+      "reach": "sliding-window",
+      "note": ""
+    },
+    {
+      "see": "\"Subarray sums to k\" / many range-sum queries",
+      "reach": "prefix-sum",
+      "note": "+ hashmap"
+    },
+    {
+      "see": "\"Next greater/smaller\", spans, histogram, temperatures",
+      "reach": "monotonic-stack",
+      "note": ""
+    },
+    {
+      "see": "\"Max/min in every window of size k\"",
+      "reach": "monotonic-stack",
+      "note": "monotonic deque"
+    },
+    {
+      "see": "Intervals: \"merge/insert overlapping\" (→ a set)",
+      "reach": "intervals",
+      "note": "sort by start, sweep"
+    },
+    {
+      "see": "Intervals: \"max that fit\" / \"min to remove\" / \"min arrows\" (→ a number)",
+      "reach": "intervals",
+      "note": "sort by end, greedy frontier"
+    },
+    {
+      "see": "Linked list: \"cycle?\", \"middle\", \"find the duplicate number\"",
+      "reach": "fast-slow-pointer",
+      "note": ""
+    },
+    {
+      "see": "Linked list: \"reverse\", reorder, palindrome",
+      "reach": "in-place-reversal",
+      "note": ""
+    },
+    {
+      "see": "Linked list: head may change (insert/delete at front, merge)",
+      "reach": "dummy-node",
+      "note": ""
+    },
+    {
+      "see": "\"Connected?\", \"how many groups/components\", cycle in an undirected graph",
+      "reach": "union-find",
+      "note": ""
+    },
+    {
+      "see": "\"Prerequisites\", \"ordering\", \"can you finish\" (a DAG)",
+      "reach": "topological-sort",
+      "note": ""
+    },
+    {
+      "see": "\"Shortest # of steps\" / \"level by level\" (unweighted)",
+      "reach": "tree-bfs",
+      "note": ""
+    },
+    {
+      "see": "Tree property that depends on children (height, balanced, diameter)",
+      "reach": "tree-dfs",
+      "note": "DFS postorder"
+    },
+    {
+      "see": "BST \"sorted output\" or \"validate\"",
+      "reach": "tree-dfs",
+      "note": "DFS inorder"
+    },
+    {
+      "see": "\"All subsets / permutations / combinations\", \"find every way\"",
+      "reach": "backtracking",
+      "note": ""
+    },
+    {
+      "see": "Overlapping subproblems / \"min/max/count ways\" with optimal substructure",
+      "reach": "dynamic-programming",
+      "note": ""
+    },
+    {
+      "see": "\"Kth largest / smallest\", \"top k\", \"k closest\"",
+      "reach": "heap",
+      "note": "",
+      "page": false
+    },
+    {
+      "see": "\"Majority element\" (> n/2 or > n/3)",
+      "reach": "Boyer-Moore voting",
+      "note": "",
+      "page": false
+    },
+    {
+      "see": "Array of `1..n`, find the missing / duplicate",
+      "reach": "cyclic sort",
+      "note": "",
+      "page": false
+    },
+    {
+      "see": "\"Running median\" of a stream",
+      "reach": "two heaps",
+      "note": "",
+      "page": false
+    },
+    {
+      "see": "\"Kth largest\" and you want O(n) average, no full sort",
+      "reach": "quickselect",
+      "note": "",
+      "page": false
+    }
+  ],
+  "techniques": [
+    {
+      "id": "backtracking",
+      "name": "Backtracking",
+      "family": "backtracking",
+      "tier": "core",
+      "whenToUse": "Enumerate every candidate by extending a partial choice one step, recursing, then undoing it — the answer is the set of all arrangements, not a single best one.",
+      "signals": [
+        "\"All subsets / permutations / combinations\", \"find every way\"",
+        "Explicit Item Resequencing",
+        "Structural Choice Sequence Steps"
+      ],
+      "picking": {
+        "feature": "The output is EVERY valid arrangement (all subsets / permutations / combinations), so exponential work is unavoidable — choose, recurse, un-choose.",
+        "notWhen": [
+          {
+            "technique": "dynamic-programming",
+            "because": "the question is a count / min / max over choices and the same sub-state recurs — cache states instead of enumerating every path"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Permutations Pattern",
+          "when": "Finding every possible layout variation of an items list where ordering determines unique results.",
+          "code": "def permute(nums: list[int]) -> list[list[int]]:\n    result = []\n    \n    def backtrack(current_path: list[int]):\n        if len(current_path) == len(nums):\n            result.append(list(current_path))  # Store copy of path\n            return\n            \n        for i in range(len(nums)):\n            if nums[i] in current_path: continue  # Skip elements already used\n            current_path.append(nums[i])          # Save-state\n            backtrack(current_path)               # Recurse deep\n            current_path.pop()                    # Undo choice\n            \n    backtrack([])\n    return result",
+          "complexity": {
+            "time": "O(n · n!)",
+            "space": "O(n)",
+            "why": "n! complete permutations, each copied in O(n); the path and the recursion depth are both O(n) (the output list itself is not counted)"
+          }
+        },
+        {
+          "title": "Combinations and Subsets Pattern",
+          "when": "Generating all variations of variable-length groupings where sequence arrangement is irrelevant.",
+          "code": "def subsets(nums: list[int]) -> list[list[int]]:\n    result = []\n    \n    def backtrack(start_index: int, current_path: list[int]):\n        result.append(list(current_path))  # Append current subset progress\n        \n        for i in range(start_index, len(nums)):\n            current_path.append(nums[i])          # Make choice\n            backtrack(i + 1, current_path)        # Move index limit forward\n            current_path.pop()                    # Undo choice\n            \n    backtrack(0, [])\n    return result",
+          "complexity": {
+            "time": "O(n · 2ⁿ)",
+            "space": "O(n)",
+            "why": "2ⁿ subsets, each copied in up to O(n); recursion depth never exceeds n"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Appending the mutable path itself instead of a copy — every stored result later mutates into the same list",
+        "Permutations restart `i` at 0 with a used-check; subsets start at `start_index` — mixing the two loop bounds yields duplicates or missing sets",
+        "Forgetting to undo the choice after the recursive call (the `pop`) — the path leaks into sibling branches",
+        "Skipping duplicates needs a sort first plus `if i > start and nums[i] == nums[i-1]: continue` — without the sort the check is meaningless"
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 46,
+          "title": "Permutations"
+        },
+        {
+          "lcNumber": 78,
+          "title": "Subsets"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/backtracking.md"
+    },
+    {
+      "id": "binary-search",
+      "name": "Binary Search",
+      "family": "binary_search",
+      "tier": "core",
+      "whenToUse": "Binary search works on any monotonic yes/no boundary, not just sorted arrays. Use it when you can test a candidate answer cheaply and the search space is sorted or monotonically structured.",
+      "signals": [
+        "Sorted, or \"smallest/largest x that works\", or \"find position\""
+      ],
+      "picking": {
+        "feature": "A yes/no predicate that flips exactly once across the search space — a sorted array, or a monotonic answer space like \"can finish at speed k\" — so halving the range is safe.",
+        "notWhen": [
+          {
+            "technique": "two-pointer",
+            "because": "you need a PAIR of positions meeting a condition, not one boundary — sorted input alone doesn't make it a binary search"
+          },
+          {
+            "technique": "sliding-window",
+            "because": "the thing you want is a contiguous run whose validity changes as it grows, not a single index"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Exact Value Search",
+          "when": "Find an exact target value in the array",
+          "code": "if nums[mid] == target:\n    return mid  # Found exact match\nelif nums[mid] > target:\n    r = mid - 1  # Search left\nelse:\n    l = mid + 1  # Search right",
+          "complexity": {
+            "time": "O(log n)",
+            "space": "O(1)",
+            "why": "each step halves the candidate range; only two indices are held"
+          }
+        },
+        {
+          "title": "Minimum Boundary Search (First True Position)",
+          "when": "Find the leftmost position where a monotonic predicate is true",
+          "code": "if is_valid(mid):  # Predicate is true\n    r = mid  # Keep mid as candidate, search left\nelse:  # Predicate is false\n    l = mid + 1  # Move past mid, search right",
+          "complexity": {
+            "time": "O(log n · c)",
+            "space": "O(1)",
+            "why": "log n probes, each paying one predicate check costing c; `r = mid` keeps the valid candidate inside the range"
+          }
+        },
+        {
+          "title": "Maximum Boundary Search (Last True Position)",
+          "when": "Find the rightmost position where a monotonic predicate is true",
+          "code": "if is_valid(mid):  # Predicate is true\n    l = mid  # Keep mid as candidate, search right\nelse:  # Predicate is false\n    r = mid - 1  # Move before mid, search left",
+          "complexity": {
+            "time": "O(log n · c)",
+            "space": "O(1)",
+            "why": "mirror of the minimum form — log n probes, each paying the predicate; `l = mid` keeps the last valid candidate"
+          }
+        }
+      ],
+      "pitfalls": [
+        "left <= right (find exact) vs left < right (find boundary) — mixing them causes off-by-one",
+        "right = mid vs right = mid − 1 — if mid can be the answer, use right = mid",
+        "Max-boundary form: with `l = mid` compute `mid = (l + r + 1) // 2`, or the loop never terminates when `l == r − 1`",
+        "Rotated sorted array: identify which half is sorted first, then decide which side the target is on",
+        "Integer overflow on mid — (left + right) // 2 is safe in Python; in Java/C++ use left + (right − left) / 2"
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 704,
+          "title": "Binary Search"
+        },
+        {
+          "lcNumber": 34,
+          "title": "Find First and Last Position of Element in Sorted Array"
+        },
+        {
+          "lcNumber": 74,
+          "title": "Search a 2D Matrix"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/binary_search.md"
+    },
+    {
+      "id": "dummy-node",
+      "name": "Dummy Node (Sentinel)",
+      "family": "linked_list",
+      "tier": "core",
+      "whenToUse": "A fake node placed before the head of a linked list so that operations on the head need no special-casing. Also the backbone of \"build a new list\" (merge/partition) via a dummy + tail.",
+      "signals": [
+        "deleting or inserting at the head (head may change)",
+        "building a new list (merge two lists, partition, add two numbers)",
+        "you catch yourself writing `if node == head: ...` special cases"
+      ],
+      "picking": {
+        "feature": "The head itself might be removed, replaced, or not exist yet — a sentinel before it makes every splice the same `prev.next` rewrite, with no head special-case.",
+        "notWhen": [
+          {
+            "technique": "in-place-reversal",
+            "because": "the head only MOVES (reversal returns `prev`); a sentinel adds nothing when no node is spliced in or out"
+          },
+          {
+            "technique": "fast-slow-pointer",
+            "because": "you are only reading positions (middle, cycle), not rewiring links"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Template",
+          "code": "dummy = ListNode(0)\ndummy.next = head\nprev = dummy\n# ... walk prev/curr, splice via prev.next ...\nreturn dummy.next          # NOT head — head may have changed",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(1)",
+            "why": "one walk over the list; the sentinel is the single extra node"
+          }
+        },
+        {
+          "title": "Build-a-list variant (merge / partition)",
+          "code": "def merge_two_lists(a, b):\n    dummy = tail = ListNode(0)\n    while a and b:\n        if a.val < b.val:\n            tail.next, a = a, a.next\n        else:\n            tail.next, b = b, b.next\n        tail = tail.next\n    tail.next = a or b       # attach the remainder\n    return dummy.next",
+          "complexity": {
+            "time": "O(n + m)",
+            "space": "O(1)",
+            "why": "each node of either input is attached exactly once; the sentinel and `tail` are the only extras — no new nodes"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Returning `head` instead of `dummy.next` — if the head was removed/changed, `head` is stale.",
+        "Forgetting to advance `prev`/`tail` — leaves the list mis-wired.",
+        "Not terminating the tail (`tail.next = None`) in partition-style splits → accidental cycle."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 21,
+          "title": "Merge Two Sorted Lists"
+        },
+        {
+          "lcNumber": 19,
+          "title": "Remove Nth Node From End of List"
+        },
+        {
+          "lcNumber": 2,
+          "title": "Add Two Numbers"
+        },
+        {
+          "lcNumber": 83,
+          "title": "Remove Duplicates from Sorted List"
+        },
+        {
+          "lcNumber": 82,
+          "title": "Remove Duplicates from Sorted List II"
+        },
+        {
+          "lcNumber": 86,
+          "title": "Partition List"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/dummy_node.md"
+    },
+    {
+      "id": "dynamic-programming",
+      "name": "Dynamic Programming",
+      "family": "dynamic_programming",
+      "tier": "dp",
+      "whenToUse": "The question asks for one number about all the ways to do something (how many, the fewest, the most, or whether any works), and the same sub-question comes up through many different paths. Solve each sub-question once, store it, and build the answer from the stored values.",
+      "signals": [
+        "\"How many ways\", \"minimum / maximum\", \"is it possible\", over a sequence of choices",
+        "The rest of the problem depends only on where you are now, not on how you got there"
+      ],
+      "picking": {
+        "feature": "The answer is a single count / min / max / yes-no, and a state such as \"standing at index i\" is reached by many different paths, so each state is solved once instead of once per path.",
+        "notWhen": []
+      },
+      "variants": [
+        {
+          "title": "Fixed Jumps (top-down)",
+          "when": "each state reads a constant set of other states, one per move, such as `i + 1` and `i + 2`.",
+          "code": "def solve(n):\n    memo = {}\n\n    def f(i):\n        if i == n: return BASE              # base case: finished exactly\n        if i > n: return INVALID            # validity: a move went past the end\n        if i in memo: return memo[i]\n        memo[i] = COMBINE(f(i + step) for step in STEPS)   # decision + combine, stored\n        return memo[i]\n\n    return f(0)",
+          "complexity": {
+            "time": "O(n · k)",
+            "space": "O(n)",
+            "why": "n + 1 states, each combining k fixed moves at O(1) per move; the memo and the recursion chain are both n + 1 deep"
+          }
+        },
+        {
+          "title": "Fixed Jumps (bottom-up)",
+          "when": "the same shape, without recursion: no stack-depth limit, and the table can shrink to the last few entries.",
+          "code": "def solve(n):\n    table = [INVALID] * (n + MAX_STEP + 1)  # slots past n hold the invalid value\n    table[n] = BASE                         # base case, seeded before the loop\n    for i in range(n - 1, -1, -1):          # fill order: i reads i + step, so go right to left\n        table[i] = COMBINE(table[i + step] for step in STEPS)\n    return table[0]",
+          "complexity": {
+            "time": "O(n · k)",
+            "space": "O(n)",
+            "why": "one pass over n states with k reads each; when only the last MAX_STEP entries are read, keep that many variables instead for O(1) space"
+          }
+        },
+        {
+          "title": "Any-Length Piece (top-down)",
+          "when": "each move cuts a piece `s[i:j]` of any length off the front of what is left, and the piece has to pass a check.",
+          "code": "def solve(s):\n    n = len(s)\n    memo = {}\n\n    def f(i):\n        if i == n: return BASE              # base case: the pieces cover the whole input\n        if i in memo: return memo[i]\n        answer = INVALID                    # no valid piece → the invalid value\n        for j in range(i + 1, n + 1):       # decision: every piece that starts at i\n            if is_valid_piece(s, i, j):     # validity\n                answer = COMBINE(answer, f(j))\n        memo[i] = answer\n        return answer\n\n    return f(0)",
+          "complexity": {
+            "time": "O(n² · c)",
+            "space": "O(n)",
+            "why": "n + 1 states, each trying up to n pieces with a check costing c; the memo and the recursion chain are both n + 1 deep"
+          }
+        },
+        {
+          "title": "Any-Length Piece (bottom-up)",
+          "when": "the same shape, without recursion.",
+          "code": "def solve(s):\n    n = len(s)\n    table = [INVALID] * (n + 1)\n    table[n] = BASE                         # base case, seeded before the loop\n    for i in range(n - 1, -1, -1):          # fill order: i reads every j > i, so go right to left\n        for j in range(i + 1, n + 1):\n            if is_valid_piece(s, i, j):\n                table[i] = COMBINE(table[i], table[j])\n    return table[0]",
+          "complexity": {
+            "time": "O(n² · c)",
+            "space": "O(n)",
+            "why": "n entries, each scanning up to n pieces with a check costing c; one table of n + 1"
+          }
+        }
+      ],
+      "pitfalls": [
+        "No invalid-move case: a move that jumps past the end never reaches the base case and recurses until the stack limit",
+        "Returning the combined value without storing it in the memo, so the lookup never finds anything and every repeat is solved again",
+        "A state that leaves out a variable the answer depends on (two situations share one key) or keeps one it does not (`path`), which leaves the cache wrong or useless",
+        "Bottom-up fill order that reads an entry before it is filled",
+        "Pricing a memoized function as its tree without the memo: count distinct states × work per state instead"
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 70,
+          "title": "Climbing Stairs"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/dynamic_programming.md"
+    },
+    {
+      "id": "fast-slow-pointer",
+      "name": "Fast & Slow Pointer",
+      "family": "linked_list",
+      "tier": "core",
+      "whenToUse": "Two pointers moving at different speeds through a sequence (usually a linked list). The speed gap is what detects cycles, finds the middle, and locates positions relative to the end — all in one pass, O(1) space.",
+      "signals": [
+        "does this linked list have a cycle?",
+        "find the middle of the list",
+        "find where the cycle begins",
+        "\"find the duplicate number\" in an array of `1..n` (it's a cycle in disguise)",
+        "palindrome linked list (find middle, reverse half)"
+      ],
+      "picking": {
+        "feature": "The question is about POSITION in a chain you cannot index — middle, cycle, cycle entry — and a 2:1 speed gap answers it in one pass with no extra memory.",
+        "notWhen": [
+          {
+            "technique": "in-place-reversal",
+            "because": "you need to CHANGE the links, not locate a node — though reversal often follows a middle-find (palindrome, reorder)"
+          },
+          {
+            "technique": "two-pointer",
+            "because": "the input is an indexable array — opposite-ends or separation pointers apply; fast/slow exists for chains you can only walk"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Template — the two-speed walk",
+          "code": "slow = fast = head\nwhile fast and fast.next:      # guard BOTH: fast.next.next needs both non-null\n    slow = slow.next           # 1 step\n    fast = fast.next.next      # 2 steps\n    # if cycle: they will eventually meet (fast == slow)\n# if no cycle: fast falls off the end; slow is at the MIDDLE",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(1)",
+            "why": "fast reaches the end (or the meeting point) in at most n/2 iterations; two pointers only"
+          }
+        },
+        {
+          "title": "Finding the cycle's start (Floyd, phase 2)",
+          "code": "slow2 = head\nwhile slow2 != slow:\n    slow2 = slow2.next\n    slow = slow.next\nreturn slow                    # entrance of the cycle",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(1)",
+            "why": "phase 2 walks at most n further steps before the pointers meet at the entrance; still two pointers"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Loop guard — `while fast and fast.next` is mandatory; `fast = fast.next.next` dereferences two levels. (This is the exact 141 sticking point.)",
+        "Even vs odd length — where `slow` lands as \"middle\" differs by one; decide if you want the first or second middle and adjust the guard (`while fast.next and fast.next.next` gives the first middle).",
+        "Comparing nodes, not values — cycle detection compares node identity (`fast is slow`), not `.val`."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 141,
+          "title": "Linked List Cycle"
+        },
+        {
+          "lcNumber": 142,
+          "title": "Linked List Cycle II"
+        },
+        {
+          "lcNumber": 876,
+          "title": "Middle of the Linked List"
+        },
+        {
+          "lcNumber": 287,
+          "title": "Find the Duplicate Number"
+        },
+        {
+          "lcNumber": 234,
+          "title": "Palindrome Linked List"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/fast_slow_pointer.md"
+    },
+    {
+      "id": "floyd-warshall",
+      "name": "Floyd–Warshall — All-Pairs Shortest Paths",
+      "family": "advanced_graphs",
+      "tier": "core",
+      "whenToUse": "You need all pairs, n is small (≲ 400), or the graph is dense",
+      "signals": [
+        "\"shortest distance between every pair\" / \"for each node, something about all other nodes\"",
+        "a small `n` (≤ ~400) paired with a weighted graph — especially when `n` is suspiciously small next to a large-sounding problem",
+        "a per-node aggregate that needs all its distances before it can be computed (a count, a max, a sum)",
+        "weights that may be negative, in an all-pairs setting"
+      ],
+      "picking": {
+        "feature": "All pairs, small or dense graph",
+        "notWhen": [
+          {
+            "technique": "Dijkstra",
+            "page": false,
+            "because": "One source, non-negative weights"
+          },
+          {
+            "technique": "Bellman-Ford",
+            "page": false,
+            "because": "One source, negative weights allowed"
+          },
+          {
+            "technique": "BFS",
+            "page": false,
+            "because": "the graph is unweighted (or every edge costs the same) — plain BFS gives shortest paths in O(V + E) without any shortest-path machinery"
+          },
+          {
+            "technique": "Dijkstra",
+            "page": false,
+            "because": "All pairs, large sparse graph, non-negative — n × Dijkstra wins over O(n³)"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "The procedure",
+          "when": "let one node at a time become a legal stopover",
+          "code": "for k in all nodes:            # the stopover — MUST be outermost\n    for i in all nodes:\n        for j in all nodes:\n            if dist[i][k] + dist[k][j] < dist[i][j]:\n                dist[i][j] = dist[i][k] + dist[k][j]",
+          "complexity": {
+            "time": "O(n³)",
+            "space": "O(n²)",
+            "why": "Three nested loops, each over all n nodes; every (k, i, j) triple is one constant-time comparison, independent of edge count (time). The table; in-place updating means no second copy (space)."
+          }
+        }
+      ],
+      "pitfalls": [
+        "`float('inf')` is safe to add in Python — `inf + inf` is `inf`, no overflow. In a fixed-width integer language use a sentinel like `1e9` and guard against `sentinel + sentinel` wrapping.",
+        "`dist[i][i] = 0` must be seeded, or the \"route through k\" candidate misbehaves and the §3 frozen-row argument breaks.",
+        "Undirected graphs need both directions written at seed time: `dist[u][v]` and `dist[v][u]`.",
+        "Parallel edges between the same pair: keep the minimum, don't overwrite blindly. (1334 guarantees distinct pairs, so it doesn't bite there — but it will elsewhere.)",
+        "Negative cycles, if the problem allows negative weights: after the run, `dist[i][i] < 0` for any `i` means `i` sits on a negative cycle.",
+        "The three loops are `k, i, j` in that order. Say it out loud before writing them."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 1334,
+          "title": "Find the City With the Smallest Number of Neighbors at a Threshold Distance"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/floyd_warshall.md"
+    },
+    {
+      "id": "in-place-reversal",
+      "name": "In-Place Linked List Reversal",
+      "family": "linked_list",
+      "tier": "core",
+      "whenToUse": "Reverse a list (or sublist) by rewiring `next` pointers — O(1) extra space, no new nodes.",
+      "signals": [
+        "\"reverse the list\" / \"reverse nodes between i and j\" / \"reverse in groups of k\"",
+        "process nodes tail-to-head (you have only forward pointers)",
+        "palindrome check or reorder (reverse the second half, then compare/merge)"
+      ],
+      "picking": {
+        "feature": "The output is the SAME nodes with their link direction reversed or reordered, and O(1) extra space is demanded — rewire `next` with a prev/curr/nxt trio instead of copying values.",
+        "notWhen": [
+          {
+            "technique": "dummy-node",
+            "because": "the head is being spliced (inserted or removed), not turned around"
+          },
+          {
+            "technique": "fast-slow-pointer",
+            "because": "you only need to FIND the middle or a cycle; reversal is the separate step that may follow"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Iterative template (prev / curr / next)",
+          "code": "def reverse(head):\n    prev = None\n    curr = head\n    while curr:\n        nxt = curr.next     # SAVE next before you clobber it\n        curr.next = prev    # flip\n        prev = curr         # advance\n        curr = nxt\n    return prev             # new head",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(1)",
+            "why": "each node's `next` is flipped exactly once; three pointers"
+          }
+        },
+        {
+          "title": "Recursive template",
+          "code": "def reverse(head):\n    if not head or not head.next:\n        return head\n    new_head = reverse(head.next)   # reverse the rest (trust it)\n    head.next.next = head           # the node after me points back to me\n    head.next = None                # I become the tail\n    return new_head                 # relayed up unchanged",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(n)",
+            "why": "one call-stack frame per node — the recursion itself is the extra space"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Clobbering `next` before saving it (iterative) — always `nxt = curr.next` first.",
+        "Recursive `head.next = None` omitted → the old head still points forward, creating a cycle.",
+        "Expecting `new_head` to change per frame — it doesn't; it's a pass-through payload. See recursion."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 206,
+          "title": "Reverse Linked List"
+        },
+        {
+          "lcNumber": 92,
+          "title": "Reverse Linked List II"
+        },
+        {
+          "lcNumber": 234,
+          "title": "Palindrome Linked List"
+        },
+        {
+          "lcNumber": 143,
+          "title": "Reorder List"
+        },
+        {
+          "lcNumber": 25,
+          "title": "Reverse Nodes in k-Group"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/in_place_reversal.md"
+    },
+    {
+      "id": "intervals",
+      "name": "Intervals",
+      "family": "intervals",
+      "tier": "core",
+      "whenToUse": "Sort the intervals, then sweep left-to-right keeping a small piece of state.",
+      "signals": [
+        "Intervals: \"merge/insert overlapping\" (→ a set)",
+        "Intervals: \"max that fit\" / \"min to remove\" / \"min arrows\" (→ a number)",
+        "\"merge/combine overlapping intervals\"",
+        "\"insert an interval and merge\"",
+        "\"max intervals that fit\" / \"min to remove/erase\"",
+        "\"min rooms / max overlap / peak concurrency\"",
+        "\"does this new booking conflict?\""
+      ],
+      "picking": {
+        "feature": "The sort key follows the goal, never the input: merging (the answer is a SET of intervals) sorts by START; scheduling (the answer is a NUMBER — keep / remove / count) sorts by END.",
+        "notWhen": [
+          {
+            "technique": "sliding-window",
+            "because": "the input is a contiguous run over one array, not a list of ranges to sort"
+          },
+          {
+            "technique": "heap",
+            "page": false,
+            "because": "you must count SIMULTANEOUS overlaps (meeting rooms II) — a min-heap of end times, not a merge"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Merge overlapping — sort by START",
+          "when": "collapse a set of intervals so no two overlap (\"merge all overlapping intervals\")",
+          "code": "# 56 Merge Intervals\nintervals.sort(key=lambda x: x[0])          # by START\nresult = []\nfor start, end in intervals:\n    if result and start <= result[-1][1]:   # overlaps the last kept interval\n        result[-1][1] = max(result[-1][1], end)   # extend it (start is already <=, sorted)\n    else:\n        result.append([start, end])\nreturn result",
+          "complexity": {
+            "time": "O(n log n)",
+            "space": "O(n)",
+            "why": "the sort dominates; the sweep is O(n) and the output holds up to n merged intervals"
+          }
+        },
+        {
+          "title": "Insert into a sorted interval list — the three-phase sweep",
+          "when": "a sorted, non-overlapping list is given; insert one new interval (57 Insert Interval)",
+          "code": "# 57 Insert Interval\nresult, i, n = [], 0, len(intervals)\nns, ne = newInterval\n\n# phase 1 — everything ending BEFORE the new one starts: copy untouched\nwhile i < n and intervals[i][1] < ns:\n    result.append(intervals[i]); i += 1\n\n# phase 2 — everything overlapping: absorb by GROWING the new interval (no append)\nwhile i < n and intervals[i][0] <= ne:\n    ns = min(ns, intervals[i][0])\n    ne = max(ne, intervals[i][1]); i += 1\n\n# phase 3 — place the fully-grown interval ONCE, outside any loop\nresult.append([ns, ne])\n\n# phase 4 — everything AFTER: copy the rest\nwhile i < n:\n    result.append(intervals[i]); i += 1\nreturn result",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(1)",
+            "why": "the list is already sorted and non-overlapping, so no sort — one sweep with constant state beyond the output"
+          }
+        },
+        {
+          "title": "Interval scheduling — sort by END",
+          "when": "keep the maximum number of non-overlapping intervals, or (the mirror image) remove the minimum number so the rest don't overlap",
+          "code": "# 435 Non-overlapping Intervals  (counts removals)\nintervals.sort(key=lambda x: x[1])          # by END\nfrontier, removed = float('-inf'), 0\nfor start, end in intervals:\n    if start >= frontier:                   # no overlap → keep\n        frontier = end\n    else:                                    # overlaps → drop it\n        removed += 1\nreturn removed",
+          "complexity": {
+            "time": "O(n log n)",
+            "space": "O(1)",
+            "why": "sort by end, then one sweep holding only the current frontier end"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Touching endpoints — is `[1,2]` vs `[2,3]` an overlap? It depends on the problem, and it is almost always stated. Use `<` vs `<=` accordingly. Getting this comparator wrong is the single most common interval bug.",
+        "The overlap comparator (`<` vs `<=`) is decided by the statement, not by habit. Touching endpoints are the classic off-by-one — check the problem's own example."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 56,
+          "title": "Merge Intervals"
+        },
+        {
+          "lcNumber": 57,
+          "title": "Insert Interval"
+        },
+        {
+          "lcNumber": 435,
+          "title": "Non-overlapping Intervals"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/intervals.md"
+    },
+    {
+      "id": "monotonic-stack",
+      "name": "Monotonic Stack",
+      "family": "stack",
+      "tier": "core",
+      "whenToUse": "A monotonic stack is a stack kept in sorted order (strictly/weakly increasing or decreasing) by popping any element that would break the order before pushing the new one. It answers \"nearest greater/smaller element\" queries for every element in O(n) total instead of O(n²).",
+      "signals": [
+        "\"next greater element\" / \"next smaller element\"",
+        "\"previous greater\" / \"previous smaller\"",
+        "\"days until a warmer temperature\" (distance to next greater)",
+        "spans, or rectangle/area problems bounded by taller/shorter neighbors"
+      ],
+      "picking": {
+        "feature": "For each element you need the NEAREST greater/smaller to one side — the stack discards anything that can never be an answer again, so every index is pushed and popped once.",
+        "notWhen": [
+          {
+            "technique": "sliding-window",
+            "because": "the question is the longest/shortest contiguous run meeting a condition, not a per-element nearest neighbour"
+          },
+          {
+            "technique": "heap",
+            "page": false,
+            "because": "you need the global max/min at any moment, not the nearest one per position"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "The template",
+          "code": "stack = []                                  # indices; values kept increasing bottom→top\nfor i, x in enumerate(arr):\n    while stack and arr[stack[-1]] < x:      # x breaks the order → x is popped element's \"next greater\"\n        idx = stack.pop()\n        # arr[idx]'s next-greater is x, at distance (i - idx)\n    stack.append(i)\n# anything left on the stack has no next-greater element",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(n)",
+            "why": "every index is pushed once and popped at most once; the stack can hold all n on a sorted input"
+          }
+        },
+        {
+          "title": "Monotonic deque (moving-window max/min)",
+          "code": "from collections import deque\ndq = deque()                       # indices, values decreasing front→back\nres = []\nfor i, x in enumerate(arr):\n    while dq and arr[dq[-1]] < x:   # back: maintain monotonic order\n        dq.pop()\n    dq.append(i)\n    if dq[0] <= i - k:              # front: evict out-of-window index\n        dq.popleft()\n    if i >= k - 1:\n        res.append(arr[dq[0]])      # front = max of current window",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(k)",
+            "why": "each index enters and leaves the deque once; at most k indices are alive at a time"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Storing values instead of indices — you lose the ability to compute distances/widths. Store indices, read `arr[idx]` when you need the value.",
+        "`<` vs `<=` — strict vs non-strict changes tie handling. For \"next strictly greater,\" pop on `arr[top] < x`; for widths in histograms, the equal-height tie handling matters — reason it out per problem.",
+        "Forgetting leftovers — elements still on the stack at the end have no next-greater/smaller; handle them (often `-1` or the array boundary).",
+        "Wrong direction — \"previous\" queries iterate right→left (or check the stack before popping for the element that remains below)."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 496,
+          "title": "Next Greater Element I"
+        },
+        {
+          "lcNumber": 739,
+          "title": "Daily Temperatures"
+        },
+        {
+          "lcNumber": 503,
+          "title": "Next Greater Element II"
+        },
+        {
+          "lcNumber": 901,
+          "title": "Online Stock Span"
+        },
+        {
+          "lcNumber": 853,
+          "title": "Car Fleet"
+        },
+        {
+          "lcNumber": 84,
+          "title": "Largest Rectangle in Histogram"
+        },
+        {
+          "lcNumber": 239,
+          "title": "Sliding Window Maximum"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/monotonic_stack.md"
+    },
+    {
+      "id": "prefix-sum",
+      "name": "Prefix Sum",
+      "family": "prefix_sum",
+      "tier": "core",
+      "whenToUse": "A prefix sum array stores running totals so any range sum becomes a single subtraction. The high-leverage variant pairs prefix sums with a hashmap to answer \"how many subarrays sum to k\" in O(n).",
+      "signals": [
+        "\"sum of a subarray / range\" — especially many range queries",
+        "\"number of subarrays with sum == k\" (or sum divisible by k)",
+        "\"longest/shortest subarray summing to k\"",
+        "any running-total or cumulative question"
+      ],
+      "picking": {
+        "feature": "Many RANGE-SUM questions on a fixed array, or \"how many subarrays sum to k\" — a running total turns each range into one subtraction, and a hashmap of seen totals turns the count into a lookup.",
+        "notWhen": [
+          {
+            "technique": "sliding-window",
+            "because": "values are all non-negative and the question is longest/shortest run — the window is O(1) space and simpler; prefix + hashmap is what you reach for when negatives break the window"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Range sum queries",
+          "code": "prefix = [0] * (len(arr) + 1)\nfor i, x in enumerate(arr):\n    prefix[i + 1] = prefix[i] + x\n# sum of arr[l..r] inclusive:\nrange_sum = prefix[r + 1] - prefix[l]",
+          "complexity": {
+            "time": "O(n) build · O(1) per query",
+            "space": "O(n)",
+            "why": "one pass builds n + 1 running totals; each range query is a single subtraction"
+          }
+        },
+        {
+          "title": "Subarrays summing to k (prefix + hashmap)",
+          "code": "count = 0\nrunning = 0\nseen = {0: 1}                 # prefix 0 seen once (empty prefix) — REQUIRED\nfor x in arr:\n    running += x\n    count += seen.get(running - k, 0)   # subarrays ending here that sum to k\n    seen[running] = seen.get(running, 0) + 1\nreturn count",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(n)",
+            "why": "one pass; the hashmap holds up to n distinct prefix totals"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Forgetting `seen = {0: 1}` — without the empty-prefix seed, you miss subarrays that start at index 0.",
+        "Off-by-one — decide up front whether `prefix[i]` includes `arr[i]` or not, and keep the length-(n+1) convention to stay sane.",
+        "Counting vs length — \"how many subarrays\" stores counts in the map; \"longest subarray\" stores the first index a prefix was seen (so you maximize length)."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 560,
+          "title": "Subarray Sum Equals K"
+        },
+        {
+          "lcNumber": 238,
+          "title": "Product of Array Except Self"
+        },
+        {
+          "lcNumber": 303,
+          "title": "Range Sum Query - Immutable"
+        },
+        {
+          "lcNumber": 304,
+          "title": "Range Sum Query 2D - Immutable"
+        },
+        {
+          "lcNumber": 525,
+          "title": "Contiguous Array"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/prefix_sum.md"
+    },
+    {
+      "id": "prims-mst",
+      "name": "Prim's — Minimum Spanning Tree",
+      "family": "advanced_graphs",
+      "tier": "core",
+      "whenToUse": "You have a connected weighted graph and want to keep every node reachable while paying as little total edge weight as possible.",
+      "signals": [
+        "connect all points/nodes at minimum total cost",
+        "minimum cost to make all X connected",
+        "Weights given as coordinates rather than an edge list",
+        "Undirected + weighted + wants a structure, not a path"
+      ],
+      "picking": {
+        "feature": "The objective is the cheapest set of edges that keeps EVERYTHING connected — a cost over the whole graph, not a distance from one source.",
+        "notWhen": [
+          {
+            "technique": "Dijkstra / shortest path",
+            "page": false,
+            "because": "the question is the cheapest ROUTE between nodes — a source-relative distance; an MST is not a shortest-path tree"
+          },
+          {
+            "technique": "union-find",
+            "because": "Kruskal's (sort the edges, union-find) is the other MST — reach for it on a sparse edge list; Prim's O(V²) wins on a dense graph or a point set"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "The procedure",
+          "code": "def prim_mst(adj: list[list[int]]) -> int:      # adj[u][v] = weight; dense matrix input\n    V = len(adj)\n    in_tree = [False] * V\n    best = [float('inf')] * V                    # cheapest known edge INTO each node from the tree\n    best[0] = 0                                  # start anywhere\n    total = 0\n    for _ in range(V):\n        u = min((v for v in range(V) if not in_tree[v]), key=lambda v: best[v])\n        in_tree[u] = True\n        total += best[u]                          # this edge joins the tree\n        for v in range(V):                        # relax: is there a cheaper way INTO v now?\n            if not in_tree[v] and adj[u][v] < best[v]:\n                best[v] = adj[u][v]\n    return total",
+          "complexity": {
+            "time": "O(V²)",
+            "space": "O(V)",
+            "why": "V rounds, each doing two O(V) scans (find-the-min, then relax); the dist array plus the visited set."
+          }
+        }
+      ],
+      "pitfalls": [
+        "Relax only unvisited nodes. A visited node's `dist` is already spent; letting it drop later corrupts the final `sum(dist)`.",
+        "`sum(dist)` is the answer precisely because `dist[i]` freezes at the moment `i` is picked, and `dist[0]` is 0. If either of those stops being true, the accumulator is wrong.",
+        "The start node is arbitrary. Any node gives a correct MST (possibly a different one of equal weight).",
+        "Negative weights are fine. Prim's compares edges; it never sums them into a path, so there's nothing for a negative edge to break. (This is the opposite of the shortest-path algorithms.)",
+        "Disconnected input ⟹ no spanning tree exists. 1584 can't hit this (a complete graph is always connected), but a general graph can: the min-picker would return a node whose `dist` is still ∞.",
+        "Ties don't matter. Any minimum-weight choice is fine; MSTs aren't unique when weights repeat."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 1584,
+          "title": "Min Cost to Connect All Points"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/prims_mst.md"
+    },
+    {
+      "id": "recursion",
+      "name": "Recursion & Call Stack Traversal",
+      "family": "recursion",
+      "tier": "core",
+      "whenToUse": "The structure is self-similar (a list is a node plus a smaller list; a tree is a root plus subtrees) and the work at each node is the same — let the call stack carry the position instead of an explicit loop.",
+      "signals": [
+        "Pipeline/Chain Construction",
+        "End-Relative Analytics"
+      ],
+      "picking": {
+        "feature": "Where the work sits relative to the recursive call is the whole decision: BEFORE it (head / pre-order) when the current node decides what comes next; AFTER it (tail / post-order) when you need the answer from the end first.",
+        "notWhen": [
+          {
+            "technique": "tree-dfs",
+            "because": "the structure is a TREE — same idea, but the pre / in / post vocabulary is the one to reason with"
+          },
+          {
+            "technique": "dynamic-programming",
+            "because": "the recursion revisits the same state — add a cache or the call tree explodes"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Head Recursion (Pre-Order Execution)",
+          "when": "Building structural pipelines forward, or executing state evaluations on the way down toward the base case.",
+          "code": "def mergeTwoLists(self, list1: ListNode, list2: ListNode) -> ListNode:\n    # Base Case: If either list runs out, return the remaining pool\n    if not list1: return list2\n    if not list2: return list1\n    \n    # WORK HAPPENS FIRST: Compare current head elements\n    if list1.val < list2.val:\n        # Delegate remaining pipeline structure to the next frame\n        list1.next = self.mergeTwoLists(list1.next, list2)\n        return list1 # Return current node as the confirmed segment head\n    else:\n        list2.next = self.mergeTwoLists(list1, list2.next)\n        return list2 # Return current node as the confirmed segment head",
+          "complexity": {
+            "time": "O(n + m)",
+            "space": "O(n + m)",
+            "why": "one frame per node of the merged output; the call stack is the extra space"
+          }
+        },
+        {
+          "title": "Tail Recursion (Post-Order Execution)",
+          "when": "Traversing to an unknown endpoint (like a tail pointer) first, then running evaluations backward relative to that end boundary.",
+          "code": "def removeNthFromEnd(self, head: ListNode, n: int) -> ListNode:\n    self.counter = 0 # Explicit global scope primitive to track return index\n    \n    def helper(node):\n        if not node: return None # Base case: plant flag at the absolute tail\n        \n        # DIVING PHASE: Push frames forward until tail boundary is reached\n        node.next = helper(node.next)\n        \n        # POPPING PHASE: This logic executes in reverse order on the way up\n        self.counter += 1 \n        if self.counter == n:\n            return node.next # Drop target node by returning its successor pointer\n            \n        return node # Preserve untouched structural links\n        \n    dummy = ListNode(0, head)\n    dummy.next = helper(head)\n    return dummy.next",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(n)",
+            "why": "walks to the tail then unwinds — every node costs one frame"
+          }
+        }
+      ],
+      "pitfalls": [
+        "No base case, or a base case placed after the recursive call — the stack overflows before it is ever checked",
+        "Putting the work before the call when the answer needs the tail first (or vice versa) — the order of those two lines IS the algorithm",
+        "Python's recursion limit (~1000 frames) — a 10⁴-node list needs the iterative form",
+        "Mutating shared state (a counter, a list) across frames without meaning to — pass it explicitly or hold it on `self` on purpose"
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 21,
+          "title": "Merge Two Sorted Lists"
+        },
+        {
+          "lcNumber": 19,
+          "title": "Remove Nth Node From End of List"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/recursion.md"
+    },
+    {
+      "id": "sliding-window",
+      "name": "Sliding Window",
+      "family": "sliding_window",
+      "tier": "core",
+      "whenToUse": "When a problem asks for the longest or shortest contiguous subarray or substring satisfying a condition, grow the right edge freely and shrink the left edge conditionally.",
+      "signals": [
+        "\"Contiguous subarray/substring\" + a constraint (≤ k distinct, sum, longest/shortest)",
+        "Subarray of explicit static width `K`",
+        "Longest contiguous substring criteria",
+        "Smallest window containing specific items"
+      ],
+      "picking": {
+        "feature": "A CONTIGUOUS run plus a condition that stays true (or false) as the window grows — that monotonicity is what lets the left edge only ever move right.",
+        "notWhen": [
+          {
+            "technique": "prefix-sum",
+            "because": "values can be negative, or the question is \"count subarrays summing to k\" — the window cannot decide which edge to move; use prefix totals + a hashmap"
+          },
+          {
+            "technique": "two-pointer",
+            "because": "the two indices are chosen from anywhere in a sorted array (a pair), not the two ends of one contiguous run"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Fixed Window Pattern",
+          "when": "Computing aggregate metrics across consecutive element windows of an exact static width k.",
+          "code": "def find_max_average(nums: list[int], k: int) -> float:\n    curr_sum = 0\n    # Initialize first window prefix sum\n    for i in range(k): curr_sum += nums[i]\n    max_sum = curr_sum\n    \n    for r in range(k, len(nums)):\n        curr_sum += nums[r] - nums[r - k]  # Add right, subtract left element\n        max_sum = max(max_sum, curr_sum)\n    return max_sum / k",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(1)",
+            "why": "each element is added once and subtracted once; a single running sum"
+          }
+        },
+        {
+          "title": "Dynamic Window (Max Variant)",
+          "when": "Seeking the maximum length sequence that satisfies a specific constraint configuration.",
+          "code": "def length_of_longest_substring(s: str) -> int:\n    seen = set()\n    l, max_len = 0, 0\n    for r in range(len(s)):\n        while s[r] in seen:\n            seen.remove(s[l])   # Evict left until window character is unique\n            l += 1\n        seen.add(s[r])\n        max_len = max(max_len, r - l + 1)  # Track global maximum distance\n    return max_len",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(min(n, Σ))",
+            "why": "`r` visits each index once and `l` never moves back — at most 2n steps; the set holds the window's distinct characters, bounded by the alphabet Σ"
+          }
+        },
+        {
+          "title": "Dynamic Window (Min Variant)",
+          "when": "Locating the smallest possible localized footprint that fulfills the mandatory requirements.",
+          "code": "def min_subarray_len(target: int, nums: list[int]) -> int:\n    l, total = 0, 0\n    min_len = float('inf')\n    for r in range(len(nums)):\n        total += nums[r]\n        while total >= target:  # Condition valid: aggressively shrink window\n            min_len = min(min_len, r - l + 1)\n            total -= nums[l]\n            l += 1\n    return 0 if min_len == float('inf') else min_len",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(1)",
+            "why": "the same two-edge sweep; only a running total is kept"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Updating the result inside the shrink loop instead of outside — misses valid states",
+        "Using a dict for counts but not deleting the key when count reaches zero — size check breaks",
+        "Conflating \"at most k\" vs \"exactly k\" — exactly k = (at most k) − (at most k−1)",
+        "Shrinking the window when it is already empty — guard with left <= right before shrinking"
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 643,
+          "title": "Maximum Average Subarray I"
+        },
+        {
+          "lcNumber": 3,
+          "title": "Longest Substring Without Repeating Characters"
+        },
+        {
+          "lcNumber": 209,
+          "title": "Minimum Size Subarray Sum"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/sliding_window.md"
+    },
+    {
+      "id": "topological-sort",
+      "name": "Topological Sort",
+      "family": "graphs",
+      "tier": "core",
+      "whenToUse": "A topological sort orders the nodes of a directed acyclic graph (DAG) so every edge u → v has u before v. It answers \"given dependencies, what's a valid order?\" — and, as a side effect, detects cycles (a cyclic graph has no valid ordering).",
+      "signals": [
+        "\"prerequisites\" / \"dependencies\" / \"build order\" / \"course schedule\"",
+        "\"can you finish all tasks given these constraints?\" (= is the graph a DAG?)",
+        "any \"do A before B\" ordering over a directed graph"
+      ],
+      "picking": {
+        "feature": "A DIRECTED dependency graph and the question is an order (or whether one exists) — every edge u → v is a \"u before v\" constraint, and a cycle means no answer.",
+        "notWhen": [
+          {
+            "technique": "union-find",
+            "because": "edges are undirected and the question is connectivity, not order"
+          },
+          {
+            "technique": "tree-bfs",
+            "because": "the question is fewest steps, not a valid ordering — plain BFS without the indegree bookkeeping"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Kahn's algorithm (BFS on indegrees)",
+          "when": "Repeatedly remove nodes with no remaining prerequisites (indegree 0).",
+          "code": "from collections import deque\nindeg = [0] * n\nadj = [[] for _ in range(n)]\nfor u, v in edges:            # edge u -> v  (u must come before v)\n    adj[u].append(v)\n    indeg[v] += 1\n\nq = deque(i for i in range(n) if indeg[i] == 0)\norder = []\nwhile q:\n    u = q.popleft()\n    order.append(u)\n    for v in adj[u]:\n        indeg[v] -= 1\n        if indeg[v] == 0:\n            q.append(v)\n\n# if len(order) < n → a cycle exists (some nodes never hit indegree 0)\nreturn order if len(order) == n else []",
+          "complexity": {
+            "time": "O(V + E)",
+            "space": "O(V + E)",
+            "why": "each node is enqueued once and each edge decremented once; adjacency lists plus the indegree array"
+          }
+        },
+        {
+          "title": "DFS postorder (reverse)",
+          "when": "Finish a node only after all its descendants; the reverse of finish order is a topo order.",
+          "code": "WHITE, GRAY, BLACK = 0, 1, 2\ncolor = [WHITE] * n\norder = []\ndef dfs(u):\n    color[u] = GRAY\n    for v in adj[u]:\n        if color[v] == GRAY:      # back edge → cycle\n            return False\n        if color[v] == WHITE and not dfs(v):\n            return False\n    color[u] = BLACK\n    order.append(u)               # postorder\n    return True\n# run dfs on every WHITE node; final answer is order reversed",
+          "complexity": {
+            "time": "O(V + E)",
+            "space": "O(V + E)",
+            "why": "every node and edge is visited once; the colour array plus the recursion stack"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Edge direction — `u -> v` means \"u before v,\" so `v` gets the indegree. Reversing this silently breaks everything.",
+        "Forgetting the cycle check — Kahn's: `len(order) < n`; DFS: the GRAY (in-progress) state. Without it you return a bogus partial order.",
+        "Disconnected graphs — seed Kahn's queue with all indegree-0 nodes; run DFS from every unvisited node."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 207,
+          "title": "Course Schedule"
+        },
+        {
+          "lcNumber": 210,
+          "title": "Course Schedule II"
+        },
+        {
+          "lcNumber": 269,
+          "title": "Alien Dictionary"
+        },
+        {
+          "lcNumber": 310,
+          "title": "Minimum Height Trees"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/topological_sort.md"
+    },
+    {
+      "id": "tree-bfs",
+      "name": "Tree BFS (Level-Order Traversal)",
+      "family": "trees",
+      "tier": "core",
+      "whenToUse": "Visit nodes level by level using a queue. The trick that makes \"per level\" work is snapshotting the queue length at the start of each level.",
+      "signals": [
+        "\"level order\" / \"group values by depth\"",
+        "shortest path / minimum depth (BFS finds the nearest first)",
+        "right/left side view, largest value per level, zigzag",
+        "anything \"by distance from the root\""
+      ],
+      "picking": {
+        "feature": "The question is PER LEVEL (widths, right-side view, zigzag) or FEWEST EDGES from the root — only a queue processes nodes in distance order.",
+        "notWhen": [
+          {
+            "technique": "tree-dfs",
+            "because": "the parent's answer depends on the children's (height, diameter, validate) — that is postorder, and BFS has no notion of \"children first\""
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Template — the level-size snapshot",
+          "code": "from collections import deque\n\ndef level_order(root):\n    if not root: return []\n    q = deque([root])\n    result = []\n    while q:\n        level = []\n        for _ in range(len(q)):     # snapshot: only THIS level's nodes\n            node = q.popleft()\n            level.append(node.val)\n            if node.left:  q.append(node.left)\n            if node.right: q.append(node.right)\n        result.append(level)\n    return result",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(w)",
+            "why": "each node is enqueued once; the queue holds one level at a time, up to the tree's maximum width w (≈ n/2 for a full tree)"
+          }
+        }
+      ],
+      "pitfalls": [
+        "`list.pop(0)` instead of `deque.popleft()` — `pop(0)` is O(n), making the whole traversal O(n²). Always use `collections.deque`.",
+        "Not snapshotting `len(q)` — if you loop `while q` without the inner `range(len(q))`, you can't tell where one level ends.",
+        "Forgetting the empty-root guard → `deque([None])` processes a phantom node."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 102,
+          "title": "Binary Tree Level Order Traversal"
+        },
+        {
+          "lcNumber": 199,
+          "title": "Binary Tree Right Side View"
+        },
+        {
+          "lcNumber": 515,
+          "title": "Find Largest Value in Each Tree Row"
+        },
+        {
+          "lcNumber": 111,
+          "title": "Minimum Depth of Binary Tree"
+        },
+        {
+          "lcNumber": 297,
+          "title": "Serialize and Deserialize Binary Tree"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/tree_bfs.md"
+    },
+    {
+      "id": "tree-dfs",
+      "name": "Tree DFS (Depth-First Traversal)",
+      "family": "trees",
+      "tier": "core",
+      "whenToUse": "Explore one branch fully before backtracking, via recursion (call stack) or an explicit stack. The order you process the node relative to its children — pre / in / post — is the whole choice.",
+      "signals": [
+        "compute a property that depends on children (height, balanced, diameter) → postorder",
+        "need parent context available before children → preorder",
+        "need sorted output from a BST, or validate BST → inorder"
+      ],
+      "picking": {
+        "feature": "The order is fixed by which way the information flows: POSTORDER when the parent's answer needs the children's answers first (height, balanced, diameter); INORDER when a BST must read out sorted (validate, kth-smallest).",
+        "notWhen": [
+          {
+            "technique": "tree-bfs",
+            "because": "the question is level-by-level or minimum depth — depth-first walks a whole branch before the next, so levels blur"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "The three orders (recursive)",
+          "code": "def pre(node):   # Root, Left, Right\n    if not node: return\n    visit(node); pre(node.left); pre(node.right)\n\ndef ino(node):   # Left, Root, Right   — BST inorder = sorted ascending\n    if not node: return\n    ino(node.left); visit(node); ino(node.right)\n\ndef post(node):  # Left, Right, Root   — child results ready before parent\n    if not node: return\n    post(node.left); post(node.right); visit(node)",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(h)",
+            "why": "every node is visited once; the recursion depth is the tree height h (n in the worst, skewed case)"
+          }
+        },
+        {
+          "title": "Common DFS shapes",
+          "code": "def height(node):                      # postorder\n    if not node: return 0\n    return 1 + max(height(node.left), height(node.right))\n\ndef is_valid_bst(node, lo=float('-inf'), hi=float('inf')):\n    if not node: return True\n    if not (lo < node.val < hi): return False\n    return (is_valid_bst(node.left, lo, node.val) and\n            is_valid_bst(node.right, node.val, hi))",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(h)",
+            "why": "the same single visit per node; the bounds passed down add O(1) per frame"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Missing the null base case → crash on leaf children.",
+        "Confusing \"depth returned upward\" with \"answer tracked globally\" — e.g. diameter is a local max at every node, separate from the height you return (543 trap).",
+        "Sentinel propagation — balanced-check returns `-1` for \"unbalanced\"; you must short-circuit on it before arithmetic (110 trap).",
+        "Recursion depth — O(h) stack; a skewed tree is O(n)."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 104,
+          "title": "Maximum Depth of Binary Tree"
+        },
+        {
+          "lcNumber": 110,
+          "title": "Balanced Binary Tree"
+        },
+        {
+          "lcNumber": 543,
+          "title": "Diameter of Binary Tree"
+        },
+        {
+          "lcNumber": 98,
+          "title": "Validate Binary Search Tree"
+        },
+        {
+          "lcNumber": 226,
+          "title": "Invert Binary Tree"
+        },
+        {
+          "lcNumber": 236,
+          "title": "Lowest Common Ancestor of a Binary Tree"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/tree_dfs.md"
+    },
+    {
+      "id": "two-pointer",
+      "name": "Two Pointers",
+      "family": "two_pointers",
+      "tier": "core",
+      "whenToUse": "Use two pointers on a sorted array or string when searching for a pair, triplet, or re-arranging elements in-place — it collapses an O(n²) nested search to O(n).",
+      "signals": [
+        "Sorted array + \"find a pair/triple summing to target\"",
+        "Sorted Sequence Pairs",
+        "Node Loop / Middle Node",
+        "In-place Content Removal"
+      ],
+      "picking": {
+        "feature": "Sorted (or sortable) input where moving ONE index in a known direction can only change the comparison one way — that monotonic response is what lets two indices replace a nested loop.",
+        "notWhen": [
+          {
+            "technique": "sliding-window",
+            "because": "the pair must be a contiguous RUN, not two arbitrary positions"
+          },
+          {
+            "technique": "binary-search",
+            "because": "you need one boundary index, not a pair"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Opposite Ends Pattern",
+          "when": "Finding pairs or checking symmetries in sorted structural constraints.",
+          "code": "def two_sum_sorted(numbers: list[int], target: int) -> list[int]:\n    l, r = 0, len(numbers) - 1\n    while l < r:\n        cur = numbers[l] + numbers[r]\n        if cur == target:\n            return [l + 1, r + 1]  # Return 1-indexed positions\n        elif cur < target:\n            l += 1  # Sum too small, move left pointer rightward\n        else:\n            r -= 1  # Sum too large, move right pointer leftward\n    return []",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(1)",
+            "why": "the pointers close by at least one step per iteration"
+          }
+        },
+        {
+          "title": "Fast & Slow Pointer Pattern (Tortoise and Hare)",
+          "when": "Detecting structural loops, intersections, or calculating dynamic midpoints.",
+          "code": "def has_cycle(head: Optional[ListNode]) -> bool:\n    slow, fast = head, head\n    while fast and fast.next:\n        slow = slow.next        # Moves 1 node at a time\n        fast = fast.next.next   # Moves 2 nodes at a time\n        if slow == fast:\n            return True         # Fast caught up to slow (cycle detected)\n    return False",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(1)",
+            "why": "fast traverses the list in at most n/2 steps; two references"
+          }
+        },
+        {
+          "title": "Separation Pattern",
+          "when": "Modifying arrays in-place while separating elements based on content.",
+          "code": "def remove_duplicates(nums: list[int]) -> int:\n    if not nums: return 0\n    slow = 0  # Points to the last unique element found\n    for fast in range(1, len(nums)):\n        if nums[fast] != nums[slow]:\n            slow += 1  # Move unique zone boundary\n            nums[slow] = nums[fast]  # Overwrite with new item\n    return slow + 1",
+          "complexity": {
+            "time": "O(n)",
+            "space": "O(1)",
+            "why": "fast scans once; slow only advances on a keeper — in place"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Applying two pointers to an unsorted array without sorting first — produces wrong results",
+        "Not skipping duplicate values in 3Sum — the output will contain duplicate triplets",
+        "Infinite loop from failing to advance a pointer after processing a match",
+        "Off-by-one: use left < right (not <=) when the pointers must not cross"
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 167,
+          "title": "Two Sum II - Input Array Is Sorted"
+        },
+        {
+          "lcNumber": 141,
+          "title": "Linked List Cycle"
+        },
+        {
+          "lcNumber": 26,
+          "title": "Remove Duplicates from Sorted Array"
+        },
+        {
+          "lcNumber": 75,
+          "title": "Sort Colors"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/two_pointer.md"
+    },
+    {
+      "id": "union-find",
+      "name": "Union-Find (Disjoint Set Union)",
+      "family": "graphs",
+      "tier": "core",
+      "whenToUse": "Union-Find tracks a partition of elements into disjoint groups, supporting two near-O(1) operations: find (which group is x in?) and union (merge two groups). With path compression + union by rank, both are effectively O(α(n)) ≈ O(1).",
+      "signals": [
+        "\"are these two connected?\" / \"how many connected components?\"",
+        "grouping / clustering elements as edges arrive (dynamic connectivity)",
+        "detecting a cycle in an undirected graph (union two already-connected nodes → cycle)",
+        "\"redundant connection,\" \"number of provinces,\" \"accounts merge\"",
+        "anything where you incrementally merge sets and query membership"
+      ],
+      "picking": {
+        "feature": "Edges arrive ONE AT A TIME, or the only question is \"are these two in the same group?\" — union-find answers it in near-O(1) per edge without ever walking the graph.",
+        "notWhen": [
+          {
+            "technique": "DFS/BFS",
+            "page": false,
+            "because": "the graph is given whole and you need to WALK it (a path, an order, levels) — group membership alone is not the question"
+          },
+          {
+            "technique": "topological-sort",
+            "because": "edges are directed and the question is order, not connectivity"
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Template",
+          "code": "parent = list(range(n))\nrank = [0] * n\n\ndef find(x):\n    while parent[x] != x:\n        parent[x] = parent[parent[x]]   # path compression (halving)\n        x = parent[x]\n    return x\n\ndef union(a, b):\n    ra, rb = find(a), find(b)\n    if ra == rb:\n        return False            # already connected → (for cycle detection) this edge is redundant\n    if rank[ra] < rank[rb]:\n        ra, rb = rb, ra\n    parent[rb] = ra\n    if rank[ra] == rank[rb]:\n        rank[ra] += 1\n    return True",
+          "complexity": {
+            "time": "O(α(n)) per op",
+            "space": "O(n)",
+            "why": "With path compression + union by rank, both find and union are effectively O(α(n)) ≈ O(1); the parent and rank arrays are the only state"
+          }
+        }
+      ],
+      "pitfalls": [
+        "Skipping path compression — without it, `find` degrades to O(n) and trees get tall.",
+        "Union without checking roots first — always `find` both and compare roots before merging.",
+        "1D index mapping for grids — flatten `(r, c)` → `r * cols + c`. Use `cols` (width) for the stride and `col` for the offset — mixing `rows`/`cols` here is the 130 typo trap.",
+        "Forgetting the dummy node — border/\"escape\" problems (130) union everything on the border to one extra sentinel node, then check who shares its root."
+      ],
+      "keyProblems": [
+        {
+          "lcNumber": 323,
+          "title": "Number of Connected Components in an Undirected Graph"
+        },
+        {
+          "lcNumber": 261,
+          "title": "Graph Valid Tree"
+        },
+        {
+          "lcNumber": 684,
+          "title": "Redundant Connection"
+        },
+        {
+          "lcNumber": 130,
+          "title": "Surrounded Regions"
+        },
+        {
+          "lcNumber": 547,
+          "title": "Number of Provinces"
+        }
+      ],
+      "docUrl": "https://github.com/michael-yrao/cse-coach/blob/main/docs/foundations/dsa/patterns/techniques/union_find.md"
+    }
+  ],
+  "decisionTree": {
+    "label": "What is the shape of the input?",
+    "children": [
+      {
+        "label": "Array / string",
+        "children": [
+          {
+            "label": "Sorted — or can you sort it?",
+            "children": [
+              {
+                "label": "Pair/triple summing to a target",
+                "reach": "two-pointer",
+                "reachLabel": "two pointers",
+                "note": "converge from ends"
+              },
+              {
+                "label": "\"Smallest/largest x that works\", or find a position",
+                "reach": "binary-search",
+                "reachLabel": "binary search",
+                "note": "min/max boundary"
+              }
+            ]
+          },
+          {
+            "label": "\"Contiguous subarray/substring\" + a constraint (≤ k distinct, sum, longest/shortest)",
+            "reach": "sliding-window",
+            "reachLabel": "sliding window",
+            "note": ""
+          },
+          {
+            "label": "\"Subarray sums to k\" / many range-sum queries",
+            "reach": "prefix-sum",
+            "reachLabel": "prefix sum",
+            "note": "+ hashmap"
+          },
+          {
+            "label": "\"Next greater/smaller\", spans, histogram, temperatures",
+            "reach": "monotonic-stack",
+            "reachLabel": "monotonic stack",
+            "note": ""
+          },
+          {
+            "label": "\"Max/min in every window of size k\"",
+            "reach": "monotonic-stack",
+            "reachLabel": "monotonic deque",
+            "note": ""
+          },
+          {
+            "label": "Values are `1..n`, find the missing / duplicate",
+            "reach": "cyclic sort",
+            "reachLabel": "cyclic sort",
+            "note": "",
+            "page": false
+          },
+          {
+            "label": "\"Majority element\" (> n/2 or > n/3)",
+            "reach": "Boyer-Moore voting",
+            "reachLabel": "Boyer-Moore voting",
+            "note": "",
+            "page": false
+          },
+          {
+            "label": "\"Kth largest / smallest\", \"top k\", \"k closest\"",
+            "children": [
+              {
+                "label": "O(n log k) is fine",
+                "reach": "heap",
+                "reachLabel": "heap",
+                "note": "",
+                "page": false
+              },
+              {
+                "label": "want O(n) average, no full sort",
+                "reach": "quickselect",
+                "reachLabel": "quickselect",
+                "note": "",
+                "page": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Intervals",
+        "children": [
+          {
+            "label": "\"Merge/insert overlapping\" (the answer is a set)",
+            "reach": "intervals",
+            "reachLabel": "sort by start, sweep",
+            "note": ""
+          },
+          {
+            "label": "\"Max that fit\" / \"min to remove\" / \"min arrows\" (the answer is a number)",
+            "reach": "intervals",
+            "reachLabel": "sort by end, greedy frontier",
+            "note": ""
+          }
+        ]
+      },
+      {
+        "label": "Linked list",
+        "children": [
+          {
+            "label": "\"Cycle?\", \"middle\", find the duplicate number",
+            "reach": "fast-slow-pointer",
+            "reachLabel": "fast & slow pointers",
+            "note": ""
+          },
+          {
+            "label": "\"Reverse\", reorder, palindrome",
+            "reach": "in-place-reversal",
+            "reachLabel": "in-place reversal",
+            "note": ""
+          },
+          {
+            "label": "Head may change (insert/delete at front, merge)",
+            "reach": "dummy-node",
+            "reachLabel": "dummy node",
+            "note": ""
+          }
+        ]
+      },
+      {
+        "label": "Tree",
+        "children": [
+          {
+            "label": "Property that depends on children (height, balanced, diameter)",
+            "reach": "tree-dfs",
+            "reachLabel": "DFS postorder",
+            "note": ""
+          },
+          {
+            "label": "BST \"sorted output\" or \"validate\"",
+            "reach": "tree-dfs",
+            "reachLabel": "DFS inorder",
+            "note": ""
+          },
+          {
+            "label": "\"Level by level\" / shortest # of steps",
+            "reach": "tree-bfs",
+            "reachLabel": "BFS",
+            "note": ""
+          }
+        ]
+      },
+      {
+        "label": "Graph (edges, a grid, or \"connected?\")",
+        "children": [
+          {
+            "label": "\"Connected?\", how many groups/components, cycle in an undirected graph",
+            "reach": "union-find",
+            "reachLabel": "union-find",
+            "note": ""
+          },
+          {
+            "label": "\"Prerequisites\", ordering, \"can you finish\" (a DAG)",
+            "reach": "topological-sort",
+            "reachLabel": "topological sort",
+            "note": ""
+          },
+          {
+            "label": "Shortest path — are the edges weighted?",
+            "children": [
+              {
+                "label": "unweighted / uniform cost",
+                "reach": "tree-bfs",
+                "reachLabel": "BFS",
+                "note": ""
+              },
+              {
+                "label": "weighted, non-negative",
+                "reach": "Dijkstra",
+                "reachLabel": "Dijkstra",
+                "note": "",
+                "page": false
+              },
+              {
+                "label": "negative weights, or ≤ k hops",
+                "reach": "Bellman-Ford",
+                "reachLabel": "Bellman-Ford",
+                "note": "",
+                "page": false
+              },
+              {
+                "label": "every pair of nodes",
+                "reach": "floyd-warshall",
+                "reachLabel": "Floyd-Warshall",
+                "note": ""
+              }
+            ]
+          },
+          {
+            "label": "Cheapest way to connect every node (MST)",
+            "reach": "prims-mst",
+            "reachLabel": "Prim's",
+            "note": ""
+          }
+        ]
+      },
+      {
+        "label": "A stream (values arrive one at a time)",
+        "children": [
+          {
+            "label": "\"Running median\"",
+            "reach": "two heaps",
+            "reachLabel": "two heaps",
+            "note": "",
+            "page": false
+          }
+        ]
+      },
+      {
+        "label": "No structure stands out — what is the ask?",
+        "children": [
+          {
+            "label": "\"All\" subsets / permutations / combinations, \"find every way\"",
+            "reach": "backtracking",
+            "reachLabel": "backtracking",
+            "note": ""
+          },
+          {
+            "label": "Min / max / count ways, with overlapping subproblems",
+            "reach": "dynamic-programming",
+            "reachLabel": "DP",
+            "note": ""
+          }
+        ]
+      }
+    ]
+  }
+}

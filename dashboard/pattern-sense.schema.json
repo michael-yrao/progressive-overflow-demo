@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://progressiveoverflow.com/schemas/pattern-sense.v1.json",
+  "title": "cse-coach Pattern Sense weekly deck contract",
+  "description": "The weekly recognition deck emitted by scripts/pattern_sense.py from dashboard/pattern_sense.yml and techniques.yml, consumed by the progressiveoverflow.com Pattern Sense 'This week' tab. `families` is sorted by id and each `techniques` list is in techniques.yml order: these arrays are the chip order, and a 1-based index in the results code (`PS1 <week> <vocabHash> <n>:<f>/<t> ...`) indexes `families` (step 1) or the correct family's `techniques` (step 2). `vocabHash` is the first 6 hex chars of sha256 over the lines `id:tech|tech` joined by newlines. With no deck, `week` is null and `problems` is empty. No slug, title, URL or tag is ever present: a title spoils the technique.",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "week", "vocabHash", "families", "problems"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "generatedAt": { "type": "string", "format": "date" },
+    "week": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "The deck's Monday, or null when no deck exists." },
+    "vocabHash": { "type": "string", "pattern": "^[0-9a-f]{6}$" },
+    "families": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "techniques"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "techniques": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "problems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["lcNumber", "prompt", "constraints", "family", "technique", "cue"],
+        "additionalProperties": false,
+        "properties": {
+          "lcNumber": { "type": "integer", "minimum": 1 },
+          "prompt": { "type": "string", "minLength": 1 },
+          "constraints": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "family": { "type": "string", "minLength": 1 },
+          "technique": { "type": "string", "minLength": 1 },
+          "cue": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

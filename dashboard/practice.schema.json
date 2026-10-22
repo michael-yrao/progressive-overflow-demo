@@ -1,0 +1,184 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://progressiveoverflow.com/schemas/practice.v1.json",
+  "title": "cse-coach practice-runner contract",
+  "description": "The data contract emitted by scripts/export_practice.py from the hand-authored specs in dsa/tests/, and consumed by the progressiveoverflow.com practice page, which runs the viewer's Python in the browser against the stored cases. It carries inputs and expected outputs only: no reference solution is published, and no technique or pattern name appears anywhere in it. schemaVersion is bumped on any breaking change so a viewer can refuse an incompatible file. The specs are validated by `export_practice.py --check`; a malformed spec is a hard failure there, never a silently dropped problem.",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "problems"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "generatedAt": { "type": "string", "format": "date" },
+    "problems": {
+      "type": "array",
+      "description": "One entry per spec file, sorted by `number`.",
+      "items": { "$ref": "#/definitions/problem" }
+    }
+  },
+  "definitions": {
+    "problem": {
+      "type": "object",
+      "required": ["number", "title", "url", "statement", "stub", "entry", "compare", "cases"],
+      "properties": {
+        "number": { "type": "integer", "minimum": 1, "description": "The problem number, unique across the file and equal to the spec filename's leading number." },
+        "title": { "type": "string" },
+        "url": { "type": "string", "description": "The judge's problem page." },
+        "statement": { "type": ["string", "null"], "description": "Plain-text statement, examples and constraints included. null when the spec has none." },
+        "stub": { "type": "string", "description": "The blank starting code. Begins with the typing import and runs unmodified." },
+        "entry": {
+          "type": "object",
+          "description": "What the driver calls: `className().method(*args)`.",
+          "required": ["className", "method"],
+          "properties": {
+            "className": { "type": "string", "minLength": 1 },
+            "method": { "type": "string" }
+          }
+        },
+        "compare": {
+          "type": "string",
+          "enum": ["exact", "unordered", "unordered-nested", "unordered-inner"],
+          "description": "How a returned value is matched to `expected`: exact = equal as is; unordered = top-level list order ignored; unordered-nested = top-level order ignored and each inner list's order ignored; unordered-inner = each inner list's order ignored, outer order fixed."
+        },
+        "figure": {
+          "description": "Optional. Names which `args` of a case hold a graph's edge list or a grid, so the site can draw each example's input. null when the problem has none.",
+          "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/figure" }]
+        },
+        "types": {
+          "description": "Optional. Names the codec that builds each argument and decodes the result, for a problem whose values are not plain JSON (a linked list, a tree, a graph). null when the problem is plain JSON.",
+          "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/types" }]
+        },
+        "result": {
+          "description": "Optional. Where the value to check lives: the return value, or an argument the function mutates. null compares the return value.",
+          "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/result" }]
+        },
+        "signature": {
+          "type": "string",
+          "description": "Optional. The method's typed signature, e.g. `strs: List[str] -> str`. The site's guard does not read it."
+        },
+        "decodeSignature": {
+          "type": "string",
+          "description": "Optional. The signature of a round-trip spec's decode half. The site's guard does not read it."
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "description": "At least one case has `example: true`.",
+          "items": { "$ref": "#/definitions/case" }
+        }
+      }
+    },
+    "types": {
+      "type": "object",
+      "description": "Per-argument codecs and the result codec.",
+      "required": ["args"],
+      "properties": {
+        "args": {
+          "type": "array",
+          "description": "One entry per argument: the codec that builds it, or null for plain JSON. `number-inf` and `list-node-ref` only decode a result, so they are not allowed here.",
+          "items": { "oneOf": [{ "type": "null" }, { "enum": ["list-node", "list-node-cycle", "list-node-list", "random-list", "tree-node", "tree-value", "graph-node"] }] }
+        },
+        "result": {
+          "description": "The codec that decodes the returned value, or null for plain JSON. `list-node-ref` decodes a returned node to its 0-based index among the nodes built for the first `list-node` / `list-node-cycle` arg.",
+          "oneOf": [{ "type": "null" }, { "enum": ["list-node", "list-node-cycle", "random-list", "tree-node", "tree-value", "graph-node", "number-inf", "list-node-ref"] }]
+        }
+      }
+    },
+    "result": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Check the return value.",
+          "required": ["kind"],
+          "properties": { "kind": { "const": "return" } }
+        },
+        {
+          "type": "object",
+          "description": "Check an argument the function mutates (arg), or a prefix of it (arg-prefix).",
+          "required": ["kind", "index"],
+          "properties": {
+            "kind": { "enum": ["arg", "arg-prefix"] },
+            "index": { "type": "integer", "minimum": 0, "description": "Index into a case's args." }
+          }
+        }
+      ]
+    },
+    "figure": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Graph from an edge list; nodeCountArg adds isolated nodes.",
+          "required": ["kind", "directed", "edgesArg"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "graph" },
+            "directed": { "type": "boolean" },
+            "highlight": { "const": "expected" },
+            "edgesArg": { "type": "integer", "minimum": 0, "description": "Index into a case's args: the edge list, [u, v] or [u, v, w]." },
+            "nodeCountArg": { "type": ["integer", "null"], "minimum": 0, "description": "Index into a case's args: the node count, so isolated nodes are drawn." },
+            "nodesArg": { "type": "integer", "minimum": 0, "description": "Index into a case's args: the node list." }
+          }
+        },
+        {
+          "type": "object",
+          "description": "Graph from a square matrix.",
+          "required": ["kind", "directed", "matrixArg"],
+          "additionalProperties": false,
+          "not": { "required": ["edges", "highlight"] },
+          "properties": {
+            "kind": { "const": "graph" },
+            "directed": { "const": false },
+            "highlight": { "const": "expected" },
+            "edges": { "const": "expected", "description": "Draw only the pairs in a case's expected answer, labeled from the matrix; absent draws lines from the input. Not together with highlight." },
+            "matrixArg": { "type": "integer", "minimum": 0, "description": "Index into a case's args: a square matrix." }
+          }
+        },
+        {
+          "type": "object",
+          "description": "Graph from an adjacency list; oneBased when node labels start at 1.",
+          "required": ["kind", "directed", "adjArg"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "graph" },
+            "directed": { "type": "boolean" },
+            "highlight": { "const": "expected" },
+            "adjArg": { "type": "integer", "minimum": 0, "description": "Index into a case's args: the adjacency list." },
+            "oneBased": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "gridArg"],
+          "properties": {
+            "kind": { "const": "grid" },
+            "gridArg": { "type": "integer", "minimum": 0, "description": "Index into a case's args: the matrix." }
+          }
+        }
+      ]
+    },
+    "case": {
+      "type": "object",
+      "required": ["args", "expected", "example"],
+      "properties": {
+        "args": { "type": "array", "description": "Positional arguments, JSON values only." },
+        "expected": { "description": "The expected return value, any JSON value. A mapping whose only key is `anyOf`, holding a non-empty list, matches any one of its entries under the problem's compare mode; in an ops case an element of the expected list may be such a mapping." },
+        "example": { "type": "boolean", "description": "True for a case taken from the statement's own examples." },
+        "judge": {
+          "type": "object",
+          "description": "Optional. Judge APIs to bind as globals before the call, name to integer, e.g. `{isBadVersion: 4}`. Not an argument.",
+          "additionalProperties": { "type": "integer" }
+        },
+        "figureCells": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Optional, on an example case of a grid figure. [row, column] cells the figure draws as found.",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "type": "integer" }
+          }
+        }
+      }
+    }
+  }
+}

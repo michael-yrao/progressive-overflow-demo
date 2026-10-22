@@ -1,0 +1,38 @@
+# Competitive-style application backlog — a PULL POOL, not a checklist.
+# Pull from it AFTER knowledge expansion (Tier 2 / competitive), gated by the
+# Tier-2 technique each problem exercises. Near-zero interview payoff; this is
+# competitive-programming growth. Log each pull in dsa_progress.md.
+pillar: dsa
+kind: application_backlog
+phase: expansion_tier2
+groups:
+  - name: Graph & flow
+    problems:
+      - { number: 1595, title: "Minimum Cost to Connect Two Groups of Points", technique: "bitmask DP / min-cost matching" }
+      - { number: 1820, title: "Maximum Number of Accepted Invitations", technique: "bipartite matching" }
+      - { number: 1697, title: "Checking Existence of Edge Length Limited Paths", technique: "offline queries + union-find" }
+      - { number: 1489, title: "Find Critical and Pseudo-Critical Edges in MST", technique: "MST + edge classification" }
+  - name: Trees & LCA
+    problems:
+      - { number: 1483, title: "Kth Ancestor of a Tree Node", technique: "binary lifting" }
+      - { number: 2846, title: "Minimum Edge Weight Equilibrium Queries in a Tree", technique: "LCA + path aggregation" }
+      - { number: 2836, title: "Maximize Value of Function in a Ball Passing Game", technique: "functional-graph binary lifting" }
+  - name: Range structures
+    problems:
+      - { number: 1157, title: "Online Majority Element in Subarray", technique: "sqrt decomposition / segment" }
+      - { number: 2213, title: "Longest Substring of One Repeating Character", technique: "segment tree with merge info" }
+      - { number: 699, title: "Falling Squares", technique: "coordinate compression + segment tree" }
+  - name: Strings (deep end)
+    problems:
+      - { number: 1044, title: "Longest Duplicate Substring", technique: "suffix array / binary search + rolling hash" }
+      - { number: 1032, title: "Stream of Characters", technique: "Aho-Corasick" }
+      - { number: 3008, title: "Find Beautiful Indices in the Given Array II", technique: "Z-algorithm / KMP" }
+  - name: DP optimizations
+    problems:
+      - { number: 1547, title: "Minimum Cost to Cut a Stick", technique: "interval DP (Knuth candidate)" }
+      - { number: 1000, title: "Minimum Cost to Merge Stones", technique: "interval DP with step constraint" }
+      - { number: 1994, title: "The Number of Good Subsets", technique: "SOS / subset DP" }
+beyond_leetcode: >
+  For topics with thin LeetCode coverage (persistent structures, treaps, heavy
+  flow), move to Codeforces (Div. 2 C–E), AtCoder (ABC/ARC), or USACO. The tracker
+  still owns spaced repetition regardless of source.

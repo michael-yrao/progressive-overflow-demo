@@ -1,0 +1,51 @@
+name: Commit and push
+description: Stages every change by name, commits through the repo's pre-commit hook and pushes. Reports whether anything landed.
+
+inputs:
+  message:
+    description: Commit message
+    required: true
+
+outputs:
+  pushed:
+    description: "'true' when a commit was pushed, otherwise 'false'"
+    value: ${{ steps.publish.outputs.pushed }}
+
+runs:
+  using: composite
+  steps:
+    - name: Commit and push
+      id: publish
+      shell: bash
+      env:
+        MESSAGE: ${{ inputs.message }}
+      run: |
+        echo 'pushed=false' >> "$GITHUB_OUTPUT"
+        if [ -z "$(git status --porcelain)" ]; then
+          echo 'Nothing changed.'
+          exit 0
+        fi
+
+        # Stage each changed path by name; the checkout was clean, so every change is ours.
+        # An entry with a blank worktree column is already fully staged (git rm / git mv).
+        git status --porcelain -z | while IFS= read -r -d '' entry; do
+          path="${entry:3}"
+          status="${entry:0:2}"
+          case "$status" in
+            R*|C*) IFS= read -r -d '' _origin ;;
+          esac
+          if [ "${status:1:1}" = ' ' ]; then
+            continue
+          fi
+          git add -- "$path"
+        done
+
+        if git diff --cached --quiet; then
+          echo 'Nothing staged.'
+          exit 0
+        fi
+
+        git commit -m "$MESSAGE"
+
+        git pull --rebase && git push || { git pull --rebase && git push; }
+        echo 'pushed=true' >> "$GITHUB_OUTPUT"

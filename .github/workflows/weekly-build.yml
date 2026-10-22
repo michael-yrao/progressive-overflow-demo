@@ -1,0 +1,100 @@
+name: Weekly build
+
+# Builds the next week's schedule when automation.weekly_build is on, commits it through the repo's
+# pre-commit hook, pushes, then tells the site. A refused build fails the job and pushes nothing.
+
+on:
+  schedule:
+    - cron: '7 * * * 0,1'
+    - cron: '7 */6 * * 2-6'
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-build
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !github.event.repository.is_template }}
+    runs-on: ubuntu-latest
+    outputs:
+      pushed: ${{ steps.publish.outputs.pushed }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Check the repo is onboarded
+        id: onboarded
+        run: |
+          if [ -f cse.config.yml ]; then
+            echo 'ok=true' >> "$GITHUB_OUTPUT"
+          else
+            echo '::notice::not onboarded (no cse.config.yml)'
+            echo 'ok=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.onboarded.outputs.ok == 'true'
+        uses: ./.github/actions/engine-setup
+
+      - name: Check the switch
+        id: gate
+        if: steps.onboarded.outputs.ok == 'true'
+        run: |
+          enabled="$(python scripts/config_value.py automation.weekly_build --default false)"
+          if [ "$enabled" = 'true' ]; then
+            echo 'on=true' >> "$GITHUB_OUTPUT"
+          else
+            echo '::notice::weekly build is off'
+            echo 'on=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build the week
+        if: steps.gate.outputs.on == 'true'
+        env:
+          EARLY_FLAG: ${{ github.event_name == 'workflow_dispatch' && '--early' || '' }}
+        run: |
+          set -o pipefail
+          python scripts/build_week.py $EARLY_FLAG 2>&1 | tee "$RUNNER_TEMP/build.log"
+          python scripts/build_week.py --top-up 2>&1 | tee -a "$RUNNER_TEMP/build.log"
+
+      - name: Job summary
+        if: steps.gate.outputs.on == 'true'
+        run: |
+          {
+            echo '### Weekly build'
+            echo '```'
+            grep -E '^(built|topped-up|skipped|refused):' "$RUNNER_TEMP/build.log" || echo 'nothing built'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build commit message
+        id: message
+        if: steps.gate.outputs.on == 'true'
+        run: |
+          date=$(grep -oE '^built: [0-9]{4}-[0-9]{2}-[0-9]{2}' "$RUNNER_TEMP/build.log" | head -n 1 | sed 's/^built: //' || true)
+          topped=$(grep -oE '^topped-up: [1-9][0-9]* rows into [0-9]{4}-[0-9]{2}-[0-9]{2}' "$RUNNER_TEMP/build.log" | head -n 1 | sed 's/^.* into //' || true)
+          if [ -n "$date" ]; then
+            echo 'built=true' >> "$GITHUB_OUTPUT"
+            echo "text=chore(schedule): week of ${date}" >> "$GITHUB_OUTPUT"
+          elif [ -n "$topped" ]; then
+            echo 'built=true' >> "$GITHUB_OUTPUT"
+            echo "text=chore(schedule): top up week of ${topped}" >> "$GITHUB_OUTPUT"
+          else
+            echo 'built=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - id: publish
+        if: steps.message.outputs.built == 'true'
+        uses: ./.github/actions/commit-push
+        with:
+          message: ${{ steps.message.outputs.text }}
+
+  notify:
+    needs: build
+    if: needs.build.outputs.pushed == 'true'
+    uses: ./.github/workflows/notify-site.yml
+    secrets: inherit

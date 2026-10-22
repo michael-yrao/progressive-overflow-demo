@@ -1,0 +1,277 @@
+# DSA milestone curriculum — NeetCode 150, undated.
+# The bootstrap projects these phases onto real dates from start_date using each
+# phase's difficulty_tier → tier_pace (new problems/week). Ordering is the standard
+# NeetCode learning order (each phase leans on the prior). Tier = milestone
+# (interview foundation, above the ROI line).
+#
+# DIFFICULTY TIER drives intake pace — this is the single knob for how fast a phase
+# is taken on. Harder categories default to FEWER new/week because of the "blank tax":
+# a new problem in a hard category almost always logs 🔴 on first exposure (a new
+# algorithm per problem), and every 🔴 spawns a +2-day retry that eats a warmup slot,
+# so one hard new problem is really ~3 slots over its first fortnight. Capping harder
+# phases lower keeps that cascade from starving the review backlog. To re-pace a phase,
+# change its `difficulty_tier` (or set an explicit `pace_per_week:` to override). Mirrors
+# the learner config `new_problem_intake`.
+pillar: dsa
+tier: milestone
+roi: above_line
+tier_pace:                 # new problems/week by difficulty tier (override per-phase with pace_per_week)
+  moderate: 5              # pattern reused across problems; first attempt often 🟡 not 🔴
+  hard:     4              # a new algorithm per problem (graphs, backtracking); first try ~🔴
+  hardest:  3              # DP and the like — hardest + slowest, highest blank rate
+default_pace_per_week: 5   # fallback when a phase names no tier
+
+phases:
+  - name: Arrays & Hashing
+    folder: arrays_and_hash
+    difficulty_tier: moderate
+    problems:
+      - { number: 217, title: "Contains Duplicate", difficulty: Easy }
+      - { number: 242, title: "Valid Anagram", difficulty: Easy }
+      - { number: 1, title: "Two Sum", difficulty: Easy }
+      - { number: 49, title: "Group Anagrams", difficulty: Medium }
+      - { number: 347, title: "Top K Frequent Elements", difficulty: Medium }
+      - { number: 271, title: "Encode and Decode Strings", difficulty: Medium }
+      - { number: 238, title: "Product of Array Except Self", difficulty: Medium }
+      - { number: 36, title: "Valid Sudoku", difficulty: Medium }
+      - { number: 128, title: "Longest Consecutive Sequence", difficulty: Medium }
+
+  - name: Two Pointers
+    folder: two_pointers
+    difficulty_tier: moderate
+    problems:
+      - { number: 125, title: "Valid Palindrome", difficulty: Easy }
+      - { number: 167, title: "Two Sum II", difficulty: Medium }
+      - { number: 15, title: "3Sum", difficulty: Medium }
+      - { number: 11, title: "Container With Most Water", difficulty: Medium }
+      - { number: 42, title: "Trapping Rain Water", difficulty: Hard }
+
+  - name: Sliding Window
+    folder: sliding_window
+    difficulty_tier: moderate
+    problems:
+      - { number: 121, title: "Best Time to Buy and Sell Stock", difficulty: Easy }
+      - { number: 3, title: "Longest Substring Without Repeating Characters", difficulty: Medium }
+      - { number: 424, title: "Longest Repeating Character Replacement", difficulty: Medium }
+      - { number: 567, title: "Permutation in String", difficulty: Medium }
+      - { number: 76, title: "Minimum Window Substring", difficulty: Hard }
+      - { number: 239, title: "Sliding Window Maximum", difficulty: Hard }
+
+  - name: Stack
+    folder: stack
+    difficulty_tier: moderate
+    problems:
+      - { number: 20, title: "Valid Parentheses", difficulty: Easy }
+      - { number: 155, title: "Min Stack", difficulty: Medium }
+      - { number: 150, title: "Evaluate Reverse Polish Notation", difficulty: Medium }
+      - { number: 22, title: "Generate Parentheses", difficulty: Medium }
+      - { number: 739, title: "Daily Temperatures", difficulty: Medium }
+      - { number: 853, title: "Car Fleet", difficulty: Medium }
+      - { number: 84, title: "Largest Rectangle in Histogram", difficulty: Hard }
+
+  - name: Binary Search
+    folder: binary_search
+    difficulty_tier: moderate
+    problems:
+      - { number: 704, title: "Binary Search", difficulty: Easy }
+      - { number: 74, title: "Search a 2D Matrix", difficulty: Medium }
+      - { number: 875, title: "Koko Eating Bananas", difficulty: Medium }
+      - { number: 153, title: "Find Minimum in Rotated Sorted Array", difficulty: Medium }
+      - { number: 33, title: "Search in Rotated Sorted Array", difficulty: Medium }
+      - { number: 981, title: "Time Based Key-Value Store", difficulty: Medium }
+      - { number: 4, title: "Median of Two Sorted Arrays", difficulty: Hard }
+
+  - name: Linked List
+    folder: linked_list
+    difficulty_tier: moderate
+    problems:
+      - { number: 206, title: "Reverse Linked List", difficulty: Easy }
+      - { number: 21, title: "Merge Two Sorted Lists", difficulty: Easy }
+      - { number: 143, title: "Reorder List", difficulty: Medium }
+      - { number: 19, title: "Remove Nth Node From End of List", difficulty: Medium }
+      - { number: 138, title: "Copy List with Random Pointer", difficulty: Medium }
+      - { number: 2, title: "Add Two Numbers", difficulty: Medium }
+      - { number: 141, title: "Linked List Cycle", difficulty: Easy }
+      - { number: 287, title: "Find the Duplicate Number", difficulty: Medium }
+      - { number: 146, title: "LRU Cache", difficulty: Medium }
+      - { number: 23, title: "Merge k Sorted Lists", difficulty: Hard }
+      - { number: 25, title: "Reverse Nodes in k-Group", difficulty: Hard }
+
+  - name: Trees
+    folder: trees
+    difficulty_tier: moderate
+    problems:
+      - { number: 226, title: "Invert Binary Tree", difficulty: Easy }
+      - { number: 104, title: "Maximum Depth of Binary Tree", difficulty: Easy }
+      - { number: 543, title: "Diameter of Binary Tree", difficulty: Easy }
+      - { number: 110, title: "Balanced Binary Tree", difficulty: Easy }
+      - { number: 100, title: "Same Tree", difficulty: Easy }
+      - { number: 572, title: "Subtree of Another Tree", difficulty: Easy }
+      - { number: 235, title: "Lowest Common Ancestor of a BST", difficulty: Medium }
+      - { number: 102, title: "Binary Tree Level Order Traversal", difficulty: Medium }
+      - { number: 199, title: "Binary Tree Right Side View", difficulty: Medium }
+      - { number: 1448, title: "Count Good Nodes in Binary Tree", difficulty: Medium }
+      - { number: 98, title: "Validate Binary Search Tree", difficulty: Medium }
+      - { number: 230, title: "Kth Smallest Element in a BST", difficulty: Medium }
+      - { number: 105, title: "Construct Binary Tree from Preorder and Inorder", difficulty: Medium }
+      - { number: 124, title: "Binary Tree Maximum Path Sum", difficulty: Hard }
+      - { number: 297, title: "Serialize and Deserialize Binary Tree", difficulty: Hard }
+
+  - name: Tries
+    folder: tries
+    difficulty_tier: moderate
+    problems:
+      - { number: 208, title: "Implement Trie (Prefix Tree)", difficulty: Medium }
+      - { number: 211, title: "Design Add and Search Words Data Structure", difficulty: Medium }
+      - { number: 212, title: "Word Search II", difficulty: Hard }
+
+  - name: Heap / Priority Queue
+    folder: heap
+    difficulty_tier: moderate
+    problems:
+      - { number: 703, title: "Kth Largest Element in a Stream", difficulty: Easy }
+      - { number: 1046, title: "Last Stone Weight", difficulty: Easy }
+      - { number: 973, title: "K Closest Points to Origin", difficulty: Medium }
+      - { number: 215, title: "Kth Largest Element in an Array", difficulty: Medium }
+      - { number: 621, title: "Task Scheduler", difficulty: Medium }
+      - { number: 355, title: "Design Twitter", difficulty: Medium }
+      - { number: 295, title: "Find Median from Data Stream", difficulty: Hard }
+
+  - name: Backtracking
+    folder: backtracking
+    difficulty_tier: hard
+    problems:
+      - { number: 78, title: "Subsets", difficulty: Medium }
+      - { number: 39, title: "Combination Sum", difficulty: Medium }
+      - { number: 46, title: "Permutations", difficulty: Medium }
+      - { number: 90, title: "Subsets II", difficulty: Medium }
+      - { number: 40, title: "Combination Sum II", difficulty: Medium }
+      - { number: 79, title: "Word Search", difficulty: Medium }
+      - { number: 131, title: "Palindrome Partitioning", difficulty: Medium }
+      - { number: 17, title: "Letter Combinations of a Phone Number", difficulty: Medium }
+      - { number: 51, title: "N-Queens", difficulty: Hard }
+
+  - name: Graphs
+    folder: graphs
+    difficulty_tier: hard
+    problems:
+      - { number: 200, title: "Number of Islands", difficulty: Medium }
+      - { number: 133, title: "Clone Graph", difficulty: Medium }
+      - { number: 695, title: "Max Area of Island", difficulty: Medium }
+      - { number: 417, title: "Pacific Atlantic Water Flow", difficulty: Medium }
+      - { number: 130, title: "Surrounded Regions", difficulty: Medium }
+      - { number: 994, title: "Rotting Oranges", difficulty: Medium }
+      - { number: 286, title: "Walls and Gates", difficulty: Medium }
+      - { number: 207, title: "Course Schedule", difficulty: Medium }
+      - { number: 210, title: "Course Schedule II", difficulty: Medium }
+      - { number: 684, title: "Redundant Connection", difficulty: Medium }
+      - { number: 323, title: "Number of Connected Components in an Undirected Graph", difficulty: Medium }
+      - { number: 261, title: "Graph Valid Tree", difficulty: Medium }
+      - { number: 127, title: "Word Ladder", difficulty: Hard }
+
+  - name: Advanced Graphs
+    folder: advanced_graphs
+    # hard -> hardest (Jul 26, 2026). Evidence-driven and category-inherent, not
+    # learner-specific: this is a NEW ALGORITHM PER PROBLEM (Dijkstra, Bellman-Ford,
+    # Prim/MST, Hierholzer, Floyd-Warshall) at a DP-level blank rate, so the +2 retry
+    # cascade collides with review-saturated weeks. Keep intake at 3 so blanks settle.
+    difficulty_tier: hardest
+    problems:
+      - { number: 332, title: "Reconstruct Itinerary", difficulty: Hard }
+      - { number: 1584, title: "Min Cost to Connect All Points", difficulty: Medium }
+      - { number: 743, title: "Network Delay Time", difficulty: Medium }
+      - { number: 778, title: "Swim in Rising Water", difficulty: Hard }
+      - { number: 269, title: "Alien Dictionary", difficulty: Hard }
+      - { number: 787, title: "Cheapest Flights Within K Stops", difficulty: Medium }
+      # --- Added Jul 26, 2026 under "ROI promotes to the curriculum" (SKILL.md §5).
+      # NC150 is the FLOOR of the high-ROI set, not its ceiling. Both are non-NC150.
+      - { number: 1334, title: "Find the City With the Smallest Number of Neighbors", difficulty: Medium, class: new_technique, note: "Floyd-Warshall. Closes a FAMILY gap, not just adds a problem: shortest path has four cases and NC150 covers three (BFS unweighted, Dijkstra non-negative, Bellman-Ford negatives/hop-cap) with all-pairs entirely absent. ~5 lines — the cheapest algorithm in the whole graph block." }
+      - { number: 721, title: "Accounts Merge", difficulty: Medium, class: new_technique, note: "Perennial interview problem where Union-Find MECHANICS are the easy half and the MODELING is the test (the node is an email, not an account). Mechanics are already covered by 323/684/261; this exercises the step they don't." }
+      # --- Consolidation reps (SKILL.md §5): another problem in a technique already at 🟡+.
+      # Separate <=2/wk budget, NOT against the difficulty cap. With 743 + 778 these give four
+      # Dijkstra-family problems whose differences are what recognition grades: cost-as-sum,
+      # cost-as-max, multiplicative-and-maximizing, hop-capped.
+      - { number: 1631, title: "Path With Minimum Effort", difficulty: Medium, class: consolidation, requires: [778], note: "Dijkstra where path cost is a MAX over edges, not a sum (minimax path). Initially declined as 'near-duplicate of 778' and reversed the same day — similarity to a solved problem argues FOR scheduling, since the minor difference is the training signal." }
+      - { number: 1514, title: "Path with Maximum Probability", difficulty: Medium, class: consolidation, requires: [743, 787], note: "Relaxation that MULTIPLIES and MAXIMIZES instead of adding and minimizing — proves the relaxation step isn't about addition but about a monotonic combine." }
+
+  - name: 1-D Dynamic Programming
+    folder: 1d_dynamic_programming
+    difficulty_tier: hardest
+    problems:
+      - { number: 70, title: "Climbing Stairs", difficulty: Easy }
+      - { number: 746, title: "Min Cost Climbing Stairs", difficulty: Easy }
+      - { number: 198, title: "House Robber", difficulty: Medium }
+      - { number: 213, title: "House Robber II", difficulty: Medium }
+      - { number: 5, title: "Longest Palindromic Substring", difficulty: Medium }
+      - { number: 647, title: "Palindromic Substrings", difficulty: Medium }
+      - { number: 91, title: "Decode Ways", difficulty: Medium }
+      - { number: 322, title: "Coin Change", difficulty: Medium }
+      - { number: 152, title: "Maximum Product Subarray", difficulty: Medium }
+      - { number: 139, title: "Word Break", difficulty: Medium }
+      - { number: 300, title: "Longest Increasing Subsequence", difficulty: Medium }
+      - { number: 416, title: "Partition Equal Subset Sum", difficulty: Medium }
+
+  - name: 2-D Dynamic Programming
+    folder: 2d_dynamic_programming
+    difficulty_tier: hardest
+    problems:
+      - { number: 62, title: "Unique Paths", difficulty: Medium }
+      - { number: 1143, title: "Longest Common Subsequence", difficulty: Medium }
+      - { number: 309, title: "Best Time to Buy and Sell Stock with Cooldown", difficulty: Medium }
+      - { number: 518, title: "Coin Change II", difficulty: Medium }
+      - { number: 494, title: "Target Sum", difficulty: Medium }
+      - { number: 97, title: "Interleaving String", difficulty: Medium }
+      - { number: 329, title: "Longest Increasing Path in a Matrix", difficulty: Hard }
+      - { number: 115, title: "Distinct Subsequences", difficulty: Hard }
+      - { number: 72, title: "Edit Distance", difficulty: Medium }
+      - { number: 312, title: "Burst Balloons", difficulty: Hard }
+      - { number: 10, title: "Regular Expression Matching", difficulty: Hard }
+
+  - name: Greedy
+    folder: greedy
+    difficulty_tier: moderate
+    problems:
+      - { number: 53, title: "Maximum Subarray", difficulty: Medium }
+      - { number: 55, title: "Jump Game", difficulty: Medium }
+      - { number: 45, title: "Jump Game II", difficulty: Medium }
+      - { number: 134, title: "Gas Station", difficulty: Medium }
+      - { number: 846, title: "Hand of Straights", difficulty: Medium }
+      - { number: 1899, title: "Merge Triplets to Form Target Triplet", difficulty: Medium }
+      - { number: 763, title: "Partition Labels", difficulty: Medium }
+      - { number: 678, title: "Valid Parenthesis String", difficulty: Medium }
+
+  - name: Intervals
+    folder: intervals
+    difficulty_tier: moderate
+    problems:
+      - { number: 57, title: "Insert Interval", difficulty: Medium }
+      - { number: 56, title: "Merge Intervals", difficulty: Medium }
+      - { number: 435, title: "Non-overlapping Intervals", difficulty: Medium }
+      - { number: 252, title: "Meeting Rooms", difficulty: Easy }
+      - { number: 253, title: "Meeting Rooms II", difficulty: Medium }
+      - { number: 1851, title: "Minimum Interval to Include Each Query", difficulty: Hard }
+
+  - name: Math & Geometry
+    folder: math_and_geometry
+    difficulty_tier: moderate
+    problems:
+      - { number: 48, title: "Rotate Image", difficulty: Medium }
+      - { number: 54, title: "Spiral Matrix", difficulty: Medium }
+      - { number: 73, title: "Set Matrix Zeroes", difficulty: Medium }
+      - { number: 202, title: "Happy Number", difficulty: Easy }
+      - { number: 66, title: "Plus One", difficulty: Easy }
+      - { number: 50, title: "Pow(x, n)", difficulty: Medium }
+      - { number: 43, title: "Multiply Strings", difficulty: Medium }
+      - { number: 2013, title: "Detect Squares", difficulty: Medium }
+
+  - name: Bit Manipulation
+    folder: bit_manipulation
+    difficulty_tier: moderate
+    problems:
+      - { number: 136, title: "Single Number", difficulty: Easy }
+      - { number: 191, title: "Number of 1 Bits", difficulty: Easy }
+      - { number: 338, title: "Counting Bits", difficulty: Easy }
+      - { number: 190, title: "Reverse Bits", difficulty: Easy }
+      - { number: 268, title: "Missing Number", difficulty: Easy }
+      - { number: 371, title: "Sum of Two Integers", difficulty: Medium }
+      - { number: 7, title: "Reverse Integer", difficulty: Medium }

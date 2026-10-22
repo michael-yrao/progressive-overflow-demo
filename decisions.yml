@@ -1,0 +1,1685 @@
+# Engine decisions — the dated record of when the model CHANGED.
+#
+# This is the other half of `cse.config.yml`. The config says what the values ARE; this says
+# when and why they became that, and it is what rule files reconcile against.
+#
+# ── Why this file exists ──────────────────────────────────────────────────────────────────
+# Rules go stale silently, and not because their vocabulary drifts — because their PREMISE
+# expires. `feedback_unseen_on_non_sd_days` was entirely correct given "an SD day costs 3.0
+# units against the day". When that stopped being true on Aug 16, 2026, nothing connected the
+# two, and the rule kept reading as current for a day until a full manual audit found it.
+#
+# Two detectors were built first and neither can catch that class:
+#   - a retired-VOCABULARY list only catches the spellings it was handed. It had `daily_cap`
+#     and not "daily cap", so eight live instances of a superseded rule sat unflagged.
+#   - the restated-VALUE check matches the CURRENT config value, so a line asserting a STALE
+#     one (`ceiling 9.0`) is structurally invisible to it.
+#
+# Both failures are failures of WORDS. A date cannot be misspelled, and every rule file
+# already has one — so a temporal check starts COMPLETE: nothing can be silently absent.
+#
+# ── How it works ──────────────────────────────────────────────────────────────────────────
+# Each rule file carries `reconciled: YYYY-MM-DD` in its frontmatter. A rule whose
+# `reconciled` date predates a decision below has NOT been read against that decision.
+# `scripts/reconcile.py` reports those; bumping the date is the explicit act of saying
+# "I read this rule against that decision, and it is either still right or now fixed."
+#
+# ⚠️ `reconciled` is a DELIBERATE field, never `git log -1` on the file. Git mtime measures
+# "was edited", not "was re-examined" — a typo fix would have marked the most broken file in
+# the repo as current. That distinction is the whole reason this is not automated.
+#
+# ⚠️ This does not remove the audit work. It makes it VISIBLE and TRACKED instead of
+# invisible, which was the actual failure: nobody knew the backlog existed.
+#
+# ── What belongs here ─────────────────────────────────────────────────────────────────────
+# Decisions that can STRAND A RULE — a changed value, a retired concept, a moved boundary.
+# NOT every new rule: adding one stands on its own and invalidates nothing. If in doubt, ask
+# "could a rule written before this still read as correct while now being wrong?"
+
+decisions:
+  - id: close-out-commit-authorization
+    date: 2026-09-14
+    summary: >-
+      NARROWS the absolute "ask before every commit AND push, no exceptions" (feedback_commit_discipline,
+      set Aug 16 after the 31-commit run). The learner granted a scoped exception: an EXPLICIT
+      close-out-and-publish instruction — "close out the day/session/week", "wrap up and commit/push" —
+      IS standing authorization to commit AND push with no per-action confirmation; the agent does the
+      pre-commit sweep (git status · restore_history.py · update_review_dates) and reports what landed.
+      Why it does not reopen the 31-commit hole: that failure was AGENT JUDGEMENT (inferring a "natural
+      breakpoint"); this trigger is the LEARNER'S EXPLICIT PHRASE, which is not agent discretion — the
+      same premise-expired reversal as advance-prompt-tail. Carve-outs still force an ask: an unrated rep,
+      an unsettled schedule/structural decision, a weekly close-out whose build isn't done (gate 7 first),
+      an odd git state, or any irreversible action beyond an ordinary commit+push (delete, force-push,
+      history rewrite). A vague close-out ("call it a night") still only reports done. Normative sentence
+      moved into CLAUDE.md gate 8. Also: kickoff_scaffold_reminder.py now excludes this phrase family, so
+      "close monday session" no longer false-fires the kickoff gate (verified). No cse.config.yml value
+      changed. Strands any rule still reading "a close-out is never permission." See self_eval_log 2026-09-14.
+    affects: [commit_discipline, kickoff, weekly_build]
+
+  - id: probe-local-file-link
+    date: 2026-09-14
+    summary: >-
+      CORRECTS the prior "a recognition probe stays UNLINKED (a link spoils it)" wording. Only the
+      LC/NC (problem-page) link spoils — its topic tags/editorial name the technique, which is the one
+      thing the probe measures. The LOCAL file link does NOT: the dsa/probes/<n>_<snake>.py path names
+      the problem, not the technique, and the learner must open the file to do the rep. New rule: a probe
+      carries its LOCAL file link ONLY, never LC/NC — the inverse of the normal [file]·[LC] pair.
+      Enforced at the source: new_problem.py grew a --probe mode (writes the blind file to dsa/probes/,
+      outside solutions.roots so no tracker row, and prints the local link only); scaffold_links_reminder.py
+      gained a probe branch (asks for the local link only, not "both"); problem_link_reminder.py's Stop
+      message updated. Cause: the over-strict "unlinked" rule left the learner asking for the probe's file
+      link 3× on Sep 14. No cse.config.yml value changed. Strands the "probe stays unlinked" wording in any
+      rule file predating this. See self_eval_log 2026-09-14, dsa/probes/README.md.
+    affects: [scaffolding, lineup_links]
+
+  - id: kickoff-scaffold-gate
+    date: 2026-09-13
+    summary: >-
+      The "a real kickoff scaffolds the whole day's board before presenting it" rule was PROMOTED
+      out of the reference tier (references/scaffolding.md, an opt-in read) to hook + always-on gate.
+      Cause: the multi-skill migration moved it off always-injected CLAUDE.md into scaffolding.md,
+      whose open-trigger presumes the decision to scaffold, so a session-start greeting never reached
+      it — presented-not-scaffolded on Sep 12 ("start saturday session") and again Sep 13 ("let's do
+      our sunday session"); the Sep 12 note-in-the-same-cold-tier fix lapsed in a day. Now enforced by
+      a UserPromptSubmit hook (kickoff_scaffold_reminder.py, warn-only, regex-matches kickoff phrasing)
+      AND stated as gate 9 in CLAUDE.md + gate 7 in session_start_memory.py's ALWAYS_ON block.
+      scaffolding.md keeps the mechanics + scope nuance but is no longer the sole home of the trigger.
+      No cse.config.yml value changed. See self_eval_log.md 2026-09-13.
+    affects: [scaffolding, scheduling, weekly_build]
+
+  - id: ai-pillar-revived-deferred
+    date: 2026-09-12
+    summary: >-
+      REVISITS `ai-track-removed` (Aug 13): AI Engineering returns as a planned THIRD pillar, but
+      PARKED behind a measured trigger — not started now. Learner's calls this session: (1) DEFER
+      until DSA lightens (Backtracking opened Sep 14, DP runs Oct–Nov — the heaviest phase — and the
+      SD pillar already fills the starved "evening" slot, so there is no additive capacity now);
+      (2) GOAL = interview prep, so the path front-loads evals (02/04) → RAG (03) → agents (05) →
+      ml-system-design (10), NOT linear 00→12; (3) start at ~1 notebook/week on activation, with an
+      explicit cadence RAMP for BOTH AI and SD as DSA load drops. Design mirrors the SD pillar
+      (off-board, UNPRICED, cadence-driven, learner-does/coach-assesses, own tracker). The recorded
+      cause of the original removal — "a plan nobody executed" — is defended against three ways:
+      every AI rep is an ACTIVE scored+spaced artifact (run the notebook + a modification/eval the
+      coach probes cold, reusing the SD drills), not a reading checkbox; the activation trigger has a
+      real firing mechanism (a weekly-build checklist step, not a paragraph); and the path is a
+      prioritized subset, not a 40-notebook march. Trigger (measured, not a date): DP/Backtracking
+      phases closed AND effort_budget.py shows ≥2 days/week well under the ceiling for 2 consecutive
+      weeks. Resource: github.com/calmrocks/ai-engineer-notebooks (public — tracker lives in-repo under
+      docs/foundations/ai_engineering/, no private-SD-study-repo-style privacy split). NOT built yet (single-
+      source / no-premature-scaffold): the skill reference, the ai_progress tracker, and any
+      cse.config.yml cadence key — added at activation when they hold live values. Spec parked in
+      docs/foundations/ai_engineering/ROADMAP.md + project_ai_pillar.md.
+    supersedes: [ai-track-removed]
+    affects: [tracks, system_design, scheduling, weekly_build]
+
+  - id: no-summary-layer-advance-tail-hook
+    date: 2026-09-12
+    summary: >-
+      Considered adding an in-session context-truncation / summary layer to guard against
+      within-session degradation (a rule stated early in a session lapsing later — lost-in-the-middle).
+      DECLINED. The harness already auto-compacts; a bespoke summary fights the tiered design
+      (docs/ARCHITECTURE.md) and degrades the very coaching nuance it would try to preserve; and LITM
+      is cured by keeping hot context SMALL + re-injecting load-bearing rules POSITION-INDEPENDENTLY
+      (hooks), not by compressing the middle. The repo's own 2026-08-02 meta-review already measured
+      this: memory-paragraph rules recurred 7/9, source fixes held 4/4, hooks held. A within-session
+      lapse is just the coldest case — a rule living only in hot chat. So the within-session defense
+      is the existing Stop hooks, which re-fire EVERY turn regardless of conversation position. One
+      fragile-but-mechanizable root was promoted off the prose rung accordingly: the ADVANCE-PROMPT
+      TAIL ("Code it.", "ready for the next one?", "on to 271"), which recurred 4+× as prose
+      (`pace-flat-discipline` / feedback_let_learner_pace) → now a Stop-hook detector
+      `advance_prompt_tail()` added to problem_link_reminder.py (already wired on Stop, no settings
+      change). It inspects only the turn's FINAL short sentence, so the required complexity/recognition
+      gate prompts and genuine rep questions stay clean; 14 self-test cases pass. This adds an
+      enforcement tier to an existing rule; it strands no rule and changes no tuned value.
+    affects: [let_learner_pace, turn_economy, hooks, operating_principles]
+
+  - id: self-eval-loop-fires-and-routes
+    date: 2026-09-10
+    summary: >-
+      The self-evaluation meta-review now FIRES (it was an unfired paragraph, 40 days overdue):
+      session_start_memory.py computes days-since-last-meta-review + an open count of entries dated AFTER
+      that review, and injects a "META-REVIEW OVERDUE" banner past thresholds in cse.config.yml
+      (self_eval.meta_review_days / .open_threshold). The intervention ladder's "numbered step" rung now
+      routes by trigger: a coaching-moment rule → a skill reference (loads at that moment), an unprompted one
+      → CLAUDE.md; the meta-review's promotion step is an EDIT to that layer, not another memory note.
+      Also folded ~6 operational orphans that were memory-only into their skill references (SD drills
+      quantify_qualify/hld_altitude/coverage_gap_ledger/expand_acronyms → system-design.md; explanation_register
+      → SKILL §1; recommend_by_number → scaffolding; dsa_before_sd → weekly-build), leaving each memory file as
+      the why. Follows the memory de-convolution (73→51 files) done the same day.
+    affects: [self_evaluation, operating_principles, system_design, teaching, scaffolding, weekly_build, reconcile]
+
+  - id: skill-layer-in-intervention-ladder
+    date: 2026-09-10
+    summary: >-
+      The coaching engine moved out of the always-injected CLAUDE.md into a repo-local skill
+      (.claude/skills/cse-coach/SKILL.md + references/), loaded only at coaching moments; CLAUDE.md
+      dropped 899→168 lines / 70KB→~10KB and now carries only always-on gates, the register rules,
+      single-source, decisions/reconcile, the token-discipline cap, and pointers. The intervention
+      ladder's "numbered step" rung is now split by trigger: a COACHING-MOMENT rule goes in a skill
+      reference (loads reliably at that moment); a CROSS-CUTTING / unprompted rule stays in CLAUDE.md
+      (injected every turn). Skill files carry `reconciled:` (SKILL.md in frontmatter, references in an
+      HTML comment) and are in reconcile.py RULE_GLOBS + check_single_source.py PROSE_GLOBS, so a future
+      decision flags a stale reference and a restated tuned value is caught there too. The self-evaluation
+      LOOP itself stays where it was (SessionStart hook gates 2/3 + feedback_self_evaluation.md) — it is
+      not a coaching moment; only its distilled lessons live as dated warnings inside the references.
+      Not an upstream sync: cse-progress had drifted ahead of canonical cse-coach and uses different
+      paths, so the skill was authored from this repo's own current CLAUDE.md.
+    affects: [operating_principles, self_evaluation, single_source, reconcile, scaffolding, review_workflow, effort_budget, weekly_build, technique_coverage, system_design]
+
+  - id: complexity-probe-drill
+    date: 2026-09-06
+    summary: >-
+      NEW standing drill (pinned Sep 2, decided Sep 6): the cold complexity probe. The coach fires an
+      already-solved 🟢/🎓 problem during a warmup; the learner states time + space COLD on the existing
+      code, with the why — no re-solving, no new file. Cadence ~2 per warmup-week, woven into warmups
+      (rides free like the recognition gate). Disposable: only a MISS is carded (in the new probe ledger
+      in complexity_gotchas.md) and re-queued; a repeated same-category miss escalates to a teach.
+      Distinct from the end-of-week clean-code cleanup queue (that re-asks a bound missed on a clean-code
+      rep THIS week; the probe fires cold on any mature problem to keep the miss-cluster categories fresh).
+      Learner picked "2/warmup-week, ledger-tracked" over a weekly batch of 5. Mechanism lives in
+      complexity_gotchas.md.
+    affects: [complexity_gate, complexity_gotchas, weekly_build]
+
+  - id: grid-bfs-not-thinned
+    date: 2026-09-06
+    summary: >-
+      Considered thinning the Grid BFS cluster (200, 130, 417, 733) after the learner read it as
+      over-tested (417 greened to s2 Sep 6). DECLINED — leave it. The cluster is already nearly free:
+      733 is 🎓, 200/130 are s2, the whole cluster generates ~0.17 reps/week, so thinning saves almost
+      nothing. "Over-tested" is a feeling; the cost is near-zero because the members are mature. 417 (s2)
+      graduates itself on its next clean and can retire normally. Fast-tracking 417 to 🎓 was separately
+      refused — the coverage gate needs a HARDER same-technique sibling on the normal ladder and none
+      exists (all Grid-BFS problems are Medium/Easy).
+    affects: [scheduling, ratings]
+
+  - id: greedy-backtracking-overlap
+    date: 2026-09-06
+    summary: >-
+      Greedy sub-track (Intervals + Greedy phase) runs one week long: 45/763/134/846 land Sep 7–13, and
+      the last two (1899 Merge Triplets, 678 Valid Parenthesis String) carry into the Sep 14 week as they
+      come due. Backtracking OPENS ON SCHEDULE Sep 14 (22 Generate Parentheses first) — it is not delayed
+      for two easy greedy carries, since it is Hard/dense and a delay pushes the whole roadmap (incl. DP,
+      Oct–Nov) back. So Greedy and Backtracking overlap for the Sep 14 week. Phase dates are advisory
+      (feedback_phase_dates_are_advisory) — a normal carry, not a slip.
+    affects: [scheduling, curriculum]
+
+  - id: four-sum-retired-redundant-with-3sum
+    date: 2026-09-06
+    summary: >-
+      18. Four Sum retired. Learner solves it with a set instead of the intended
+      two-pointer-after-sort form, which collapses it into a re-run of 3Sum's pattern
+      plus a wrapper loop rather than a distinct rep — no new recognition or execution
+      challenge over 3Sum. Row dropped, not deferred; no trigger to bring it back unless
+      a set-based approach becomes the thing worth drilling.
+    affects: [dsa_progress, scheduling]
+
+  - id: complexity-cleanup-formalized
+    date: 2026-09-03
+    summary: >-
+      FORMALIZES the provisional complexity-miss-off-rep-drill (Sep 2). The clean-code complexity
+      waiver is now a standing rule, not a per-rep override: when recognition AND code were clean off
+      a blank page and the ONLY miss was a Big-O bound, the miss does NOT cap the comfort rating (rate
+      on the code) — it is instead queued for an END-OF-WEEK COMPLEXITY CLEANUP, where the coach
+      re-asks the bound cold on the existing code at the weekly close-out (no re-solving). Clean →
+      clear; missed again → escalate to a complexity teach on that category. Scope is exactly clean
+      code + Big-O miss; a complexity miss alongside a code fix keeps the normal freebie→🟡 cap.
+      Learner: "we do an end of week cleanup for clean code and big O misses only." Rationale: the code
+      rep and the complexity concept are different learning units; re-repping clean code to re-test a
+      concept is churn. Mechanism: cleanup-queue table in complexity_gotchas.md (rule 4); close-out
+      step in CLAUDE.md workflow step 7; why in feedback_ask_complexity. First applied to 743 (space
+      heap-O(E) attribution, logged 🟢 🟡→🟢, queued).
+    supersedes: [complexity-miss-off-rep-drill]
+    affects: [complexity_gate, ratings, complexity_gotchas, feedback_ask_complexity, weekly_closeout]
+
+  - id: familiarity-discounting
+    date: 2026-09-03
+    summary: >-
+      Effort pricing now discounts for demonstrated familiarity, in three composed layers:
+      (A) streak-graded green base (🟢 s0 1.0 → s1 0.8 → s2 0.6 → 🎓 0.5), (B) earned
+      difficulty demotion (a proven 🟢 s2+/🎓 problem prices one tier easier — a worn Hard
+      bills like a Medium), (C) attempt-count decay for CHRONIC 🔴/🟡 only (≥5 attempts,
+      −5%/attempt, floored at −30%). Prompted by the learner: a Hard doesn't feel like 3.0
+      or 4.5 after many attempts. Guardrails: no ordering inversion, and conversion pressure
+      on fresh (<5-attempt) blanks is untouched. New keys in cse.config.yml under
+      effort_budget: green_streak_units, difficulty_demotion, attempt_decay. All routed
+      through effort_budget.py's single price() function. Library demand fell ~5.4 → 4.5
+      units/day at adoption. The ceiling stays 8.0 — this re-prices demand, not quality.
+    affects: [effort_budget, scheduling]
+
+  - id: complexity-miss-off-rep-drill
+    date: 2026-09-02
+    summary: >-
+      POLICY SET BY LEARNER (provisional — to be formally DESIGNED at the Sep 7 build, not yet
+      wired): a complexity miss no longer caps a comfort rating when recognition AND code were
+      clean off a blank page. The recurring miss is a complexity CONCEPT (e.g. string-is-not-O(1),
+      bounded-state-space word-vs-bit), not the problem's code — re-repping clean code to re-test
+      the concept is churn. The concept is instead drilled OFF-REP via a planned cold "complexity
+      probe" (fire code -> learner gives T/S cold, no writing; tracked in complexity_gotchas.md,
+      disposable). First applied to 127 (over-learned code, waiver) then generalized on 202 Happy
+      Number (space O(1) missed, cued) at the learner's explicit call. ⚠️ SUPERSEDES the
+      freebie/repeat 🟡-cap rule from feedback_ask_complexity FOR THE clean-code case ONLY — until
+      Sep 7 this is a per-rep learner override recorded in the ledger, NOT yet a rewritten gate.
+      The rating gate + freebie rule still stand as written until the build formalizes this.
+    affects: [complexity_gate, ratings, complexity_gotchas, feedback_ask_complexity, probes]
+
+  - id: stack-expression-ladder-parked
+    date: 2026-08-31
+    summary: >-
+      224 Basic Calculator is PARKED beside 227, for the same reason: both were authored to
+      justify their own base (150), never frequency-pulled. The Stack-expression 2nd problem
+      is now 394 Decode String (Google pull, freq 58.3), and both parked rungs re-gate on
+      `rated:394`. Applies coverage-sibling-pulled-not-authored to the rungs already in the
+      plan, not just to future ones.
+    affects: [scheduling, waiting_room, consolidation_reps]
+
+  - id: interval-flavours-declared
+    date: 2026-08-28
+    summary: >-
+      "Intervals (sort + sweep)" now declares five VARIANTS keyed by sort key + answer shape
+      (merge-by-start, insert-into-sorted, schedule-by-end, max-concurrent sweep-line,
+      two-list intersection), and min_problems moves 3 -> 5. Before this the technique
+      declared no variants at all, so the coverage report read "3 (56,57,435)" with the bar
+      met and could not surface a breadth gap even in principle. The two uncovered flavours
+      are queued on green:435 / green:56 rather than scheduled -- the technique is zero-green
+      across all three problems it has.
+    affects: [technique_coverage, techniques_vocabulary, intervals]
+
+  - id: sibling-gate-yellow-not-green
+    date: 2026-08-23
+    summary: >-
+      A thin-technique coverage sibling now gates on the standard 🟡+ consolidation gate, NOT on
+      `green:base`. Learner: "for the techniques without proper coverage, we can drop the gate on
+      another problem being green." The `green:base` hold (224 on green:150, Floyd Fast/Slow on
+      green:202) over-tightened: for a thin technique a second problem is another path to the
+      technique's FIRST 🟢 and trains transfer that re-repping one problem can't, so gating coverage
+      behind the base going green can deadlock a technique stuck at 🟡. ONE guard retained (what
+      green:base was a blunt proxy for): a HEAVILY coach-guided 🟡 — near-🔴, multiple coach-supplied
+      fixes per the stuck_log — counts as 🔴 for sibling purposes, convert/teach first (§2a: a sibling
+      on an unlearned base just double-blanks). Effect: 224/227 (Stack-expr, 150 clean-🟡) and Floyd
+      Fast/Slow (Cycle, 202 🟡) unblock; 239 Monotonic Deque (3 coach fixes Aug 22) stays gated.
+      Recorded in techniques.yml (Floyd Fast/Slow trigger) and feedback_consolidation_reps.
+    affects: [consolidation, coverage, waiting_room, techniques_yml]
+
+  - id: binary-search-two-axes
+    date: 2026-08-30
+    summary: >-
+      Binary-search vocabulary restructured into TWO INDEPENDENT AXES, replacing a taxonomy that
+      was asymmetric and hid a gap. AXIS 1 (what you converge on): exact match | min boundary |
+      max boundary. AXIS 2 (what you search over): the array | the answer space. A problem is
+      listed under one entry per axis it exercises — the schema already allowed this (74 sat in
+      two entries before the change). THE DEFECT: `Binary Search (max boundary)` was already
+      keyed on the BIAS and already spanned both search spaces (74 array-space, 1552
+      answer-space), but the min side was not keyed that way at all — its answer-space half sat
+      in `Binary Search on Answer` and its array-space half was never named, diffused through a
+      generic seven-problem `Binary Search` bucket that also held the exact-match problems. So
+      coverage reported "Binary Search: 7 problems, healthy" and was structurally unable to
+      answer "how many min-boundary reps do I have?" — the identical failure the Aug 17
+      max-boundary note describes, mirrored onto the other bias. CHANGES: generic `Binary Search`
+      split into `Binary Search (exact match)` (704, 33) and `Binary Search (min boundary)` (153,
+      2300, 162, 540, 875, 1011); `Binary Search on Answer` KEPT as the second axis rather than
+      folded in (learner: "keep as second axis, harder problems typically have more than just one
+      axis" — recognizing you must MANUFACTURE the search space is a distinct recognition skill
+      from knowing which bias to use once you have one) and gains 1552, which is answer-space with
+      the MAX bias and whose absence was what made that axis read as a min-only concern. 875/1011
+      are min-boundary practice regardless of searching the answer space — the learner's point,
+      and why they are listed on both axes. 540 placed on min boundary at the learner's call
+      (first index where pair-start parity breaks — a predicate boundary, never a target compare).
+      FOUND when 153 graduated Aug 30 and the learner asked for coverage on both boundaries.
+      EFFECT ON THE BOARD: max boundary is the real gap at 1/3 (74 only — 34 and 1552 are queued
+      but untracked, so they do not yet count); min boundary reads 6 and healthy, confirming the
+      learner's intuition that it is the default form. 34 and 1552 were already seated for the
+      Aug 31 week and closing them also takes `on Answer` to 3/3.
+    affects: [techniques_yml, coverage, recognition]
+
+  - id: coverage-sibling-pulled-not-authored
+    date: 2026-08-29
+    summary: >-
+      The candidate POPULATION for a coverage sibling is a company frequency pull first
+      (`pull_interview.py --technique <t>`); author or hand-pick only if the pull does not yield
+      enough coverage. Learner: "let's make sure the population comes from company pulls first and
+      then we can reach for others if there is not enough coverage" — clarified as meaning the pool
+      that provides a TECHNIQUE's coverage, not intake generally. feedback_consolidation_reps
+      specified WHEN a technique needs another problem and was silent on WHERE it comes from, so the
+      source defaulted to coach invention. Found via 227 Basic Calculator II: never in NC150, never
+      in a pull, entered Aug 11 solely to justify 150 Evaluate RPN after the learner rejected it
+      ("it's the base rung under 224/227/772") — a thin problem generating its own sequel. The
+      learner independently reached the same verdict two weeks later ("feels like a brain teaser
+      than an actual technique check"). COROLLARY, the sharper half: if a rung exists only to
+      justify the problem below it, re-examine the RUNG — do not schedule the sequel. This is
+      EXEMPT from feedback_expansion_pull_scheduling's post-NC150 gate, which governs filling
+      application slots, not sourcing a sibling. Effect: 227 parked (trigger = rated:<pulled
+      Stack-expr sibling>, scaffold deleted so discovery mints no phantom row); 224 flagged for
+      re-examination rather than seated by default.
+    affects: [consolidation, coverage, waiting_room, pull_interview, study_guide]
+
+  - id: fill-capacity-with-weak-coverage
+    date: 2026-08-23
+    summary: >-
+      When built days sit UNDER the daily ceiling, fill toward it with weak-technique work BEFORE
+      deferring that work to a later week — priority order: zero-green conversions & their coverage
+      siblings > thin-green fills > backlog. Learner: days at 7.0 felt light while zero-green coverage
+      sat deferred to the next week. Prefer ADDING a new sibling problem over pulling an existing
+      review forward (trains transfer + a fresh 🟢 path, no interval shortening). The ≤2/week
+      consolidation cap may be flexed up when the tracker is under-subscribed (headroom) and the extra
+      intake targets zero-green/thin techniques — the cap guards an over-subscribed tracker, not an
+      under-subscribed one. Recorded in feedback_surplus_triggered_intake.
+    affects: [scheduling, effort_budget, consolidation, weekly_build]
+
+  - id: rating-gate-hook
+    date: 2026-08-23
+    summary: >-
+      New Stop hook `.claude/hooks/rating_gate.py`, at the learner's request ("put a clear gate at
+      the rating where it requires code completion + time and space complexities given"). It blocks a
+      turn that PROPOSES a comfort rating (comfort marker + a proposal cue like "confirm?"/"→ Sep 2")
+      when the learner has not stated BOTH time and space complexity in their recent messages. Binds
+      the complexity gate to the exact moment it kept failing — the rating proposal — after that gate
+      was run backwards twice (15 on Aug 22, 127 on Aug 23: rating proposed with an axis missing).
+      Rung-2 fix (hook) above the rung-4 memory note. Checks the LEARNER's transcript, not a
+      self-asserted checklist (ungameable). Detection is keyword-based per axis (no Big-O-count credit,
+      which misfires when both O()s are one axis — the 127 case); accepted conservative cost is a single
+      block on an axis stated only as a bare O() with no word, which the re-send clears (stop_hook_active).
+      Does NOT check correctness of the bound or the freebie ledger — those stay judgement. Wired into
+      settings.json Stop alongside problem_link_reminder. See feedback_ask_complexity (ledger-read-before-rating).
+    affects: [complexity_gate, rating, hooks]
+
+  - id: link-orphan-reemit-fix
+    date: 2026-08-23
+    summary: >-
+      Two changes to stop a hook-forced link re-emit from reading as a directive (learner: "are you
+      linking 901 because you want me to do it first?"). (1) Behavioral, the real fix: in prose, refer
+      to a problem by name/role, never a loose number — a number appears only inside its [file]·[LC]
+      pair — so the Stop link hook never fires mid-turn and no context-free orphan is created. (2) Hook
+      backup: problem_link_reminder.py's block message now permits the fixed tag "(links owed, order
+      unchanged)" on a forced re-emit so a debt-payment can't be misread as a pick. Recorded in
+      feedback_kickoff_table_links.
+    affects: [links, hooks]
+
+  - id: technique-comfort-audit
+    date: 2026-08-22
+    summary: >-
+      New weekly artifact `mastery/technique_comfort_audit.md` and generator
+      `scripts/technique_comfort_audit.py`, at the learner's request. A technique-keyed
+      PROGRESSION view (distinct from technique_coverage.md, which is gap-keyed): per-technique
+      comfort = demonstrated ceiling, auto-rolled from the tracker by reusing the coverage join;
+      coverage counts temper it; WHY-lines are hand-authored and PRESERVED across regens; and a
+      FUTURE section lists roadmap algorithms not yet started (⚪) with a why, preserved verbatim
+      between markers. Refreshed at the weekly build (step 7), NOT the pre-commit hook — it is a
+      weekly artifact and per-commit churn would fight the preserved narrative. Adds nothing to the
+      engine's computed values; it is a reporting surface only, so no rule written before it can go
+      stale because of it. Carries a generated "Needs work" callout at the top (zero-green weakest-first,
+      then thin-green) that is the weekly build's PULL-ORDER source, with the priority ruling:
+      🔴/🟡 conversions > overdue 🟢 cleans > thin-green fills + probes — a zero-green technique outranks
+      discretionary work and fresh cleans, but NOT a clean aged far past its interval (that is a
+      retention risk that makes new demand and must still be serviced).
+    affects: [weekly_build, technique_coverage, reporting, effort_budget]
+
+  - id: recognition-block-removed-from-scaffold
+    date: 2026-08-22
+    summary: >-
+      The RECOGNITION block is no longer written into scaffolds. new_problem.py's
+      recognition_block() is disabled (returns []) and the template's {recognition} line is
+      removed, so fresh attempts go straight from the Attempt banner to the def. Completes
+      recognition-call-is-the-top-comment (Aug 21), which had already made the block optional
+      after the learner declined it as a format twice; on Aug 22 they asked to remove it
+      outright ("I always write underneath"). The gate itself is UNCHANGED — the learner's
+      top-of-method comment is still the pre-code call, and the coach still fires it verbally
+      with SHAPE CUES ONLY, never candidate techniques (the 239 leak). Anti-spoiler protection
+      now rests on that habit plus coach discipline, not on a printed prompt. Supersedes the
+      MEANS of recognition-gate-in-scaffold (Aug 20); its END (contentless prompting) stands.
+    affects: [recognition_gate, scaffolding, no_spoilers]
+
+  - id: two-registers-latitude-vs-stringency
+    date: 2026-08-21
+    summary: >-
+      Rules are now SCOPED to a register instead of reading as universal. DELIBERATIVE work (thinking,
+      planning, researching, teaching, interviewing) is unbounded in content — only the packaging rules
+      (turn economy, register, pacing, no-spoilers, answer-length) bind. MECHANICAL work (implementing,
+      bookkeeping, pulling a stated detail) follows every checklist as a hard gate. The test: would a
+      second competent agent produce the same artifact? Yes -> mechanical. Gates (recognition,
+      complexity, links, ask-before-commit) are mechanical steps that fire DURING deliberative work, so
+      "I was teaching" never excuses a skipped one. Any rule written for a status report must be
+      re-read before being applied to an explanation. Options for subagents and hooks were logged and
+      held with state triggers — see project_agent_latitude_modes.
+    affects: [operating_principles, answer_length, turn_economy, self_evaluation, teaching]
+
+  - id: recognition-call-is-the-top-comment
+    date: 2026-08-21
+    summary: >-
+      The learner's own TOP-of-method comment IS the pre-code recognition call; inline comments are
+      mid-code reasoning. The scaffold's RECOGNITION block is an OPTIONAL place to record the call,
+      never a required form — do not re-demand it when the top comment already carries the call, and
+      do not read a blank block as a missing gate. Narrows recognition-gate-in-scaffold (Aug 20),
+      whose block was the MEANS of contentless prompting, not the end: prompting still names shape
+      cues only, never candidate techniques. Learner declined the block as a format twice on Aug 21,
+      on two machines independently ("doesn't feel conversational enough" / "I always write my
+      pre-code comment on top"). Enforcement is trust-based and accepted — no tool can prove a
+      comment preceded the code; the honest measure is the label-stripped probe hit rate over ~15
+      probes, not per-rep policing.
+    affects: [recognition_gate, scaffolding, no_spoilers]
+
+  - id: recognition-gate-in-scaffold
+    date: 2026-08-20
+    summary: >-
+      The recognition gate is written INTO the scaffold by new_problem.py (a RECOGNITION block
+      the learner fills before coding), not delivered verbally by the coach. Source fix for a
+      spoiler: a verbally-delivered gate can leak the technique by naming candidates (done on 239).
+      When the coach does speak first, name only shape cues, never candidate techniques.
+    affects: [recognition_gate, scaffolding, no_spoilers]
+
+  - id: pace-flat-discipline
+    date: 2026-08-20
+    summary: >-
+      Coach ends every turn at the answer; the learner drives every transition. No coach-initiated
+      "next". Stronger than the prior "no ready? tail" — removes coach-initiated progression
+      entirely. Set by the learner after two pacing slips in one session.
+    affects: [let_learner_pace, turn_economy]
+
+  - id: midweek-reprice
+    date: 2026-08-17
+    summary: >-
+      The weekly build's "what does not fit" verdict expires as results land. Re-run
+      effort_budget.py after logging reps and re-seat from the slip list when headroom opens.
+    affects: [scheduling, effort_budget, weekly_build]
+
+  - id: answer-length-cap
+    date: 2026-08-17
+    summary: >-
+      An answer to a QUESTION is capped at one small paragraph and must be scannable
+      (bullets/table over dense prose); explaining what you DID is uncapped and unprompted.
+    affects: [turn_economy, token_discipline]
+
+  - id: single-source-of-truth
+    date: 2026-08-17
+    summary: >-
+      Every tuned value is stated in cse.config.yml and nowhere else. Prose points, never
+      copies. Enforced by scripts/check_single_source.py from the pre-commit hook.
+    affects: [intervals, effort_budget, graduate_at_streak]
+
+  - id: probe-difficulty-by-technique
+    date: 2026-08-17
+    summary: >-
+      Recognition probes pick the TECHNIQUE first, then the easiest unseen problem that
+      forces it; per-technique ratchet Easy -> Medium; capped at Medium. Easy-only could not
+      reach most banked techniques.
+    affects: [recognition_probes, effort_budget]
+
+  - id: ask-before-commit
+    date: 2026-08-16
+    summary: >-
+      ASK before EVERY commit and EVERY push, no exceptions. Replaced "commit once at session
+      end", whose judgement clause was a loophole — 31 commits ran under it in one session.
+    supersedes: [batch-commits-at-session-end]
+    affects: [git_workflow, session_close]
+
+  - id: sd-unpriced
+    date: 2026-08-16
+    summary: >-
+      SD is off-board and UNPRICED. The ceiling was lowered instead, so the SD evening is
+      charged once on every day rather than per SD slot. sd_lane_units/sd_deep_dive_units
+      retired; effort_budget.py --sd adds 0.
+    supersedes: [sd-lane-price-raised]
+    affects: [effort_budget, system_design, scheduling]
+
+  - id: ceiling-lowered
+    date: 2026-08-16
+    summary: The daily effort ceiling was lowered; it is now the honest DSA-only number.
+    affects: [effort_budget, scheduling]
+
+  - id: sd-boundary-is-content
+    date: 2026-08-16
+    summary: >-
+      Only excerpts of a third-party study resource stay private. study_guide.md and the SD
+      tracker live in this repo; senior_ramp, framework, coverage_map, mocks, concepts,
+      components, technologies, templates live in `<your-sd-study-repo>`.
+    supersedes: [sd-track-moved-out]
+    affects: [system_design]
+
+  - id: sd-track-moved-out
+    date: 2026-08-15
+    summary: The System Design track moved to a private SD study repo (`<your-sd-study-repo>`).
+    affects: [system_design]
+
+  - id: sd-rebuilt-as-mocks
+    date: 2026-08-13
+    summary: >-
+      The three-lane SD study model is retired — no lanes, no note-building reps, no blind
+      sprints, no Bootstrap/Transition/Mastery arc. The learner studies on a resource of their choice;
+      the coach runs cold mock interviews and scores them.
+    affects: [system_design, scheduling]
+
+  - id: ai-track-removed
+    date: 2026-08-13
+    summary: The AI System Engineering track was removed. Not deferred; no trigger.
+    affects: [tracks]
+
+  - id: sd-lane-price-raised
+    date: 2026-08-09
+    summary: The SD lane slot went from 2.0 to 3.0 units. (Later retired entirely — see sd-unpriced.)
+    affects: [effort_budget]
+
+  - id: effort-budget-replaces-count
+    date: 2026-08-07
+    summary: >-
+      A day is budgeted in UNITS (comfort x difficulty) against a ceiling, not as a problem
+      count. daily_cap is superseded.
+    supersedes: [daily-cap]
+    affects: [effort_budget, scheduling, daily_cap]
+
+  - id: session-dating-source-fix
+    date: 2026-08-02
+    summary: >-
+      Session date is resolved by scripts/session_date.py (dirty tree = live session), not
+      datetime.now(). All date-touching scripts take --date.
+    affects: [session_dating]
+
+  - id: graduate-then-retire
+    date: 2026-07-26
+    summary: >-
+      Names swapped — you GRADUATE (recurring spot check), then you RETIRE (terminal).
+      The labels were originally the other way round.
+    affects: [intervals, comfort_scale]
+
+  - id: remaining-board-source-fix
+    date: 2026-09-18
+    summary: >-
+      A "what's left / what else / what's next / remaining" restate is now DERIVED by
+      scripts/remaining.py from the schedule's un-struck rows, not hand-assembled into
+      scripts/links.py. links.py takes numbers the coach supplies, so a restate built by
+      RECALLING what's open can drop an item — done twice in one session Sep 17, 2026 (dropped
+      560, then 721). remaining.py reads the current week's schedule, finds the session-date
+      day-block, and prints the un-struck board as the same [file]·[LC] pairs via link_line, so
+      it is spoiler-free and the name+links-only rule and the Stop-hook guard are unaffected.
+      New coach rule: answer any "what's open now" question by running remaining.py, never from
+      memory; keep links.py for a set you already hold exactly (post-scaffold kickoff, a single
+      named hand-over). Skill-only rung (learner's call) — no hook. No cse.config.yml value
+      changed. Strands any "build a restate lineup by hand into links.py" wording predating this.
+      See references/scaffolding.md, feedback_lineup_links_only.md, self_eval_log 2026-09-17.
+    affects: [scaffolding, lineup_links]
+
+  - id: banned-openers-to-hook
+    date: 2026-09-19
+    summary: >-
+      The banned-openers rule (feedback_explanation_register BANNED OPENERS, Aug 15) moved from PROSE to a
+      Stop HOOK after lapsing >=2x (recurred mid-session: "Careful —", "Fair —", "Right —"). The learner
+      paired it with the advance-tail hook: "remove the prefixing statements that don't add value like how
+      we removed the ending statements." Enforcement now lives in
+      problem_link_reminder.py::banned_opener (fires on Stop, no settings change) — the mirror of
+      advance_prompt_tail at the START of the turn: it blocks an em-dash-dangle interjection ("<opener> —"),
+      the "Right, so" continuation, and fixed throat-clears (So:, Worth noting, Here's the thing, Good
+      question, but) at the start of the message OR any paragraph; a bare "So the invariant …" (no dangle)
+      stays clean. Strands any wording that calls banned-openers a prose-only posture: it is now
+      hook-enforced, and the normative sentence moved to SKILL.md §1 (Register). No cse.config.yml value
+      changed. See SKILL.md §1, feedback_explanation_register.md.
+    affects: [explanation_register, hooks]
+
+  - id: gamification-progress-platform
+    date: 2026-09-20
+    summary: >-
+      ADDS a gamification layer, surfaced as an honest-progress dashboard on
+      progressiveoverflow.com. New source-tier tool scripts/gamify.py reads the records that
+      already exist (dsa_progress.md, the weekly schedules, technique_coverage.md) and emits
+      progress.json — a versioned, curated, public DATA CONTRACT (progress.schema.json) that the
+      site renders; it carries aggregate stats, the maturation pipeline, the trophy case,
+      technique coverage, an SR-honest study-day streak, per-problem comfort timelines, and
+      derived badges, but NEVER solution code or stuck-log prose. Wired into .githooks/pre-commit
+      (regenerate on a rep) and surfaced at session start by session_start_memory.py. The design
+      invariant is HONEST PROCESS ONLY: every reward keys off a genuine, unfakeable event (a
+      graduation = 3 cold cleans across spaced intervals, a retirement, a comeback, a study-day
+      streak) — nothing rewards raw volume or a self-reported rating, so nothing pressures a
+      dishonest 🟢. The streak is SR-honest (practice-when-due + a rest-day allowance) so it never
+      pushes daily over-review against the effort budget. New tuned thresholds live ONLY in
+      cse.config.yml `gamification:` (neutral keys — no blank/shaky/clean/graduated substrings);
+      the badge catalog is content in gamify.py. Coaching behaviour (when/how to surface progress
+      honestly) is references/motivation.md. Strands any wording that says the repo has no
+      progress/celebration surface, or that "row count is never reported" without the nuance that
+      the PIPELINE/trophy case (not row count) is the progress signal. See CLAUDE.md, SKILL.md §8,
+      references/motivation.md.
+    affects: [gamification, hooks, single_source, upstream]
+
+  - id: typo-self-fix-not-a-real-fix
+    date: 2026-09-20
+    summary: >-
+      CLARIFIES the boundary of the clean-code + Big-O-miss waiver (rule 4 /
+      complexity-cleanup-formalized): "the code needed a real fix" — the clause that RE-CAPS a rep —
+      means the LOGIC was wrong and had to be repaired. A typo the learner catches and fixes
+      themselves, unprompted, on a non-logic line (a one-line pointer / index / bound) with no
+      algorithm change and nobody else surfacing it is ordinary clean authoring: it does NOT cap the
+      rating and does NOT break the waiver. The picking feature is WHO SURFACED IT + WHETHER LOGIC
+      CHANGED — self-caught & logic-unchanged → clean; coach-/test-surfaced, or a fix that altered the
+      algorithm → a real fix (→ 🟡). Left open on one rep (a no-op for that rep either way) and
+      delegated to the coach. No cse.config.yml value changed. Strands any wording that reads the
+      "real fix" clause as covering every edit-after-first-write, including a self-caught cosmetic
+      slip. Operational home: rule 4 scope in complexity_gotchas.md; why/history:
+      feedback_ask_complexity.md.
+    affects: [complexity_gate, rating]
+
+  - id: eow-close-out-process-sep20
+    date: 2026-09-20
+    summary: >-
+      THREE standing changes to the Sunday end-of-week close-out (learner's call, Sep 20).
+      (1) COMPLEXITY CHECKS CONSOLIDATED TO SUNDAY — the cold complexity probes no longer seed into
+      weekday warmups; all complexity work (cleanup queue + ~2 probes) now fires in one focused block at
+      the Sunday close-out, so weekday boards carry none and the daily tables stay leaner.
+      (2) SELF-EVAL META-REVIEW + SKILL-UPDATE EVALUATION is now a standing Sunday pass: run
+      meta_review_digest.py, consolidate resolved entries into self_eval_archive.md, and decide any
+      skill/CLAUDE.md updates the open entries warrant IN THAT PASS (the log gets drained on Sunday, not
+      just appended to). (3) TABLE-SCANNABILITY guardrail — the daily schedule table's Note column
+      carries a short tag only; full per-rep rationale lives in the mastery ledgers, never the board; an
+      overloaded table is a build defect. No cse.config.yml value changed. Strands any wording that seeds
+      complexity probes into weekday warmups, or that keeps full rep rationale in the board table.
+      Operational home: references/weekly-build.md.
+    affects: [weekly_build, complexity_gate, self_evaluation]
+
+  - id: schedule-item-kind-tags-sep21
+    date: 2026-09-21
+    summary: >-
+      ADDS two ADDITIVE fields to the progress.json schedule-item contract (dashboard/progress.schema.json,
+      scripts/gamify.py): `tags` (the row's build-time tag glyphs, named — protected/backfill/new/probe/
+      variant/primer/moved) and `kind` (rep|new|probe|complexity|primer — the single most-specific
+      classification of the row). `kind` checks `complexity` BEFORE any tag: the Sunday complexity re-ask
+      rows are also 🎯-tagged, but Technique="Complexity" is the more specific fact, and this is the site's
+      half of the eow-close-out-process-sep20 complexity-consolidation decision — the dashboard now
+      surfaces which rows are that consolidated Sunday block rather than showing them as an ordinary
+      probe. Both fields are additive only; the six existing required fields (lcNumber, title, technique,
+      startComfort, difficulty, done) are unchanged, so nothing that already reads the prior contract
+      breaks. Also hardened lcNumber/url extraction with a bare-number fallback so a 🆕 intake row (no
+      `[`/`**` before its number — no local file to link yet) still yields a real lcNumber/url off its own
+      row instead of nulling both out. No cse.config.yml value changed. Strands any wording that says a
+      schedule item carries only the original six fields, or that a 🆕 row's lcNumber/url is
+      unconditionally null. See dashboard/progress.schema.json, scripts/gamify.py.
+    affects: [gamification, scheduling]
+
+  - id: coach-gamification-promoted-sep21
+    date: 2026-09-21
+    summary: >-
+      WAIVES the soak period gamification-progress-platform (Sep 20) set for scripts/gamify.py +
+      progress.schema.json as a "new instrument". The schema + generator make any adopter repo
+      site-renderable — that promise stays FALSE for every other adopter until the generator itself
+      ships to canonical cse-coach, and a soak that never uploads it keeps deferring the one thing the
+      promise depends on. The generator is reclassified from "soaking instrument" to SHIPPED, alongside
+      the Sep 21 schedule-item-kind-tags contract addition. Does NOT waive soak for anything else in the
+      gamification feature — a display/curation round on the consuming site is unaffected by this
+      waiver. No cse.config.yml value changed. Strands any wording that still calls
+      gamify.py/progress.schema.json a soaking instrument or not-yet-upstream-eligible.
+    affects: [gamification, scheduling]
+
+  - id: learn-cheatsheet-contract-sep22
+    date: 2026-09-22
+    summary: >-
+      The 18 technique docs (docs/foundations/dsa/patterns/techniques/) gained a machine-read
+      markdown contract — five exact headings (When to reach for it / Picking feature /
+      Template: <title> + a Complexity line / Common pitfalls / Practice) — parsed by the new
+      scripts/build_cheatsheets.py into dashboard/cheat-sheets.json (the schema itself,
+      cheat-sheets.schema.json, is copied verbatim from scripts/fixtures/ alongside it), the
+      same source-tier/dashboard-tier split gamify.py established for progress.json.
+      scripts/check_cheatsheets.py --check validates the contract, wired report-only in
+      pre-commit (like check_single_source.py) until all 18 docs pass. techniques.yml gained a
+      `doc:` join key (one entry per technique doc) so family/tier resolve without a second
+      copy of that vocabulary. progressiveoverflow.com/learn renders this file. No
+      cse.config.yml value changed. Strands any wording that still calls /learn's cheat sheet
+      hand-maintained, or that says the technique docs carry no machine-read contract, or that
+      the docs' Picking-feature/notWhen/per-variant-complexity content doesn't exist yet. See
+      scripts/build_cheatsheets.py, scripts/check_cheatsheets.py.
+      2026-09-23: all 18 docs pass, so scripts/check_cheatsheets.py --check is promoted from
+      report-only to blocking in pre-commit as of the commit landing this follow-up.
+    affects: [gamification]
+
+  - id: schedule-item-end-status-sep23
+    date: 2026-09-23
+    summary: >-
+      ADDS three ADDITIVE fields to the progress.json schedule-item contract (dashboard/progress.schema.json,
+      scripts/gamify.py): `endComfort` (the first comfort glyph in the row's E cell, or null — never falling
+      back to startComfort, so the board shows only what was actually earned this rep, not the start comfort
+      carried forward as if it were the outcome), `endNote` (the E cell's free-form note after its glyph,
+      stripped/collapsed/lowercased, maxLength 16 — vocabulary seen in real weeks: s0, s1, s2, prov,
+      dropped — emitted ONLY when endComfort is non-null, null otherwise even if the raw cell had trailing
+      text), and `nextReview` (the row's Next cell iff, once stripped, it is nothing but an ISO date; null
+      for a free-form or blank Next cell). Closes the gap where a board row showed a rep was done but never
+      how it ended — the E glyph and Next date were already parsed for the comfort timeline
+      (`_scan_week`/`build_schedule_index`) but never emitted on the board slice
+      (`_parse_schedule_day_full`). `_scan_week`'s own End-glyph read is refactored onto the same new
+      `_end_glyph()` helper (with its start-glyph fallback preserved there — only the board slice refuses
+      the fallback), and the new `_schedule_item_outcome()` helper is self-contained (only `eb.GLYPH` + `re`)
+      so it ports verbatim to `cse-coach/scripts/gamify.py`. All three fields are additive only; the six
+      existing required fields (lcNumber, title, technique, startComfort, difficulty, done) are unchanged,
+      so nothing that already reads the prior contract breaks. No `cse.config.yml` value changed. Strands
+      any wording that says a board/schedule item carries only its start comfort, or that the E
+      glyph/Next date are parsed only for the comfort timeline and never exposed on the board. See
+      `dashboard/progress.schema.json`, `scripts/gamify.py`.
+    affects: [gamification, scheduling]
+
+  - id: output-quality-standard-sep25
+    date: 2026-09-25
+    summary: >-
+      ADDS an output-quality standard for every coaching turn: four dimensions (F1, groundedness,
+      narrative quality, readability), a turn shape (one message, sent after the last tool call,
+      with no text between tool calls except one short line before a long mechanical run), a
+      per-moment content contract (required/forbidden items for an answer, a concept teach, a
+      stuck hint, a rating proposal, a work report, a board/hand-over, a close-out report, an SD
+      mock debrief), a groundedness Stop hook, and an LLM judge + eval suite. New files:
+      `references/output-quality.md`, `.claude/hooks/grounded_claims.py`,
+      `.claude/memory/feedback_output_quality.md`, `scripts/judge_output.py`, and
+      `.claude/skills/cse-coach/evals/`. `cse.config.example.yml` gains an `output_quality:`
+      block (`judge_model`, `pass_threshold`, `readability.max_sentence_words`); no existing
+      key's value changed. Strands any wording that has the coach narrate progress mid-turn before the
+      answer is complete, present a partial board or a tentative rating that gets revised later,
+      or split one answer across several messages. Does NOT strand "lead with the spine, then
+      stop and check in" (SKILL.md §1, AGENTS.md item 9) — that stop follows a COMPLETE spine
+      answer and invites the learner's next move; it is not mid-turn narration. See
+      `references/output-quality.md`, `feedback_output_quality.md`.
+    affects: [turn_economy, token_discipline, self_evaluation, hooks, reporting]
+
+  - id: dashboard-contract-exporters-oct6
+    date: 2026-10-06
+    summary: >-
+      PROMOTES the dashboard data-contract exporters from the practice repo (reversing the Sep 23
+      decline in `.coach-sync/declined.md`, which had kept the grounded-solutions tooling local as
+      "a site concern"). New engine files: `scripts/export_showcase.py` (dashboard/showcase.yml ->
+      showcase.json), `scripts/export_bigo.py` (bigo.yml -> big-o.json), `scripts/export_practice.py`
+      (dsa/tests/*.yml -> practice.json), `scripts/dashboard_indexes.py` (practice-index.json,
+      showcase-index.json, showcase/<lc>.json), `scripts/export_manifest.py` (manifest.json: sha256 +
+      size of every dashboard JSON), `scripts/contract_schema.py` (validates every payload against
+      its `dashboard/*.schema.json`, resolving `$ref` by `$id` from disk), a `test_*.py` for each,
+      the seven schemas (showcase, big-o, practice, practice-index, showcase-index, showcase-problem,
+      manifest) and `requirements.txt` (jsonschema, pyyaml); the schemas and requirements.txt are
+      named in `coach_sync.ENGINE_PATHS`. The pre-commit hook gains a `run_py` helper and the
+      showcase / Big-O / practice / manifest blocks: each regenerates its output and then runs
+      `--check`, where exit 1 (drift) stays report-only and exit 2 (a payload that violates its
+      schema) stops the commit. Rules this adds. (1) An EMPTY manifest is nothing to export, not an
+      empty file: `export_showcase.py` and `export_bigo.py` exit 0 with a one-line notice and write
+      no showcase.json / big-o.json, because the site falls back to the author's data only when the
+      adopter's file is a 404 and an empty generated file would hide that fallback. Canonical
+      ships `dashboard/showcase.yml` and `dashboard/bigo.yml` empty (`entries: []`); they are
+      learner-owned and not in `ENGINE_PATHS`. (2) The manifest and index exporters tolerate any of
+      those outputs being absent. (3) A missing `complexity_gotchas.md` means no misses
+      (`isMiss` false), not an error. No `cse.config.yml` value changed. Strands any wording that
+      says the showcase / Big-O / practice contracts are practice-repo-only, or that a dashboard
+      schema violation never blocks a commit. See `scripts/export_showcase.py`, `scripts/export_bigo.py`,
+      `.githooks/pre-commit`.
+    affects: [gamification, hooks, dashboard]
+
+  - id: gamify-parity-oct6
+    date: 2026-10-06
+    summary: >-
+      PROMOTES `scripts/gamify.py`, `dashboard/progress.schema.json` and `scripts/test_gamify.py` to
+      parity with the practice repo. gamify.py gains schedule history (`dashboard/schedule-history.json`,
+      every archived + live week), the per-day `workload` series (priced under the CURRENT config
+      weights via `effort_budget.price_day_items`), the Waiting Room / roadmap `planned` lists and
+      `plannedTotal` per technique, `buildsOn` / `graduatedCount` / `untriedVariations` /
+      `coverageFloor` / `uncleanCount` enrichment, per-item `file` and `deferredTo`, and `progress`
+      on counter badges. Carried with it: `effort_budget.py` gains `parse_sched_line`,
+      `price_day_items`, `deferred_to`, `sched_row_number`, `is_complexity_technique` and the
+      untracked-difficulty lookup (its `Hard` default stays the config's, not the practice
+      repo's tuned value), and `links.py` gains `solution_files()`. The schema's `schedule`
+      property now points at `definitions/scheduleWeek` (`weekOf`, `days`); the old inline
+      `schedule.days` / `schedule.weekOf` / `schedule.required` are gone (`schemaVersion` stays 1:
+      every added field is optional, and a viewer reading `schedule.days` and `schedule.weekOf`
+      finds them in the same place). The pre-commit GAMIFY block now also fires when `gamify.py` or
+      `effort_budget.py` is staged, stages `dashboard/schedule-history.json`, and stops the commit
+      on exit 2 (a payload that violates the schema), staying report-only on any other failure.
+      A fresh adopter has no `roadmap.yml`, schedule files, Waiting Room or coverage report yet:
+      each of those degrades to an empty array / null field (with a visible warning where the
+      file is expected) rather than raising, and the tests build their repos from inline
+      fixtures, never from the checkout's own data. No `cse.config.yml` value changed. Strands any
+      wording that says gamify.py emits no schedule history or workload series, that the schema's
+      `schedule` is an inline object, or that a progress.json schema violation never blocks a
+      commit. See `scripts/gamify.py`, `dashboard/progress.schema.json`, `.githooks/pre-commit`.
+    affects: [gamification, hooks, dashboard]
+
+  - id: release-v0-8-0-oct6
+    date: 2026-10-06
+    summary: >-
+      RELEASES v0.8.0 (VERSION bumped from 0.7.0, `.coach-sync/manifest.json` re-emitted; the
+      annotated `v0.8.0` tag is the maintainer's step, per CLAUDE.md "Releasing"). It ships three
+      things already decided, each recorded under its own id and not restated here. (1) The
+      dashboard contract exporters, their seven schemas and the pre-commit gate where exit 2 (a
+      payload that violates its schema) stops the commit: `dashboard-contract-exporters-oct6`.
+      (2) Empty starter manifests (`dashboard/showcase.yml`, `dashboard/bigo.yml`) that write
+      nothing, so the site keeps its fallback until the adopter adds entries: the same entry's
+      rule (1). (3) `gamify.py`, `progress.schema.json` and `test_gamify.py` at parity with the
+      practice repo: `gamify-parity-oct6`. Earlier releases (v0.2.0 to v0.7.0) have no decisions
+      entry of their own; this one is recorded at the tech lead's request. No `cse.config.yml`
+      value changed.
+    affects: [release, dashboard, gamification, hooks]
+
+  - id: figure-edges-from-expected-oct08
+    date: 2026-10-08
+    summary: >-
+      ADDS an optional `edges: expected` to a matrix figure (`matrixArg`) in a practice spec. It
+      draws only the pairs named in the example case's expected answer, each labeled with the
+      matrix entry and in the default colour. Allowed only on a matrix figure and not together with
+      `highlight`. Absent, lines are drawn from the input as before. Additive: `schemaVersion`
+      stays 1. No `cse.config.yml` value changed.
+    affects: [practice]
+
+  - id: row-cap-oct6
+    date: 2026-10-06
+    summary: >-
+      A day has a row cap beside the unit ceiling: `effort_budget.max_rows_per_day`, counting every
+      row in a day block except Complexity-technique rows (struck rows count). A day can sit under
+      the ceiling and still run to an unworkable number of rows. Units bind the week, not rows: a
+      26-week simulation gave identical backlog curves at every cap tried, so the cap fixes a day's
+      shape only. Overflow spreads forward; tracker dates are untouched. Enforced by
+      `effort_budget.py` (row line and warning) and `check_schedule_integrity.py` (check 5,
+      report-only).
+    affects: [effort_budget, schedule_integrity, scheduling]
+
+  - id: intake-rate-and-backstop-oct6
+    date: 2026-10-06
+    summary: >-
+      Intake is `effort_budget.intake_per_week` new problems a week, and the next build seats none
+      when overdue unproven tracker rows reach `effort_budget.intake_pause_overdue_unproven`.
+      Unproven means 🔴, 🟡, or a 🟢 below `effort_budget.carry_forward_min_streak`. The older fixed
+      "overdue above N suspends intake" rule is gone: a low pause trigger fires on noise, so the
+      trigger sits well above the sustainable band. Each new problem costs about three unproven
+      reps (the blank, then a 🟡 loop every `intervals.shaky` days), which is why the rate, not
+      the ceiling, decides whether a backlog piles up. Size the rate with
+      `scripts/backlog_forecast.py`: a rate whose simulated backlog keeps growing reads piling, one
+      that stays flat reads steady. This supersedes the per-day rule that every day with no SD slot
+      carries an unseen problem.
+    affects: [effort_budget, scheduling, study_guide]
+
+  - id: carry-forward-proven-only-oct6
+    date: 2026-10-06
+    summary: >-
+      A row over the row cap is carried in a schedule section `## ⏭️ Carried to next week (row cap)`,
+      never by editing its tracker date. Only proven rows may be carried: 🎓, or 🟢 at a streak of
+      `effort_budget.carry_forward_min_streak` or above. Unproven rows (🔴, 🟡, and a 🟢 below that
+      streak) are never carried and displace a proven row; the backstop counts them. Easy 🟢 rows
+      carry first, from the bottom of the priority order. `check_schedule_integrity.py` check 3
+      accepts a due row named in the section only when its tracker row meets that rule.
+    affects: [schedule_integrity, scheduling, effort_budget]
+
+  - id: scheduling-skill-oct6
+    date: 2026-10-06
+    summary: >-
+      A `scheduling` skill (`.claude/skills/scheduling/SKILL.md`) owns the ordered weekly build
+      procedure, the row cap, the carry rule, the intake rate and the backstop, and the mid-week
+      reseat. `weekly-build.md` keeps the trigger, the why and the close-out-commit sentence;
+      `effort-budget.md` carries the policy paragraphs; `study_guide.md`'s backlog rule names
+      `effort_budget.intake_pause_overdue_unproven`; CLAUDE.md gate 7 cites the skill. Every unit
+      number still goes through `effort-units`.
+    affects: [scheduling, weekly_build, effort_budget, study_guide, claude_md]
+
+  - id: backlog-forecast-oct6
+    date: 2026-10-06
+    summary: >-
+      `scripts/backlog_forecast.py` is a report-only model of the weekly build: it tallies
+      start-to-end outcomes from the archived schedules, simulates the configured rows-per-day cap,
+      ceiling and intake across 26 weeks, and reads steady, edge or piling for the configured
+      `effort_budget.intake_per_week`. `--check` exits 1 on piling. It is a model of about ten
+      seconds, so it is not wired into pre-commit; the weekly build runs it as a step. Its verdict
+      thresholds (the steady and piling backlog slopes, the optimistic bracket's 🟢 share for
+      classes with no tally data) are tuned numbers and live in `cse.config.yml`
+      `backlog_forecast:`, read by the script with no fallback.
+    affects: [scheduling, effort_budget, scripts, backlog_forecast]
+
+  - id: contract-schema-gate-exit2-oct7
+    date: 2026-10-07
+    summary: >-
+      `contract_schema.py` exits 2 (blocking) when jsonschema or referencing cannot be imported,
+      instead of a string SystemExit (exit 1) that every pre-commit block read as report-only drift,
+      so the schema gate could never fire on a machine without jsonschema. `requirements.txt` pins
+      `jsonschema>=4.18` (needed for `referencing`). The pre-commit gamify block stages
+      progress.json, progress-summary.json and schedule-history.json only when gamify exits 0.
+      `dashboard/practice.schema.json` declares `types`, `result`, `signature` and
+      `decodeSignature`, matching the site's `practice-validation.ts` guard.
+    affects: [scripts/contract_schema.py, .githooks/pre-commit, requirements.txt, dashboard/practice.schema.json]
+
+  - id: deferred-day-planned-frozen-oct8
+    date: 2026-10-08
+    summary: >-
+      NARROWS the header clause for a day that has had rows deferred off it. The header keeps
+      `built` as its first figure, and a started day (`day <= session date`) gains a pinned planned
+      figure: `| ▸ **Wed** · ~3.8 units · planned 6.6 units — label |` (single-source-ok, example
+      figures). The pin is written once, before the first row is deferred off the day, as the
+      header stood then; it is never changed or removed. Header parsers read the first `~N units`
+      as the day's units, and the label still matches after `planned X units —`. Absent pin:
+      planned = built. Export: `workload[].planned` = the pin when present, else the header units;
+      `built`, `done` and `days[].units` unchanged; no new field; `schemaVersion` stays 1.
+      `check_schedule_integrity.py` gains two report-only checks: (7) a row vanished from a started
+      day since HEAD; (8) a planned figure removed or lowered, or a started day's header dropped
+      with no planned figure. The day then reads "3.8 of 6.6 units done". No `cse.config.yml`
+      value changed.
+    affects: [effort-budget, scheduling, dashboard]
+
+  - id: scoped-pull-scaffold-oct10
+    date: 2026-10-10
+    summary: >-
+      A learner naming one problem to do now ("doing 332", "I'm doing 332 right now", "doing 332
+      from tomorrow") is a scoped start, and when the number is not on the session day's board it
+      is a PULL into the live session. Hook: `kickoff_scaffold_reminder.py` gains a scoped-start
+      trigger that injects the session date from `scripts/session_date.py`, says a day named with
+      "from" is the source of the pull, and says to reseat per effort-units and scaffold the number
+      with `new_problem.py` in the same turn. Source: `session_date.py` `resolve_datetime` warns
+      when an explicit `--date` contradicts the detected session date during the small hours.
+      References: `scaffolding.md` scope section gains the three examples and the pull sentence;
+      `effort-units` SKILL.md Moving section says a day has started once the SESSION date reaches
+      it; `scheduling` SKILL.md Mid-week says a pull into the live session reseats and scaffolds in
+      the same turn. No `cse.config.yml` value changed.
+    affects: [scaffolding, scheduling, effort_budget, hooks]
+
+  - id: moves-leave-a-row-oct10
+    date: 2026-10-10
+    summary: >-
+      Every move of a schedule row, whether or not its origin day has started, leaves the row on
+      the origin day, unstruck, with the new date in Next, unbilled there. The origin day's header
+      pins its plan once (` · planned X units` after `~N units`, X = the header figure just before
+      the first row left). The arrow encodes direction: `←` = moved to an earlier day, `→` = moved
+      to a later day, on the origin row and the destination copy. Code: `effort_budget.py` defines
+      `MOVE_ARROWS` once; `gamify.py`, `remaining.py` and `check_schedule_integrity.py` read it, so
+      `←` parses exactly like `→` (deferredTo, unbilled, tag `moved`). Prose: `effort-units`
+      SKILL.md Moving section, `scheduling` SKILL.md Mid-week, `review-workflow.md` Schedule
+      integrity. No `cse.config.yml` value changed.
+    affects: [scheduling, effort_budget, gamify, remaining, schedule-integrity]
+
+  - id: probe-log-difficulty-oct11
+    date: 2026-10-11
+    summary: >-
+      The Probe log in `dsa/probes/README.md` carries a `Difficulty` column (Easy/Medium/Hard,
+      filled at logging time from LeetCode). `gamify.py` `parse_probes` reads that cell first,
+      found by header name so older layouts still parse, and falls back to the tracker's difficulty
+      when the cell is blank. The site's Recognition rows therefore show the same difficulty tag as
+      the other problem rows, including clean probes that earn no tracker row.
+    affects: [probes, gamify, recognition-panel]
+
+  - id: tracker-hold-oct11
+    date: 2026-10-11
+    summary: >-
+      A learner-requested deferral past the ladder date lives in
+      `docs/foundations/dsa/mastery/holds.yml` (row title, `until`, `since`, `why` = a decision
+      id), never as a typed tracker date. `update_review_dates.py` sets Next Review = max(ladder
+      date, hold `until`); a hold whose date has passed changes nothing, and a hold naming no
+      tracker row or with a malformed field fails the run. Before this, a held row read as due on
+      its ladder date forever, so every weekly build counted it overdue and unproven and parked a
+      `→` row for it.
+    affects: [scheduling, update-review-dates, effort-budget, schedule-integrity]
+
+  - id: variant-label-on-board-oct11
+    date: 2026-10-11
+    summary: >-
+      A board line for a problem number with 2+ tracker rows ends with ` · method: <due row's
+      parenthetical>` (`remaining.py`, read from the day's schedule row; `links.py <n>` for a bare
+      hand-over is unchanged). It narrows the variant strip in `links.resolve_title_url`, which
+      had let the learner code the graduated method instead of the due one. A single-row problem
+      prints as before. The same day, a retry stub's base name became the problem's entry point
+      (the spec's, else the file's bare name), never a variant-suffixed one (`new_problem.py`).
+    affects: [remaining, links, new-problem, scaffolding]
+
+  - id: hook-trigger-precision-oct11
+    date: 2026-10-11
+    summary: >-
+      `kickoff_scaffold_reminder.py`'s scoped start requires the number right after a start verb
+      (only problem-ish filler between) and ending its clause (end, punctuation, line break, dash,
+      or a continuation word); a month-day ("Jun 12") or "<n> next <time noun>" is not a start.
+      `rating_gate.py` triggers only on a comfort glyph (🟢🟡🔴🎓) or the word rating/comfort plus
+      a proposal cue, and its block message names the matched tokens; a proposal using only the
+      bare words clean/shaky/blank no longer blocks (accepted trade-off). The pre-commit showcase
+      and Big-O regeneration reads staged content (`--from-index`). A report-only
+      `scripts/check_line_endings.py` flags a staged file whose CRLF/LF style differs from HEAD's.
+    affects: [hooks, pre-commit, showcase, bigo]
+
+  - id: restore-dates-colliding-helpers-oct12
+    date: 2026-10-12
+    summary: >-
+      `restore_history.py` dates today's colliding helper itself: an undated top-level class/def
+      in today's code that a restored attempt also defines (`UF`) is renamed `UF_<stamp>`,
+      definition and uses, by NAME token in today's body only; the stash is never touched, so the
+      oldest stays the undated canonical one. It also strips the old `# NOTE: suffix any helper
+      class` banner, which `new_problem.py` no longer writes. The duplicate-name warning stays as
+      the net when it cannot rename (no stamp, unparseable body). Renaming pasted helpers by hand
+      was manual effort for nothing.
+    affects: [restore-history, new-problem, retry-and-restore]
+
+  - id: pattern-sense-weekly-oct18
+    date: 2026-10-18
+    summary: >-
+      ADDS a weekly Pattern Sense recognition deck, starting the week of `pattern_sense.starts`
+      (`pattern_sense.per_week` problems a week, unpriced, no schedule row). Pool: the Gated rows
+      of company_demand.md's "Asked by >=N target companies and untracked" table, minus anything
+      tracked, planned, filed under dsa/, in the probe log or queue, in the mock log, in an earlier
+      deck or its `skipped:` list, in the mock reserve (bigtech top-100, Status untracked, at least
+      that many companies), premium, or family unmapped. `scripts/pattern_sense.py propose` picks
+      (one per family, least recently shown first); the coach labels family + technique + cue and
+      writes a paraphrase into `dashboard/pattern_sense.yml`; `export` writes
+      `dashboard/pattern-sense.json` (no slug or title: dashboard/ is public). The site deals it as
+      a two-step answer (family, then a technique in it) and shows a `PS1` results code; the
+      learner pastes it to the coach, who runs `ingest` and logs misses to recognition_gotchas.md.
+      A problem that has been in a deck is never a probe or a mock. The script has no config
+      default: a missing `pattern_sense` block is an error.
+    affects: [weekly-build, scheduling, probes, mocks, dashboard]
+
+  - id: pattern-sense-github-save-oct18
+    date: 2026-10-18
+    summary: >-
+      The site saves Pattern Sense results through a Cloudflare Worker with GitHub App sign-in,
+      written to the repo the deck was loaded from, and only by that repo's owner (user-owned repos
+      only). Path: `dashboard/pattern_sense_results/<YYYYMMDD>.json` (the deck week without dashes).
+      `scripts/pattern_sense.py ingest --pending` reads them and the SessionStart banner flags a
+      waiting file; a pasted `PS1` code still works through `ingest "<code>"`.
+    affects: [pattern-sense, dashboard, weekly-build]
+
+  - id: practice-site-reps-oct18
+    date: 2026-10-18
+    summary: >-
+      A rep completed on the site's practice page arrives in `dsa/attempts/<YYYYMMDD>/<n>_<name>.py`
+      (first line `# po-attempt: {json}`; complete means a rating and every test passing). The coach
+      folds it into the solution file with `scripts/fold_attempt.py` (`--pending` lists the inbox).
+      The rating is the learner's own, picked on the site, and is logged as given; the coach does
+      not propose one for these reps. This is an exception to "propose + log on their yes/override".
+      A top-of-method comment that is missing is logged as a recognition miss in
+      `recognition_gotchas.md`. Unfinished saves stay in the inbox. The SessionStart banner flags
+      waiting reps. The complexity question is handled by `practice-site-complexity-oct19`.
+    affects: [review-workflow, rating, complexity, recognition]
+
+  - id: streak-freezes-oct18
+    date: 2026-10-18
+    summary: >-
+      SUPERSEDES the stateless rest-day allowance in `gamification-progress-platform`. The
+      allowance forgave any single missed day, as often as it happened, so a day with no reps could
+      still read as an unbroken streak. It is now a spendable, replenishing freeze bank. The bank
+      holds at most `gamification.streak_freeze_max` freezes and earns one per
+      `gamification.streak_freeze_earn_every` study days, never past the max. Each missed calendar
+      day spends one; a gap longer than the bank breaks the run and empties it; a frozen day keeps
+      the run going without adding to it, so `current` still counts study days. `compute_streak`
+      replays the whole history (the bank starts full), so no seed or cutover date exists. Today is
+      not missed until it is over. Data contract: `streak.restDayAllowance` is removed; added
+      `freezes` (bank right after `lastStudyDay`, which the SessionStart hook uses for liveness),
+      `freezesLeft` (bank as of generation day), `freezeMax` and `frozenDays` (ISO dates a freeze
+      bridged, trailing ones included). `cse.config.yml` key `streak_rest_day_allowance` is replaced
+      by the two keys above. Strands any wording that describes the streak as a rest-day allowance
+      or reads `restDayAllowance`. The schema keeps the four freeze fields optional
+      (`streak.required` is `current`, `longest`, `studyDays`) so the site can still read
+      repos that emit `restDayAllowance` and no freeze fields. See references/motivation.md.
+    affects: [gamification]
+
+  - id: practice-contract-ext-oct19
+    date: 2026-10-19
+    summary: >-
+      EXTENDS the practice-spec contract (`dashboard-contract-exporters-oct6`) with six additions
+      and one checker fix. (E1) Arg codec `list-node-list`: a JSON array of arrays, each built as
+      `list-node` builds it; rejected as a result codec. (E2) Result codec `list-node-ref`: the
+      returned node becomes the 0-based index of that node (identity) among the nodes reachable
+      from the case's first `list-node` / `list-node-cycle` arg, walked with a seen set; `None`
+      becomes null; a node outside that walk is a codec error, not a wrong answer. Rejected as an
+      arg codec; a spec using it needs a `list-node` or `list-node-cycle` arg. (E3) Per-case
+      `judge: {isBadVersion: <int>}`: before the call the runner binds that global name in the
+      namespace the solution runs in, from the registry `JUDGE_APIS = {"isBadVersion": lambda bad:
+      (lambda v: v >= bad)}`, kept verbatim in `scripts/check_practice_spec.py` and the site's
+      `python-driver.ts` (the exporter keeps only the names); a case without `judge` sees no
+      binding left by an earlier case. The exporter rejects an unknown name, a non-mapping `judge`
+      and a non-int value; `judge` is not an argument, so the arg count stays the signature's.
+      (E4) `expected: {anyOf: [...]}`: a mapping whose ONLY key is `anyOf`, holding a non-empty
+      list, matches when any one alternative matches under the problem's compare mode; in an ops
+      case an element of the expected list may be such a mapping and outputs compare element by
+      element. The exporter rejects an `anyOf` mapping with another key and an empty or non-list
+      `anyOf`. (E5) An ops spec honours `types.args` for the constructor only (method args stay
+      raw); the exporter requires its length to equal the constructor's parameter count. (E6) FIX:
+      the checker's round-trip case encodes args with `types.args` and decodes the result with
+      `types.result`, as the site's driver does (it ignored `types`, so a tree codec could not be
+      verified locally). (E7) Compare mode `unordered-inner`: each inner list is compared as a
+      multiset but the outer order stays fixed, because `unordered-nested` also sorts the outer
+      list, so a swapped `[critical, pseudoCritical]` pair would pass it. Files:
+      `scripts/export_practice.py`, `scripts/check_practice_spec.py`,
+      `dashboard/practice.schema.json` (+ tests), `spec.md`, and the site's driver, model,
+      validation, compare and results format. `schemaVersion` stays 1. Deploy order: the site
+      first, then the specs that use these. No `cse.config.yml` value changed.
+    affects: [practice]
+
+  - id: practice-site-complexity-oct19
+    date: 2026-10-19
+    summary: >-
+      SUPERSEDES the "queued, not asked now" handling of the complexity gate in
+      `practice-site-reps-oct18`. The site's complete-rep dialog asks time and space, each with a
+      why, before the rating. The labels come from the pool in big-o.json (`pool`, emitted from
+      `scripts/export_bigo.py` COMPLEXITY_POOL) and are judged against `dashboard/bigo.yml` through
+      big-o.json. The attempt header carries them as `complexity: {time, space, whyTime,
+      whySpace}`, required on a complete save. `scripts/fold_attempt.py` compares them to the
+      bigo.yml reference by exact string equality and prints the verdict: a match satisfies the gate
+      and queues nothing; a mismatch or a problem with no reference bound is queued in
+      `complexity_gotchas.md`, and the Sunday complexity block takes those only. `schemaVersion` of
+      big-o.json stays 1.
+    affects: [review-workflow, complexity, practice]
+
+  - id: rating-ignores-complexity
+    date: 2026-09-23
+    summary: >-
+      The comfort rating no longer considers complexity AT ALL. The complexity gate itself is
+      unchanged: the coach still asks the learner for time AND space, each with an itemized
+      why-clause, before every rating (`rating_gate.py` unchanged). What changes is the
+      consequence: a wrong, prompted or taught Big-O bound never lowers or caps the rating, on any
+      rep. Rating is judged on recognition + code only. Every complexity miss is still corrected,
+      carded in `complexity_gotchas.md`, and queued into the end-of-week complexity cleanup, which
+      re-asks it cold on the existing code; only the rating consequence is gone. SUPERSEDES the
+      clean-code-only scope of `complexity-cleanup-formalized`: that waiver applied only when
+      recognition AND code were clean off a blank page, and its scope sentence ("if the code
+      needed a real fix, the normal freebie-to-yellow cap stands") is now wrong. A real CODE fix
+      still affects the rating through the code criterion; the complexity miss itself never does,
+      whether or not the code also needed a fix. Retires the freebie / repeat-yellow cap in
+      `complexity_gotchas.md` as a rating mechanism (the ledger stays, now tracking category
+      transfer only). No `cse.config.yml` value changed. Strands: "correct complexity" as a green
+      criterion; a complexity miss capping a rating; "clean code + Big-O miss" as the waiver's
+      scope (now every rep). See CLAUDE.md gate 1, `SKILL.md` section 2/3, `review-workflow.md`
+      step 1, `spaced-repetition.md`, `weekly-build.md`, `complexity_gotchas.md`,
+      `.claude/memory/feedback_ask_complexity.md`.
+    supersedes: [complexity-cleanup-formalized]
+    affects: [complexity_gate, ratings, complexity_gotchas, feedback_ask_complexity, weekly_closeout]
+
+  - id: complexity-reask-unpriced
+    date: 2026-09-28
+    summary: >-
+      A complexity re-ask row (Technique `Complexity`) prices 0 units. The weekly build already
+      left these rows out of a day's header, but `effort_budget.py` priced each one as a full rep
+      of its problem, so the workload chart's done and built ran above the plan.
+    affects: [effort_budget]
+
+  - id: daily-goal-is-the-ceiling-sep28
+    date: 2026-09-28
+    summary: >-
+      The ceiling changes from a cap to build under into the daily goal. Each day is built as
+      close to it as possible, and a small overshoot is fine. The value itself is unchanged in
+      `cse.config.yml` (`effort_budget.ceiling`); only how a build uses it changes. See
+      `references/effort-budget.md`, "The ceiling is the daily goal".
+    affects: [effort_budget, scheduling]
+
+  - id: problem-link-order-sep27
+    date: 2026-09-27
+    summary: >-
+      ADDS a link-order rule for a LeetCode problem, applied to PLANNED problems and future
+      scaffolds only (a tracked problem or an existing solution file is never relinked). In
+      order: (1) LeetCode, when the problem is free there. (2) NeetCode, when LeetCode paywalls it
+      AND NeetCode's own public list has it. (3) A premium catalog the learner subscribes to, when
+      neither of the above has it and that catalog does. (4) Another judge carrying the same
+      problem (Kattis, CSES and similar), found by hand and passed as `--url`; the scaffold says
+      so when it cannot confirm the link is free. (5) LeetCode's own page, stated as paywalled
+      rather than hidden. Every step is CHECKED against that site's own list, never guessed.
+      JOIN METHOD for a catalog whose slugs differ from LeetCode's: the map is joined on the
+      LeetCode slug each catalog page links, never on the title and never on the catalog's own
+      slug; a page with exactly one LeetCode link is a problem page, zero is a lesson page, more
+      than one is ambiguous and skipped, and a lesson page that happens to link a single
+      LeetCode problem as its example is excluded by comparing the path's last segment with the
+      slug. IMPLEMENTATION: `scripts/new_problem.py` holds `load_neetcode_slugs()` (fail-soft, but
+      an unreadable list is UNKNOWN, never an empty set) and a single `resolve_premium_link(slug,
+      neetcode_slugs, hi_map) -> PremiumLink` (`url`, `judge`, `reason`), so the printed NOTE and
+      the URL it names cannot disagree; `verify_links()` checks NeetCode's own list and the
+      NeetCode-side slug (`NEETCODE_RENAMES.values()`). `scripts/links.py` labels each link by
+      judge host. Steps 4 and 5 are superseded by `problem-link-order-oct04`. No
+      `cse.config.yml` value changed.
+    affects: [links, scaffolding]
+
+  - id: problem-link-order-oct04
+    date: 2026-10-04
+    summary: >-
+      SUPERSEDES the fourth and fifth steps of `problem-link-order-sep27` (the "other judge" step
+      and the paywalled fallback). New order: LeetCode (free), NeetCode (free), the premium
+      catalog, then the site's practice page `https://progressiveoverflow.com/practice/<n>`.
+      Nothing is skipped: a problem none of the first three carries gets a practice spec so the
+      page exists. A spec's `url:` keeps the problem's source page (the other judge, or
+      LeetCode's paywalled page), because the practice page links its title to that field and
+      pointing it at the site would make the page link to itself. Code: `scripts/links.py` carries
+      the site constants (`SITE_PRACTICE_URL_TEMPLATE`, `SITE_PRACTICE_URL_PREFIX`, `SITE_LABEL`)
+      and the judge-label table `JUDGE_LABELS`; `scripts/new_problem.py`'s premium fallback and
+      its 9001-9999 synthetic-id default become the site url, and `verify_links` notes a missing
+      spec. No `cse.config.yml` value changed. (the label is superseded by
+      `practice-link-label-po-oct10`)
+    affects: [links, scaffolding, practice]
+
+  - id: problem-link-order-oct09
+    date: 2026-10-09
+    summary: >-
+      AMENDS `problem-link-order-oct04`: the site practice page is a standing second link in
+      schedule rows and in the site's problem lists, not only a fourth fallback. A schedule row
+      reads `[name](file) · [LC](url) · [PO](https://progressiveoverflow.com/practice/<n>)`, the
+      site link present whenever a spec `dsa/tests/<n>_*.yml` exists and the row's own judge link
+      is not already the site (a site-only row keeps its single link). The external link keeps
+      the order LC > NC > premium catalog. Chat lineups are unchanged: `links.py` with no flag
+      stays byte-identical. Code: `links.py --schedule` composes the cell;
+      `check_schedule_integrity.py` flags a current-schedule row that lacks the site link; the
+      site constants live in `links.py`. No `cse.config.yml` value changed.
+    affects: [links, scheduling, weekly-build, practice]
+
+  - id: practice-link-label-po-oct10
+    date: 2026-10-10
+    summary: >-
+      SUPERSEDES the `run` and `progressiveoverflow` labels named in `problem-link-order-oct04`
+      and `problem-link-order-oct09`. One label, `PO`, for every progressiveoverflow.com link,
+      beside `[LC]` / `[NC]` or alone (a site-only row). Code: `scripts/links.py` defines
+      `SITE_LABEL = "PO"` and `JUDGE_LABELS` maps the host to it; `check_schedule_integrity.py`
+      and `new_problem.py` import that name. Archived schedules stay as history. No
+      `cse.config.yml` value changed.
+    affects: [links, scheduling, weekly-build, scaffolding, practice]
+
+  - id: external-judge-problems-sep26
+    date: 2026-09-26
+    summary: >-
+      ADDS a synthetic-id convention for a problem sourced from a judge other than
+      LeetCode / NeetCode: a 4-digit id in 9001-9999 (the toolchain's own regexes are `\d{1,4}`;
+      5 digits would be silently dropped), living under the existing tracked root in its normal
+      pattern folder, with the file header carrying the REAL judge URL. The id is the tracker join
+      key exactly as an LC number is. Use it when a technique needs a rep (for example negative
+      edges for Bellman-Ford) that LeetCode and NeetCode do not carry: pull first, hand-pick from
+      the other judge only when the pull yields too little (`coverage-sibling-pulled-not-authored`).
+      `techniques.yml` declares such a problem with `queued: "surplus>=1"` (see
+      `coverage-queued-problems-sep26`); the tracker's Waiting Room row and the "Notes for future
+      agents" legend carry the convention. Companion source fixes label problems by judge host and
+      read the header URL for the auto-row (`scripts/update_review_dates.py`, `scripts/links.py`,
+      `scripts/new_problem.py`, `.claude/hooks/problem_link_reminder.py` wording). Not scaffolded
+      when queued (an unattempted problem plants a phantom row, see `scaffolding.md`); scaffolded
+      at kickoff via `new_problem.py --number 900x --url <judge url> ...`. No `cse.config.yml`
+      value changed.
+    affects: [technique_coverage, dsa_progress, waiting_room, scaffolding, links]
+
+  - id: external-judge-difficulty-oct4
+    date: 2026-10-04
+    summary: >-
+      AMENDS `external-judge-problems-sep26`: an external-judge problem's Difficulty is the
+      LeetCode-equivalent tier, judged against the same-technique LC comparator, never the
+      judge's label (a 1-10 scale puts textbook-algorithm problems in its Easy band). No
+      `cse.config.yml` value changed.
+    affects: [dsa_progress, technique_coverage, effort_budget]
+
+  - id: external-judge-plain-values-oct4
+    date: 2026-10-04
+    summary: >-
+      AMENDS `external-judge-problems-sep26`: an external-judge problem (9001-9999) is rebuilt as
+      the engine's own variant on the site: a method call, 0-indexed, returning plain Python
+      values (numbers, bools, lists, `None`), never the judge's output strings, 1-indexed lines or
+      stdin layout. The spec's `url:` stays the judge's page (`problem-link-order-oct04`) and its
+      `statement` is always written, since the site has no steps file for these. Normative
+      sentence: `spec.md` Fields, "External-judge problems (9001-9999)", and the tracker's "Notes
+      for future agents" legend. No `cse.config.yml` value changed.
+    affects: [practice, scaffolding, dsa_progress]
+
+  - id: coverage-queued-problems-sep26
+    date: 2026-09-26
+    summary: >-
+      ADDS a `queued:` key on a `techniques.yml` `problems:` spec (the vocabulary a `variants:`
+      entry already used), so a declared problem with no tracker row yet, but already sitting in
+      the Waiting Room / Expansion Queue behind a stated trigger, is reported as a KNOWN gap
+      (named in the Gaps cell and a "Queued" Action-list block) instead of silently folding into
+      "not reached yet". "Not reached yet" itself splits into "Queued (N)" and "Declared, not
+      queued (N): <numbers>" (listed, not just counted). `Resolved.queued_problems: dict[int,
+      str]` in `scripts/technique_coverage.py`; a `queued:` key on a spec that DOES match a
+      tracker row is a no-op, never an error. Rendered strictly INSIDE the existing Gaps cell,
+      never a new column, never in the Problems cell's parenthetical, and never containing the
+      word "variant" (which `gamify.parse_techniques()` reads as a substring to flag
+      `hasVariantGap`), so the `## Coverage` table's 9-column contract and gamify's header-count
+      regex are unchanged. `scripts/test_technique_coverage.py` uses string fixtures with
+      monkeypatched path constants, never the live repo files. No `cse.config.yml` value changed.
+      See `scripts/technique_coverage.py`, `docs/foundations/dsa/mastery/techniques.yml` (schema
+      comment), `.claude/skills/cse-coach/references/technique-coverage.md`.
+    affects: [technique_coverage]
+
+  - id: coverage-threshold-formula-sep27
+    date: 2026-09-27
+    summary: >-
+      REPLACES the per-technique coverage bar's hand-set `min_problems` (a flat default
+      individually overridden on most entries) with a COMPUTED threshold. A single fixed default
+      did not fit a vocabulary spanning techniques with one declared problem and techniques with a
+      dozen: the flat number was either too loose on a thin technique or too tight on a broad
+      one, and each mismatch was patched by hand, forever. FORMULA (`cse.config.yml`'s
+      `coverage_threshold` block: `plan_share`, `floor_min`, `floor_max`):
+      floor = clamp(ceil(plan_share * declared), floor_min, floor_max); threshold = floor +
+      unclean. `declared` is the technique's own distinct declared problem count
+      (`techniques.yml` `problems:`, excluding a number whose every spec opts out via `planned:
+      false`). `unclean` is how many of the technique's CREDITED problems (tracker-matched,
+      distinct numbers) are still red or yellow best comfort, added on top of the floor because a
+      shaky rep has not earned its coverage credit yet. A technique's own `min_problems:`, when
+      present, REPLACES the formula's floor only; `unclean` is still added on top. BASIS: the
+      N-consecutive-correct rule tutoring systems use for mastery (applied at the technique level
+      via `unclean`, as `graduate_at_streak` applies it to a single problem), and a bar sized as a
+      SHARE of what is planned for that technique rather than a constant. Declared variations,
+      difficulty and company demand are DELIBERATELY left out: variations are a separate
+      per-technique gap check, and difficulty and demand size WHICH problems to pull, not how many
+      count toward "covered". IMPLEMENTATION: `scripts/technique_coverage.py`
+      `compute_coverage_threshold()` (pure, table-tested) returns `(floor, threshold)`; `Resolved`
+      gains `coverage_floor` and `unclean_count`; the Min column renders `threshold
+      (floor+unclean)`, still readable by `gamify.parse_techniques()` as the first integer in the
+      cell, extended to read the two parenthesised integers into `coverageFloor` /
+      `uncleanCount` (additive). `company_demand.py` and `technique_comfort_audit.py` pass the
+      loaded `coverage_threshold` config through unchanged.
+    affects: [technique_coverage, gamify, mastery]
+
+  - id: mastery-ratio-done-over-planned-sep26
+    date: 2026-09-26
+    summary: >-
+      CHANGES the Mastery tab's ratio from `problemCount/minProblems` (tracked vs. an internal
+      coverage bar) to `z/y`, done over planned, so the number on the page answers "how many of
+      what is coming have I done" instead of comparing against a bar the learner has never seen.
+      DEFINITIONS. z (done): any problem with a rating counts as attempted, once per problem
+      (this is `problemCount`). y (planned): every problem planned for the technique, done ones
+      included: `y = problemCount + len(planned)`, where `planned` holds EVERY declared-untracked
+      problem in `techniques.yml`, not only ones carrying a `queued:` trigger; a problem declared
+      under two techniques counts once in each. x (threshold): unchanged (`min_problems`), now
+      shown as a tick on a progress bar under the row rather than folded into the ratio; x > y is
+      a real finding, shown honestly. THE CATALOG. Most declared-untracked problems resolve their
+      title through the tracker's Waiting Room table (`parse_waiting_room`); the rest resolve
+      through `docs/foundations/dsa/mastery/roadmap.yml`, a catalog of `{number, title, url,
+      difficulty, phase}`. `scripts/gamify.py` `load_roadmap(warnings)` (fail-soft) is
+      `planned_for`'s SECOND fallback source (Waiting Room first, catalog second, an honest null
+      and one warning when neither has it, never guessed). OPT-OUT. A `problems:` spec takes an
+      optional `planned: false`: declared for credit if it ever earns a tracker row, but excluded
+      from `planned` / `plannedTotal` (a recognition probe is the case); `planned_for` excludes a
+      number only when EVERY untracked spec for it carries `planned: false`. `queued` is OPTIONAL
+      on an untracked spec: its only remaining job is which bucket `technique_coverage.py` sorts
+      an unmatched spec into. CONTRACT FIELDS (additive, no `SCHEMA_VERSION` bump):
+      `plannedTotal` (= y, exported so the site never re-derives it) and `untriedVariations`
+      (names of a declared method variant never exercised and not queued, parsed from
+      `technique_coverage.md`'s Variants cell via `gamify._parse_untried_variants`).
+      OUT OF SCOPE: the Knowledge Expansion Queue tiers, a backlog rather than a plan with
+      dates. See `scripts/gamify.py`, `scripts/test_gamify.py`, `dashboard/progress.schema.json`
+      (`definitions.technique.planned` / `plannedTotal` / `untriedVariations`),
+      `.claude/skills/cse-coach/references/technique-coverage.md`.
+    affects: [gamification, technique_coverage, dsa_progress, waiting_room, roadmap]
+
+  - id: company-demand-families-sep26
+    date: 2026-09-26
+    summary: >-
+      ADDS `scripts/company_demand.py` -> `docs/foundations/dsa/mastery/company_demand.md`:
+      per-tier demand from the public company-wise question lists, joined to `techniques.yml`
+      families. Run by hand at the weekly build (`python scripts/company_demand.py --tier all`);
+      it needs the network, so it is NOT wired into the pre-commit hook (unlike
+      `technique_coverage.py`). Four `tier: core` families back the report's vocabulary:
+      `strings`, `math_sim`, `design`, `bit_manipulation`. The report's per-family demand is
+      lower than a raw tag share because a multi-tag problem is assigned ONE family by
+      `FAMILY_PRIORITY`, and a tracked problem takes the family of its vocabulary credit. Rule: a
+      demand family with no vocabulary entry is a `NO FAMILY` verdict in `company_demand.md`,
+      fixed by adding the `techniques.yml` entry, never by scheduling a problem reactively off the
+      report. Sorting is not added: the family already exists. FIXES
+      `pull_interview.read_tracker()`'s comfort-emoji alternation, which omitted the graduated
+      mark and silently dropped every graduated row from both `solved_slugs` and
+      `learned_numbers`; also adds `"Strings"` / `"Design"` to `CATEGORY_TO_TOPICS` and
+      `FOLDER_TO_CATEGORY` (inert until a solution folder exists for either). See
+      `scripts/company_demand.py`, `scripts/pull_interview.py`, `docs/foundations/dsa/mastery/techniques.yml`.
+    affects: [technique_coverage, gamification, pull_interview]
+
+  - id: greedy-family-oct18
+    date: 2026-10-18
+    summary: >-
+      MOVES `Greedy (single pass)` from family `sliding_window` to its own family `greedy` in
+      `techniques.yml`, and `company_demand.py` maps the `Greedy` tag to `greedy` (also added to
+      `FAMILY_PRIORITY`, after `sliding_window`). Why: Pattern Sense asks the learner for the
+      family first, and a greedy problem filed under sliding_window teaches the wrong first
+      answer. The "Vocabulary smell" footer note in the company-demand report is gone with the
+      cause. `technique_coverage.md` and `progress.json` are regenerated; `company_demand.md`
+      shows the old family for greedy rows until its next network run.
+    affects: [techniques, company_demand, pattern-sense]
+
+  - id: intervals-split-four-ways-oct6
+    date: 2026-10-06
+    summary: >-
+      The single technique "Intervals (sort + sweep)" becomes four, keyed by sort key + answer
+      shape: "Intervals: Merge & Insert (sort by start)", "Interval Scheduling (sort by end)",
+      "Sweep Line / Max Concurrent" and "Interval List Intersection (two pointers)". The coverage
+      table now shows each flavour below its own bar: that is the breadth gap the single entry
+      hid, not a regression. `doc: intervals` stays on the first entry only (one entry per
+      technique doc). The tier-2 "Sweep Line" entry builds on "Sweep Line / Max Concurrent". No
+      `cse.config.yml` value changed.
+    affects: [technique_coverage, techniques_vocabulary, intervals]
+
+  - id: dsa-mock-interview-sep30
+    date: 2026-09-30
+    summary: >-
+      A recurring DSA mock interview joins the DSA pillar: every `dsa_mock.every_days`, one unseen
+      Medium/Hard problem run cold as an interviewer, then a level raiser (a constraint change
+      scored pass/partial/fail on an adaptability checklist). Seated Sunday as a mock row priced
+      as a red blank at the named difficulty; it is that week's unseen problem, so no probe that
+      week. The base problem is a real rep (tracker row always); the level raiser earns no row.
+      The schedule names the slot, never the problem. Debriefs are public in
+      `docs/foundations/dsa/mocks/`. The first mock is anchored at `dsa_mock.first_due`.
+    affects: [weekly-build, effort-budget, scheduling, gamification, hooks, dsa-mock]
+
+  - id: practice-contract
+    date: 2026-10-01
+    summary: >-
+      ADDS the practice contract. A hand-written spec per problem in
+      `dsa/tests/<number>_<snake>.yml` (statement, entry point, signature, comparison mode, cases
+      as args plus expected) is exported by `scripts/export_practice.py` to
+      `dashboard/practice.json`. The site's practice page fetches that file and runs the learner's
+      code against it in the browser. Cases are the statement's examples plus stored random cases
+      whose expected values were computed offline; no reference solution is published. A spec is
+      written when a problem is seated on a week's schedule. `new_problem.py` reads the statement
+      and signature from the spec when one exists. Stage 1 covers single-method problems only. No
+      `cse.config.yml` value changed.
+    affects: [scaffolding, weekly-build, hooks, practice]
+
+  - id: practice-figure
+    date: 2026-10-02
+    summary: >-
+      ADDS an optional `figure` to a practice spec. It names which arguments hold a graph's edge
+      list or a grid, and the site draws each example's input from it. Additive: `schemaVersion`
+      stays 1. No `cse.config.yml` value changed.
+    affects: [scaffolding, practice]
+
+  - id: practice-contract-shapes
+    date: 2026-10-02
+    summary: >-
+      ADDS three optional shapes to a practice spec: `result` (compare an argument after the call,
+      whole or its first k items), `types` (list-node, list-node-cycle, random-list, tree-node,
+      tree-value, graph-node codecs per argument and result), and `entry.kind` (`ops` for a design
+      class driven by an operation sequence, `round-trip` for decode(encode(x))). `statement`
+      becomes optional: the site shows its own description when a spec has none.
+      `scripts/check_practice_spec.py` runs a solution file against a spec with the site's
+      semantics. Additive: `schemaVersion` stays 1. No `cse.config.yml` value changed. Extended by
+      `practice-contract-ext-oct19`.
+    affects: [scaffolding, practice]
+
+  - id: practice-figure-shapes-oct4
+    date: 2026-10-04
+    summary: >-
+      EXTENDS the practice spec's `figure` for graphs. A graph figure takes exactly one edge
+      source: `edgesArg` (edge list), `matrixArg` (square matrix, undirected) or `adjArg`
+      (neighbour list, with `oneBased`). Nodes can be named: `nodesArg` names the argument that
+      lists the node names, so node ids are strings. `highlight: expected` marks the expected
+      value as a list of the drawn graph's edges. Additive: existing figures emit byte-identically
+      and `schemaVersion` stays 1. No `cse.config.yml` value changed.
+    affects: [scaffolding, practice]
+
+  - id: showcase-contract
+    date: 2026-09-22
+    summary: >-
+      The site's algorithm visualizers stop storing a hand-pasted copy of the learner's Python:
+      the site carries no solution code of its own. The repo instead emits
+      `dashboard/showcase.json` (schema `dashboard/showcase.schema.json`) from a hand-curated
+      manifest `dashboard/showcase.yml`, one entry per (lcNumber, variant), picking a specific
+      attempt / method by symbol name (every attempt lives in ONE file as a dated method inside
+      `class Solution:`, or a dated class for a design problem, so "pick a version" means picking
+      a method / class by name, not a commit). `scripts/export_showcase.py` reads the manifest and
+      the live solution files and emits a byte-identical (EOL-normalized), line-numbered slice per
+      entry: `container` (the `class Solution:` header), `attempt` (the picked def / class, its
+      leading comment banner folded in), and any `helper` segments, so the site renders code
+      provably identical to the repo and links to the real line range. Unlike `gamify.py`,
+      `export_showcase.py` is deliberately NOT fail-soft: an unresolvable manifest entry (unknown
+      symbol, a twin problem number missing its required `file:`, a container mismatch, a stale
+      committed `showcase.json`) is a hard failure (`--check` exits 1), because a stale or wrong
+      showcase contract is exactly the drift this tool exists to remove. Renaming or deleting a
+      manifest-selected symbol is a BREAKING CHANGE, surfaced by `--check` (wired into
+      `.githooks/pre-commit`, report-only). `progress.json` stays code-free; `showcase.json` is the
+      one contract that deliberately carries verbatim, curated source. `links.py`
+      `resolve_title_url(number, path)` (header-over-tracker) is the single implementation of
+      that precedence. No `cse.config.yml` value changed. See `dashboard/showcase.yml`,
+      `scripts/export_showcase.py`, `dashboard/showcase.schema.json`; promoted into the engine by
+      `dashboard-contract-exporters-oct6`.
+    affects: [gamification]
+
+  - id: bigo-contract
+    date: 2026-09-24
+    summary: >-
+      ADDS the site's Big-O Trainer as a second grounded-code contract, mirroring
+      `showcase-contract`: a hand-curated manifest `dashboard/bigo.yml` ->
+      `scripts/export_bigo.py` -> `dashboard/big-o.json`, rendered by the site as a picker
+      (All / Easy / Medium / Hard plus a "my complexity misses" toggle) dealing a capped run from
+      the learner's own solution files. PICK RULE: each entry resolves to the latest DATED
+      attempt in its file (by the symbol's `_YYYYMMDD` suffix or its banner comment); a tie is
+      broken by the symbol LOWEST IN THE FILE; a file with no dated attempt requires an explicit
+      `symbol:` in the manifest, a hard error otherwise. LABELS: one ordered canonical pool
+      (`export_bigo.COMPLEXITY_POOL`) replaces inconsistent spellings; the site checks answers by
+      EXACT STRING EQUALITY against the pool, and each question's 4 options are seeded
+      deterministically (`random.Random(f"{key}|{axis}|{correct}")`), confusable distractors
+      first, topped up from nearby pool labels, so the same entry always offers the same
+      distractors. `isMiss` is read from `docs/foundations/dsa/mastery/complexity_gotchas.md`'s
+      cleanup-queue and ledger tables (`parse_miss_numbers`); `difficulty` is joined from the
+      tracker via `effort_budget.parse_rows()`. A manifest entry whose bound is `TODO` is SKIPPED
+      with a warning, never emitted; filling `TODO` bounds is an ordinary rep for the learner,
+      never delegated. Hook wiring is REPORT-ONLY, as for `showcase-contract`. No
+      `cse.config.yml` value changed. See `dashboard/bigo.yml`, `scripts/export_bigo.py`,
+      `dashboard/big-o.schema.json`; promoted into the engine by
+      `dashboard-contract-exporters-oct6`.
+    affects: [gamification]
+
+  - id: practice-site-fold-action-oct19
+    date: 2026-10-19
+    summary: >-
+      The fold of a site-completed rep moves from coach-applied to a GitHub Action.
+      `.github/workflows/fold-attempts.yml` runs on every push to `dsa/attempts/**` and calls
+      `python scripts/fold_attempt.py --apply --all`, commits through the repo's pre-commit hook,
+      pushes, then calls `notify-site.yml` through `workflow_call` (a push made with GITHUB_TOKEN
+      triggers no other workflow). The fold writes the tracker row, the schedule strike / pull-in /
+      late-completion placement, the next review when it falls in the same week, the complexity
+      queue row and the recognition-miss entry. Stays manual: retirement 🎓 to 🏆 (the job summary
+      names a candidate), a failed job (a blocking check exits 2 and nothing is pushed; fold by hand
+      with `--apply <path>` after fixing), and an attempt the fold refuses (it stays in the inbox).
+      "Today" is the inbox folder date, with `TZ` set in the job from the config's `timezone`
+      (`.github/actions/engine-setup`). No config value changed.
+    affects: [review-workflow, practice]
+
+  - id: headless-study-track-oct19
+    date: 2026-10-19
+    summary: >-
+      ADDS the headless study track: a learner works on the site with no clone, and every engine
+      step runs as a GitHub Action in the learner's own repo. The principle: every site action is
+      a small commit, and every engine step is an Action running the same Python through the
+      pre-commit hook, so a site rep and a chat rep land the same files. Three Actions:
+      `onboard` (the site writes `intake.yml`; `scripts/bootstrap.py --intake` writes the config,
+      the roadmap and week 1, then `intake.yml` is removed), `fold-attempts` (a site attempt
+      becomes a tracker row, a schedule strike and the follow-up queue rows) and `weekly-build`
+      (`scripts/build_week.py`). THREE FOLD FIXES: one attempt is one transaction (a refused
+      attempt is restored and the others still fold); a missing solution file is scaffolded at fold time;
+      the first rep of a problem keeps the rating the learner picked. NEW CONFIG KEYS:
+      `timezone` and the `automation:` block (`weekly_build`, `build_lead_hours`,
+      `practice_index_url`, `prefer_practice_spec`); onboarding writes `weekly_build: true`.
+      `daily_cap` stays legacy and is no longer asked. WHAT HEADLESS DROPS: forecast talk, the
+      complexity block, the Pattern Sense deck, the `technique_comfort_audit` pull order,
+      primers, probes and mocks, spec authoring (the build prefers problems the site can run
+      instead), the next-week preview, prose goals and day labels, and the SD slot.
+      `write_week1` is deleted; week 1 comes from `build_week.py` in every mode.
+    affects: [onboarding, scheduling, release, weekly_build]
+
+  - id: ci-gates-oct20
+    date: 2026-10-20
+    summary: >-
+      ADDS a CI test gate, `.github/workflows/ci.yml`: pytest over `scripts`, `tests` and the hook
+      tests (explicit paths, because pytest skips dot-directories), then the checks that pass on an
+      empty template. Exit policy is the pre-commit hook's own: the cheat-sheet check fails on any
+      non-zero; each exporter check fails the job on exit 2 and emits a warning on exit 1. LEFT OUT:
+      `technique_coverage.py --check`, which exits 1 on the clean template (its generated report
+      is stale). The gate runs only on the template (`is_template`, the inverse of the engine
+      workflows' guard), so a generated learner repo copies the file and never runs it. PINS every
+      external action by commit SHA with a `# vX.Y.Z` comment: learner repos inherit these
+      workflows with `contents: write`, so a moved tag would run in every learner repo.
+      `tests/test_workflows_pinned.py` enforces it. NO `dependabot.yml` in the template: a
+      generated repo would copy it, and Dependabot PRs would make its workflow files diverge from
+      the template, which the engine-update path then reports as conflicts; template pins arrive
+      by promotion from cse-progress.
+    affects: [release, onboarding]
+
+  - id: headless-gaps-oct20
+    date: 2026-10-20
+    summary: >-
+      ADDS three fixes to the headless track. (1) `build_week.py --top-up`: once the target week's
+      file exists, the normal build skipped and never re-seated a due tracker row with no cell
+      in it (a row left undone, a follow-up created after an early build). Top-up seats such rows,
+      through the same `plan_week`/`seat()` path, into the newest live week on days from today on,
+      skips a row struck in the previous week's file, never archives or moves a file, and honours
+      `automation.weekly_build`. `weekly-build.yml` runs the normal build and then `--top-up` on
+      every trigger; a top-up that seated rows commits as `top up week of <date>`. (2) NEW CONFIG
+      KEY `automation.bigo_reference_url` (optional, not in the build's required keys): when
+      `bigo.yml` has no entry for a folded problem, `fold_attempt.py` reads the published Big-O
+      reference once per run; any network, JSON or schema failure leaves today's "no reference
+      bound; verify cold" queue row, and an absent key fetches nothing. (3) `gamify.py` prints one
+      aggregated line for declared problems with no Waiting Room row or roadmap entry instead of
+      one per number, and prints it (and the roadmap-unreadable line) only when the tracker has
+      dated rows, so a fresh checkout validates quietly.
+    affects: [weekly_build, site_reps, onboarding]
+
+  - id: site-hold
+    date: 2026-10-20
+    summary: >-
+      A learner can set or release a deferral from the site's board. The Worker writes a
+      `why: site-hold` entry to `docs/foundations/dsa/mastery/holds.yml`: `until` is after today
+      and at most `MAX_HOLD_DAYS` days out (a Worker contract constant, not a config key);
+      `until: null` releases; a hold owned by another `why` is refused with 409
+      `hold-owned-by-decision`. Next Review = max(ladder, until) via `apply_holds`, with no
+      schedule rewrite: the current week's row keeps its place with a ⏸ mark and the weekly
+      build re-seats it. `progress.json` `problems[].heldUntil` (new, optional) carries the hold.
+      `.github/workflows/regenerate.yml` replays the pre-commit hook over a push that bypassed it
+      (`scripts/replay_hook.py`, marker ref `refs/regenerate/last`). The hook's tracker and
+      gamify triggers gain `holds\.yml$`. No config value changed. 2026-10-21: the site's hold UI
+      and the Worker route were withdrawn (a Blank rating is the learner's "can't do it" signal;
+      the ladder schedules the retry); holds.yml stays a coach-set record and the board shows ⏸
+      read-only.
+    affects: [dashboard, review-workflow]
+
+  - id: site-coach-session
+    date: 2026-10-18
+    summary: >-
+      The coach on progressiveoverflow.com follows `references/site-session.md`; a message with a
+      `<page_context>` block is the site coach. It supersedes the "rating logged as given" exception of
+      `practice-site-reps-oct18` for coached reps: a coached site rep takes the recognition and
+      complexity gates and propose + confirm, then the coach writes the `dsa/attempts/` file from
+      `page_context.code` and runs `scripts/fold_attempt.py --coached <file>`. Uncoached site saves keep the
+      `practice-site-reps-oct18` path. Gate 9 (kickoff) does not apply on the site; the coach scaffolds
+      just in time, one problem. Scope is studying only. A correction there is logged to
+      `self_eval_log.md` with `site: fix pending`, and the intervention-ladder fix waits for VS Code.
+    affects: [review-workflow, rating, scaffolding, site-coach]
+
+  - id: release-v0-11-0-oct20
+    date: 2026-10-20
+    summary: >-
+      RELEASES v0.11.0 (VERSION bumped from 0.10.1, `.coach-sync/manifest.json` re-emitted; the
+      annotated `v0.11.0` tag is the maintainer's step, per CLAUDE.md "Releasing"). It ports the
+      practice repo's Round 2 engine changes, each recorded under its own id and not restated here:
+      the CI gate and SHA pins (`ci-gates-oct20`), `--top-up`, the Big-O reference soft-fetch and the
+      aggregated warning (`headless-gaps-oct20`), holds and `regenerate.yml` (`site-hold`), and the
+      site coach session with its coached fold (`site-coach-session`); the variant-rows join and the
+      recognition-pick grading have no id of their own in the practice repo. Also in this release:
+      `update_coach.py` sync fixes (the manifest baseline is upstream's hashes, so a
+      conflict-protected file survives the next sync; a real sync writes `VERSION`), and
+      `notify-site.yml` dispatches to the repository variable `SITE_REPO`, skipping with a notice
+      when it or the token is unset. The example config's `dsa_mock.first_due` and
+      `pattern_sense.starts` are the token `PLACEHOLDER` and bootstrap fills both in every mode. No
+      `cse.config.yml` value changed; one optional key was added (`automation.bigo_reference_url`).
+    affects: [release, weekly_build, hooks, onboarding, dashboard]
+
+  - id: release-v0-9-0-oct19
+    date: 2026-10-19
+    summary: >-
+      RELEASES v0.9.0 (VERSION bumped from 0.8.0, `.coach-sync/manifest.json` re-emitted; the
+      annotated `v0.9.0` tag is the maintainer's step, per CLAUDE.md "Releasing"). It ports the
+      practice repo's changes since v0.8.0, each recorded under its own id and not restated here:
+      the three new skills (`effort-units`, `scheduling`, `practice-problem`:
+      `scheduling-skill-oct6`), the scheduling scripts (`row-cap-oct6`,
+      `intake-rate-and-backstop-oct6`, `carry-forward-proven-only-oct6`, `backlog-forecast-oct6`),
+      Pattern Sense (`pattern-sense-weekly-oct18`, `pattern-sense-github-save-oct18`), the
+      practice-contract extensions (`practice-contract-ext-oct19`, `practice-site-reps-oct18`,
+      `practice-site-complexity-oct19`), the decision-tree cheat sheets and family vocabulary
+      (`greedy-family-oct18`, `intervals-split-four-ways-oct6`), and the commit-and-push gate
+      (`commit_push_gate.py`: commit and push are two commands). ONBOARDING PATH: a new learner
+      can sign in at progressiveoverflow.com/start and choose DSA; the site creates
+      `<you>/cse-progress` from this template (collaborators only while this repo is private), so
+      the template's starter files are what a first-time learner meets. The starter `dashboard/`
+      therefore ships the generated progress, cheat-sheet and manifest JSON, and the exporters
+      that need the learner's own data (practice, Big-O, showcase, Pattern Sense) write nothing
+      until it exists. No `cse.config.yml` value changed.
+    affects: [release, dashboard, practice, scheduling, hooks]
+
+  - id: board-priority-sort-sep29
+    date: 2026-09-29
+    summary: >-
+      CHANGES who orders a day: the priority order (red/yellow reps, then new problems, then
+      probes, then green by streak with Easy last, then graduated, then complexity re-asks) was
+      applied by hand at the build; `scripts/schedule_priority.py` now sorts each day's rows on
+      commit (the pre-commit hook, live weeks only), and `remaining.py` prints the board in that
+      order. The kickoff board moves from `links.py` to `remaining.py`. Strands any rule reading
+      "build the lineup from links.py" for a day's board.
+    affects: [kickoff, lineup, weekly_build]

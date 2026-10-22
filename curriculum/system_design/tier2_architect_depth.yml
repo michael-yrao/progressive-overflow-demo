@@ -1,0 +1,29 @@
+# System Design — Tier 2 (Architect Depth, below the ROI line).
+# High real-world ROI, low interview ROI. Long-form reading/study on its own track, not
+# mock material. Pursue after Tier 1 is solid, for genuine distributed-systems mastery.
+pillar: system_design
+tier: tier2_architect_depth
+roi: below_line
+
+topics:
+  - name: "Designing Data-Intensive Applications (Kleppmann)"
+    note: "Read cover to cover — the on-ramp from interview-competent to real understanding."
+  - name: Consensus internals
+    note: "Raft (start here), Paxos / Multi-Paxos, ZAB. Why consensus is hard."
+  - name: Distributed transactions
+    note: "2PC / 3PC, Sagas, Percolator, Calvin. When and why each fails."
+  - name: Consistency theory
+    note: "Linearizable vs sequential vs causal vs eventual; session guarantees; CRDTs."
+  - name: Storage engines
+    note: "LSM-tree vs B-tree, WAL, compaction, MVCC. Inside Postgres / Cassandra / RocksDB."
+  - name: Stream processing
+    note: "Exactly-once semantics, watermarks, backpressure (Kafka, Flink)."
+  - name: Foundational papers
+    note: "GFS, MapReduce, Bigtable, Dynamo, Spanner, Chubby, ZooKeeper, Kafka, Cassandra, Raft, F1."
+
+tier3_horizon:
+  note: >
+    Research / specialization only (near-zero interview ROI): formal methods (TLA+),
+    academic distributed systems (MIT 6.824), consensus variants (EPaxos, Flexible/Fast
+    Paxos), advanced consistency (Bayou, COPS), chaos engineering, hardware-aware design
+    (NUMA, RDMA, kernel-bypass), planet-scale coordination (TrueTime, hybrid logical clocks).

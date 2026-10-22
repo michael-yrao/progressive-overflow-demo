@@ -1,0 +1,40 @@
+# DSA expansion — Tier 2 (below the ROI line).
+# Competitive-programming growth; near-zero interview payoff. Cross here only after
+# NC150 + Tier 1 are solid, and only when pursuing competitive depth. Many topics
+# live more naturally on Codeforces than LeetCode.
+pillar: dsa
+tier: expansion_tier2
+roi: below_line
+default_pace_per_week: 1
+
+techniques:
+  - name: Sweep line & convex hull
+    representative: [{ number: 218, title: "The Skyline Problem" }, { number: 587, title: "Erect the Fence" }]
+    note: "Process events ordered along an axis; convex hull for geometry."
+  - name: Max-flow / min-cut & bipartite matching
+    representative: [{ number: 1820, title: "Maximum Number of Accepted Invitations" }, { number: 1349, title: "Maximum Students Taking Exam" }]
+    note: "Hungarian / Hopcroft-Karp for matching; Dinic's for flow. Min-cut = max-flow duality."
+  - name: LCA (binary lifting / Euler tour + sparse table)
+    representative: [{ number: 1483, title: "Kth Ancestor of a Tree Node" }, { number: 2846, title: "Minimum Edge Weight Equilibrium Queries in a Tree" }]
+    note: "O(log n) ancestor / path queries via 2^k jump tables or RMQ over an Euler tour."
+  - name: Mo's algorithm & sqrt decomposition
+    representative: [{ number: 1157, title: "Online Majority Element in Subarray" }]
+    note: "Offline range queries reordered by √n blocks."
+  - name: SOS DP (sum over subsets)
+    representative: [{ number: 1994, title: "The Number of Good Subsets" }]
+    note: "Aggregate over all subsets of a mask in O(n·2^n)."
+  - name: Convex-hull trick / Knuth DP optimization
+    representative: [{ number: 1547, title: "Minimum Cost to Cut a Stick" }, { number: 1000, title: "Minimum Cost to Merge Stones" }]
+    note: "Drop interval/1D DP a factor via monotonic hull lines or the Knuth quadrangle inequality."
+  - name: Suffix array / suffix automaton
+    representative: [{ number: 1044, title: "Longest Duplicate Substring" }]
+    note: "Full-text indexing for substring queries."
+  - name: Aho-Corasick
+    representative: [{ number: 1032, title: "Stream of Characters" }]
+    note: "Multi-pattern matching = KMP failure links layered on a trie."
+  - name: Z-algorithm
+    representative: [{ number: 3008, title: "Find Beautiful Indices in the Given Array II" }]
+    note: "O(n) prefix-match array; alternative to KMP."
+  - name: Persistent data structures / treaps
+    representative: []
+    note: "Few clean LeetCode instances — practice on Codeforces. Versioned segment trees / balanced BSTs."

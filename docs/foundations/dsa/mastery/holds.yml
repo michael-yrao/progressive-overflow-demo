@@ -1,0 +1,8 @@
+# Learner-requested deferrals past the ladder date. Hand-authored.
+# scripts/update_review_dates.py sets a row's Next Review = max(ladder date, `until`);
+# once `until` has passed the hold changes nothing. Entry fields:
+#   row    the tracker row's problem title exactly as dsa_progress.md shows it
+#   until  the earliest date the row may come back
+#   since  the date the hold was requested
+#   why    a decisions.yml id
+[]

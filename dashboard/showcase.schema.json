@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://progressiveoverflow.com/schemas/showcase.v1.json",
+  "title": "cse-coach grounded-solutions contract",
+  "description": "The verbatim-slice data contract emitted by scripts/export_showcase.py from the hand-curated dashboard/showcase.yml manifest, and consumed by the progressiveoverflow.com algorithm visualizers. Unlike progress.json (aggregate stats, never solution code), this file DELIBERATELY carries a curated, byte-identical slice of real solution code — one attempt per (lcNumber, variant), each segment's `lines` read straight off the file on disk (CRLF/LF-normalized) with its real source line numbers, so the site can render code that is provably identical to what is in the repo instead of a hand-pasted, driftable copy. schemaVersion is bumped on any breaking change so a viewer can refuse an incompatible file. The manifest is validated against the live source by `export_showcase.py --check`; a manifest-selected symbol that is renamed or deleted is a hard failure there, never a silent drift.",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "entries"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "generatedAt": { "type": "string", "format": "date" },
+    "entries": {
+      "type": "array",
+      "description": "One entry per (lcNumber, variant) picked in dashboard/showcase.yml.",
+      "items": { "$ref": "#/definitions/entry" }
+    }
+  },
+  "definitions": {
+    "entry": {
+      "type": "object",
+      "description": "One curated attempt: the join key the site uses is `${lcNumber}:${variant}` (== `key`, derived, never re-parsed).",
+      "required": ["key", "lcNumber", "variant", "title", "url", "file", "symbol", "attemptDate", "segments"],
+      "properties": {
+        "key": { "type": "string", "description": "`${lcNumber}:${variant}` — the manifest's own join key, precomputed here so the site never has to re-derive it." },
+        "lcNumber": { "type": "integer", "minimum": 1 },
+        "variant": { "type": "string", "description": "Kebab-case approach id from the manifest's `variant` field — never a date. Matches the site's SolutionVariant.variant." },
+        "title": { "type": ["string", "null"], "description": "Problem title, preferring the solution file's own docstring header over the tracker (links.resolve_title_url) — null only if neither source has one." },
+        "url": { "type": ["string", "null"], "description": "Canonical LeetCode/NeetCode URL, same precedence as `title`. null for the rare problem with neither a header nor a tracker URL — the site's leetCodeUrlFor() falls back to a search URL." },
+        "file": { "type": "string", "description": "Repo-root-relative path to the solution file (dashboard/showcase.yml's `file:` when given, else the unique file discovered for lcNumber)." },
+        "symbol": { "type": "string", "description": "The picked def (or class, for a design problem) — the manifest's own `symbol` field." },
+        "attemptDate": { "type": ["string", "null"], "format": "date", "description": "ISO date parsed from the symbol's own `_YYYYMMDD` suffix, else from an `Attempt · YYYY-MM-DD` banner comment directly above it, else null for an undated legacy def." },
+        "segments": {
+          "type": "array",
+          "description": "The verbatim slice, in source order (sorted by startLine): an optional single-line `container` segment (the wrapping `class Solution:` header — absent when the manifest's `container` is explicitly null, i.e. a design problem where the symbol IS the class), exactly one `attempt` segment (the picked def/class, its leading `#`-comment banner folded into the same segment, through its last body line), and zero or more `helper` segments (extra module-level symbols named in the manifest's `helpers` list).",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/segment" }
+        }
+      }
+    },
+    "segment": {
+      "type": "object",
+      "required": ["kind", "symbol", "startLine", "endLine", "lines"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["container", "attempt", "helper"] },
+        "symbol": { "type": "string", "description": "The class/def name this segment came from." },
+        "startLine": { "type": "integer", "minimum": 1, "description": "1-based source line number in `file`, on GitHub's own line numbering (LF-normalized) — usable directly as a `#L<n>` anchor." },
+        "endLine": { "type": "integer", "minimum": 1, "description": "1-based, inclusive." },
+        "lines": {
+          "type": "array",
+          "description": "The segment's source lines, verbatim and EOL-stripped, `lines[i]` == source line `startLine + i`. Byte-identical to what GitHub serves for this file, never re-indented or re-flowed.",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

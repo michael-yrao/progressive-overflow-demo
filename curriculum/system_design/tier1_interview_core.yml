@@ -1,0 +1,87 @@
+# System Design — Tier 1 (Interview Core, above the ROI line).
+# The whole SD-interview surface. Driving the framework fluently is ~half the score.
+# The learner STUDIES this on their own; the canonical_designs below are the MOCK BOARD the
+# coach runs cold ~45-min mock interviews from, scored on the 7-point rubric (study_guide.md).
+pillar: system_design
+tier: tier1_interview_core
+roi: above_line
+
+topics:
+  - name: Fundamentals & estimation
+    items: ["latency numbers", "back-of-envelope (QPS, storage, bandwidth)", "vertical vs horizontal scaling"]
+  - name: Building blocks
+    items: ["load balancing", "caching (patterns, eviction, invalidation)", "CDN", "reverse proxy / API gateway", "message queues & async", "rate limiting", "consistent hashing"]
+  # Quantitative foundations — the numbers you need MID-SENTENCE to justify a claim in a
+  # mock. Front-load the ones no design reliably triggers: the gap surfaces only AFTER you're
+  # already stuck, so waiting for a mock to ambush you is too late. A concepts/ card each.
+  - name: Quantitative foundations
+    card: concept
+    front_load: true
+    items: ["percentiles & tail latency (p99, fan-out amplification)", "Little's Law (L = λW)", "utilization & queueing (1/(1−ρ), why ~70%)", "Zipfian access skew", "bloom filters", "probabilistic sketches (HyperLogLog, Count-Min)", "retry storms, jitter & cache stampedes", "quorum math (R + W > N)"]
+  # Concepts too, but a specific design reliably surfaces each in a mock — study them when the
+  # mock that needs them comes up, rather than front-loading; the ambush IS the study signal.
+  - name: Concepts surfaced by designs
+    card: concept
+    front_load: false
+    items: ["WebSocket vs SSE vs polling (→ chat)", "birthday paradox / base62 / Snowflake IDs (→ URL shortener)", "vector clocks & clock skew (→ distributed KV)", "LSM-tree vs B-tree (→ Postgres / Cassandra cards)"]
+  - name: Operability
+    items: ["observability (metrics, logging, distributed tracing, health checks, alerting)", "deployment & rollout (blue-green, canary, feature flags, rollback)"]
+  - name: Data layer
+    items: ["SQL vs NoSQL", "indexing", "replication (leader/follower, multi-leader)", "sharding / partitioning", "CAP & PACELC", "consistency levels", "idempotency"]
+  - name: The interview framework
+    items: ["requirements (functional + non-functional)", "estimation", "API design", "data model", "high-level diagram", "deep dives", "bottlenecks & tradeoffs"]
+
+# Canonical designs — the MOCK BOARD. Each is one mock-interview unit, logged as one row
+# in design_progress.md.
+#
+# ⚠️ ONE DESIGN = ONE ROW = ONE MOCK = ONE SESSION. A cold ~45-60 min mock, rated on the
+# study guide's 7-point rubric. A design spread over several sessions cannot be rated,
+# because the second sitting is no longer cold, and an unratable rep never enters the
+# interval engine at all.
+#
+# ⚠️ TIERED, AND THE TIERS ARE THE ORDER. Order the board easiest-framework-rep first, so
+# what's being drilled early is THE FRAMEWORK, not the exotica: Rate Limiter is one of the
+# hardest designs here despite being conceptually early, and a learner meeting a hard design
+# as their second-ever mock learns the framework badly — all the attention goes to the domain.
+#
+# Work them Easy -> Medium -> Hard, finishing any open arc first. Tiers follow the
+# systemdesign.io catalog where it covers the design; the four it does not cover are
+# marked `tier_source: judgment` and are tiered here on domain complexity.
+canonical_designs:
+  easy:        # the framework reps — plain request/response, one dominant read path
+    - "URL shortener"
+    - "Pastebin"
+    - "Instagram"
+    - "Twitter"
+    - "Top-K / trending (e.g. app store rankings)"
+    - "Distributed job scheduler / cron"
+    - "Document management (Notion / Wikipedia)"
+    - "Facebook Likes with live updates"
+  medium:      # fan-out, storage shape, or streaming enters the picture
+    - "File storage (Dropbox / Drive)"
+    - "Chat / Messenger (WhatsApp)"
+    - "Video streaming (YouTube / Netflix)"
+    - "News feed"
+    - "Web crawler"
+    - "Distributed KV store / cache"
+    - "Calendar / scheduling (Google Calendar)"
+  hard:        # correctness, contention or scale is the whole problem
+    - "Rate limiter"
+    - "Notification service"
+    - "Typeahead / autocomplete"
+    - "Metrics collection & monitoring"
+    - name: "Ride-share (Uber)"
+      tier_source: judgment      # real-time geospatial matching + dispatch
+    - name: "Ticketmaster"
+      tier_source: judgment      # seat-locking contention, thundering herd
+    - name: "Payment / ledger"
+      tier_source: judgment      # exactly-once, idempotency, auditability
+  very_hard:
+    - name: "Collaborative editing (Google Docs — OT / CRDT)"
+      tier_source: judgment      # conflict resolution is a research-grade subproblem
+
+# Sourcing note: tiers are aligned to the systemdesign.io catalog, but the design NAMES
+# are deliberately source-neutral and carry no URLs. A canonical curriculum that hardcodes
+# one third-party site's links couples every adopter to that site staying up and keeping
+# its slugs; the tiering survives the site, the links would not. Learners are free to add
+# links in their own design_progress.md rows.

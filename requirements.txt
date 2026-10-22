@@ -1,0 +1,3 @@
+jsonschema>=4.18
+pyyaml
+tzdata  # zoneinfo on Windows; a no-op where the OS ships tz data

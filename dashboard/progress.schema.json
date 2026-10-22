@@ -1,0 +1,375 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://progressiveoverflow.com/schemas/progress.v1.json",
+  "title": "cse-coach progress contract",
+  "description": "The honest-progress data contract emitted by scripts/gamify.py and consumed by the progressiveoverflow.com dashboard. Any repo following the cse-coach schema can emit this file to be renderable. Curated + non-sensitive: aggregate stats, per-problem status and comfort timeline, and derived badges — never solution code or stuck-log prose. schemaVersion is bumped on any breaking change so a viewer can refuse an incompatible file. gamify.py ALSO emits progress-summary.json alongside this file — see $defs/summary below: same contract minus `problems[]`, with a compact `trophyCase`. The dashboard landing fetches the summary only; the full file (this schema) is fetched on explicit opt-in.",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "totals", "pipeline", "streak", "problems", "badges"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "generatedAt": { "type": "string", "format": "date" },
+    "totals": {
+      "type": "object",
+      "required": ["problems", "solutions", "reps"],
+      "properties": {
+        "problems": { "type": "integer", "minimum": 0 },
+        "solutions": { "type": "integer", "minimum": 0 },
+        "reps": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "pipeline": {
+      "type": "object",
+      "description": "Counts along the maturation ladder 🔴 blank -> 🟡 shaky -> 🟢 clean (by streak) -> 🎓 graduated -> 🏆 retired.",
+      "required": ["blank", "shaky", "clean", "graduated", "retired"],
+      "properties": {
+        "blank": { "type": "integer", "minimum": 0 },
+        "shaky": { "type": "integer", "minimum": 0 },
+        "clean": {
+          "type": "object",
+          "required": ["s0", "s1", "s2plus", "total"],
+          "properties": {
+            "s0": { "type": "integer", "minimum": 0 },
+            "s1": { "type": "integer", "minimum": 0 },
+            "s2plus": { "type": "integer", "minimum": 0 },
+            "total": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "graduated": { "type": "integer", "minimum": 0 },
+        "retired": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "difficulty": {
+      "type": "object",
+      "properties": {
+        "Easy": { "type": "integer", "minimum": 0 },
+        "Medium": { "type": "integer", "minimum": 0 },
+        "Hard": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "streak": {
+      "type": "object",
+      "description": "SR-honest study-day streak: rewards practicing when due, with a replenishing streak-freeze bank, never raw daily grind.",
+      "required": ["current", "longest", "studyDays"],
+      "properties": {
+        "current": { "type": "integer", "minimum": 0 },
+        "longest": { "type": "integer", "minimum": 0 },
+        "lastStudyDay": { "type": ["string", "null"], "format": "date" },
+        "studyDays": { "type": "integer", "minimum": 0 },
+        "freezes": { "type": "integer", "minimum": 0 },
+        "freezesLeft": { "type": "integer", "minimum": 0 },
+        "freezeMax": { "type": "integer", "minimum": 0 },
+        "frozenDays": { "type": "array", "items": { "type": "string", "format": "date" } }
+      }
+    },
+    "coverage": {
+      "type": ["object", "null"],
+      "description": "Technique breadth, from technique_coverage.md. null when that file was unreadable.",
+      "properties": {
+        "total": { "type": "integer" },
+        "started": { "type": "integer" },
+        "noGreen": { "type": "integer" },
+        "thin": { "type": "integer" },
+        "variantGaps": { "type": "integer" }
+      }
+    },
+    "onSchedule": {
+      "type": "object",
+      "description": "SR adherence gauge derived from each row's Next Review Date vs today.",
+      "properties": {
+        "totalActive": { "type": "integer", "minimum": 0 },
+        "dueToday": { "type": "integer", "minimum": 0 },
+        "overdue": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "trophyCase": {
+      "type": "object",
+      "properties": {
+        "graduated": { "type": "array", "items": { "$ref": "#/definitions/problem" } },
+        "retired": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "lcNumber": { "type": "integer" },
+              "title": { "type": "string" },
+              "retiredOn": { "type": "string", "format": "date" }
+            }
+          }
+        }
+      }
+    },
+    "badges": {
+      "type": "array",
+      "description": "Derived achievements. Every trigger keys off a genuine, unfakeable event (a graduation, a retirement, a comeback, a study-day streak) — never a raw count of easy greens and never a rating.",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "earned"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "icon": { "type": "string" },
+          "description": { "type": "string" },
+          "earned": { "type": "boolean" },
+          "progress": { "type": "object", "required": ["current", "target"],
+            "properties": { "current": {"type": "integer"}, "target": {"type": "integer"} },
+            "description": "Only on counter badges (streak/mastered milestones, Full Spectrum): how far toward the target. Absent on one-shot event badges." }
+        }
+      }
+    },
+    "problems": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/problem" }
+    },
+    "techniques": {
+      "type": "array",
+      "description": "Per-technique row from technique_coverage.md's Coverage table — the drill-through detail behind the technique-breadth header. Small; present in BOTH progress.json and progress-summary.json so the technique panel renders instantly with no extra fetch.",
+      "items": { "$ref": "#/definitions/technique" }
+    },
+    "studyDays": {
+      "type": "array",
+      "description": "Sorted distinct ISO dates the learner practiced — the list form behind streak.studyDays (a count). Backs the streak calendar drill. In progress.json (this schema) this is the COMPLETE lifetime list. In progress-summary.json it is a ROLLING WINDOW (the last ~26 weeks / SUMMARY_STUDY_DAYS_WINDOW days, gamify.py's summary_of()) — enough for the calendar, capped so the summary can't grow forever. The lifetime COUNT is unaffected: read streak.studyDays / streak.longest for that, never the length of this array in the summary.",
+      "items": { "type": "string", "format": "date" }
+    },
+    "schedule": {
+      "description": "The CURRENT week's Daily Schedule table — the compact slice behind the dashboard's Today's-board drill (\"what do I do today\"). null when no current weekly schedule file was found. Present in BOTH progress.json and progress-summary.json (one week of compact rows, small either way). Carries ALL 7 days; the viewer picks 'today' by its OWN local date against each day's `date` — this file never bakes in a server-side today, since the summary can be viewed days after it was generated.",
+      "oneOf": [
+        { "$ref": "#/definitions/scheduleWeek" },
+        { "type": "null" }
+      ]
+    },
+    "workload": {
+      "type": "array",
+      "description": "One entry per scheduled day (live + archive) that has a header or priced rows, sorted by date — planned vs completed effort units, backing the workload chart. `done`/`built` are priced under the CURRENT cse.config.yml weights (gamify.py's build_workload(), reusing effort_budget.py's price_day_items()), so the series is comparable to today's numbers, never to what a day was billed at when it was built. Empty when no schedule has been built yet. In progress.json (this schema) this is the COMPLETE list back to whenever schedules began. In progress-summary.json it is capped to the same rolling window as `studyDays` (SUMMARY_STUDY_DAYS_WINDOW days).",
+      "items": { "$ref": "#/definitions/workloadDay" }
+    },
+    "effortCeiling": {
+      "type": "number",
+      "description": "The learner's daily effort-budget ceiling (units), from cse.config.yml's effort_budget.ceiling (default 8.0 if absent). Backs the Today's-board workload bar's Heavy band (>= 0.9x this)."
+    },
+    "effortFloor": {
+      "type": "number",
+      "description": "The learner's daily effort-budget floor, from cse.config.yml's effort_budget.floor_min (default 3.0 if absent). Backs the Today's-board workload bar's Light band (<= this)."
+    },
+    "probes": {
+      "type": ["object", "null"],
+      "description": "The dsa/probes/README.md Probe log — cold, label-stripped, disposable recognition reps. A clean 🟢 probe creates NO tracker row (see the README), so this is the ONLY place it's counted; backs the Recognition tab. null when no Probe log table was found. Present in BOTH progress.json and progress-summary.json (~1 row/week, small either way).",
+      "required": ["total", "cleanRate", "items"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "cleanRate": { "type": "number", "minimum": 0, "maximum": 1, "description": "count(result == 🟢) / total. The README's own diagnostic: >=0.85 means the pool has stopped teaching (raise difficulty / open the next tier); <=0.70 means real gaps remain." },
+        "items": { "type": "array", "items": { "$ref": "#/definitions/probe" } }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "description": "Fail-soft notes about inputs that could not be fully read; a partial file is still valid.",
+      "items": { "type": "string" }
+    }
+  },
+  "definitions": {
+    "summary": {
+      "description": "The shape of progress-summary.json: this contract minus `problems[]`, with a compact `trophyCase` (graduated entries reduced to {lcNumber, title, difficulty} — no timeline/repDates; retired entries unchanged). Written by the same gamify.py run via summary_of().",
+      "type": "object",
+      "required": ["schemaVersion", "generatedAt", "totals", "pipeline", "streak", "badges"],
+      "properties": {
+        "schemaVersion": { "type": "integer", "const": 1 },
+        "generatedAt": { "type": "string", "format": "date" },
+        "totals": { "$ref": "#/properties/totals" },
+        "pipeline": { "$ref": "#/properties/pipeline" },
+        "difficulty": { "$ref": "#/properties/difficulty" },
+        "streak": { "$ref": "#/properties/streak" },
+        "coverage": { "$ref": "#/properties/coverage" },
+        "onSchedule": { "$ref": "#/properties/onSchedule" },
+        "badges": { "$ref": "#/properties/badges" },
+        "techniques": { "$ref": "#/properties/techniques" },
+        "studyDays": { "$ref": "#/properties/studyDays" },
+        "schedule": { "$ref": "#/properties/schedule" },
+        "workload": { "$ref": "#/properties/workload" },
+        "effortCeiling": { "$ref": "#/properties/effortCeiling" },
+        "effortFloor": { "$ref": "#/properties/effortFloor" },
+        "probes": { "$ref": "#/properties/probes" },
+        "trophyCase": {
+          "type": "object",
+          "properties": {
+            "graduated": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "lcNumber": { "type": "integer" },
+                  "title": { "type": "string" },
+                  "difficulty": { "type": "string", "enum": ["Easy", "Medium", "Hard"] }
+                }
+              }
+            },
+            "retired": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "lcNumber": { "type": "integer" },
+                  "title": { "type": "string" },
+                  "retiredOn": { "type": "string", "format": "date" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "technique": {
+      "type": "object",
+      "description": "One row of technique_coverage.md's Coverage table.",
+      "required": ["name", "family", "tier", "started", "minProblems", "problemCount", "problems", "hasGreen", "thin", "hasVariantGap"],
+      "properties": {
+        "name": { "type": "string" },
+        "family": { "type": "string" },
+        "tier": { "type": "string", "enum": ["core", "dp", "tier1", "tier2", "tier3"], "description": "Curriculum tier for the HONEST denominator: 'core' = already-started NC150/pattern-doc techniques; 'dp' = the not-yet-started DP framework lenses + core 1D/2D DP; 'tier1' = Knowledge Expansion Queue ABOVE the interview-ROI line (still shows up in hard interviews); 'tier2'/'tier3' = BELOW the line, competitive-programming horizon only. See techniques.yml's schema comment and study_guide.md's Interview-ROI Line." },
+        "started": { "type": "boolean", "description": "Has the learner solved anything under this technique — technique_coverage.py's `is_started`. false for every declared-but-not-yet-begun tier1/2/3/dp entry; those are excluded from every gap check (no-green/thin/variant) and from the coverage Action list, so a bigger denominator never adds noise." },
+        "minProblems": { "type": "integer", "minimum": 1, "description": "The per-technique coverage bar — computed by technique_coverage.py per cse.config.yml's coverage_threshold formula (a floor sized off the technique's own declared problem count, plus its still-🔴/🟡 problems), or an explicit techniques.yml override for the floor half. Makes 'thin' self-explanatory as problemCount/minProblems instead of a bare label. A not-started technique still carries its declared target (reads 0/minProblems)." },
+        "coverageFloor": { "type": "integer", "minimum": 1, "description": "The floor half of minProblems, before its unclean (still-🔴/🟡) problems are added on top. Additive — falls back to minProblems on an older report written before this breakdown existed." },
+        "uncleanCount": { "type": "integer", "minimum": 0, "description": "How many of this technique's credited problems are still 🔴/🟡 best comfort — added on top of coverageFloor to get minProblems. Additive — falls back to 0 on an older report written before this breakdown existed." },
+        "problemCount": { "type": "integer", "minimum": 0 },
+        "problems": { "type": "array", "items": { "type": "integer" }, "description": "LC numbers inside the table cell's parenthetical; excludes *+Nv* variant-rep annotations." },
+        "bestComfort": { "type": ["string", "null"], "enum": ["🔴", "🟡", "🟢", "🎓", "🏆", null] },
+        "hasGreen": { "type": "boolean" },
+        "thin": { "type": "boolean", "description": "problemCount below minProblems, the technique's computed coverage bar." },
+        "hasVariantGap": { "type": "boolean", "description": "A declared method variant has never once been exercised." },
+        "buildsOn": { "type": "array", "items": { "type": "string" }, "description": "Technique names this one presupposes (techniques.yml's `builds_on`), validated against that file's own declared names (an unknown name, a self-edge, or the edge that closes a cycle is dropped). Empty for a root of the technique graph. Feeds the site's skill tree." },
+        "graduatedCount": { "type": "integer", "minimum": 0, "description": "How many of this row's credited tracker rows (`rows`) have reached 🎓 or better, plus retired numbers." },
+        "rows": {
+          "type": "array",
+          "description": "The tracker rows this technique credits: techniques.yml's number+method join, so a `method` spec credits only the matching variant and a method-less spec credits every row of the number.",
+          "items": {
+            "type": "object",
+            "required": ["lcNumber", "title"],
+            "properties": {
+              "lcNumber": { "type": "integer" },
+              "title": { "type": "string" }
+            }
+          }
+        },
+        "planned": {
+          "type": "array",
+          "description": "Problems declared for this technique with no tracker row yet — EVERY techniques.yml `problems:` spec whose number has no tracker row, not only ones carrying a `queued` trigger. title/url/difficulty resolve from the tracker's Waiting Room table first, then `roadmap.yml`'s declared-problem catalog, and are null (with a warning in gamify.py) when neither has the number. A number moves out of this list on its own the moment it is rated (into `problems` above) — no second edit needed. Present on every technique, started or not (empty array when nothing is declared-and-untracked). Curation rule: the Waiting Room's Notes column (coaching prose, judge links) is NEVER exported — only lcNumber/title/url/difficulty/trigger. A spec marked `planned: false` in techniques.yml (a recognition probe, credited if it ever earns a tracker row but not part of the plan) is excluded from this list and from `plannedTotal`.",
+          "items": {
+            "type": "object",
+            "required": ["lcNumber", "trigger"],
+            "properties": {
+              "lcNumber": { "type": "integer", "description": "The queued problem's LC number, or a synthetic 9xxx external-judge id — the `url` host says which judge." },
+              "title": { "type": ["string", "null"], "description": "From the Waiting Room row's link text (or roadmap.yml's catalog title), verbatim. Null when the number has neither a Waiting Room row nor a roadmap.yml entry (a warned condition in gamify.py)." },
+              "url": { "type": ["string", "null"], "format": "uri" },
+              "difficulty": { "type": ["string", "null"], "enum": ["Easy", "Medium", "Hard", null] },
+              "trigger": { "type": ["string", "null"], "description": "The spec's `queued:` trigger string from techniques.yml — same vocabulary as the Waiting Room's own Trigger column. Null for a declared-untracked spec that carries no `queued` key at all — `queued` is optional on such a spec (see techniques.yml's own schema comment) and the problem is still `planned`." }
+            }
+          }
+        },
+        "plannedTotal": { "type": "integer", "minimum": 0, "description": "y = problemCount + planned.length — every distinct problem declared under this technique in techniques.yml, tracked or not. Exported so the site never re-derives it; an older payload with no `plannedTotal` falls back to `problemCount + (planned?.length ?? 0)`." },
+        "untriedVariations": { "type": "array", "items": { "type": "string" }, "description": "Names of declared method variants never once exercised AND not sitting in any queue — parsed from technique_coverage.md's own Variants cell (the bold `**<name> ×0**` entries only; a struck-through `queued:` variant is excluded, since that is a known gap with a fill already picked, not something to name as missing). Lets the page name the specific missing variation instead of a bare `variant gap` label." }
+      }
+    },
+    "probe": {
+      "type": "object",
+      "description": "One row of the Probe log table.",
+      "required": ["date", "lcNumber", "title", "technique", "result"],
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "lcNumber": { "type": ["integer", "null"] },
+        "title": { "type": "string" },
+        "technique": { "type": "string" },
+        "result": { "type": ["string", "null"], "enum": ["🔴", "🟡", "🟢", "🎓", "🏆", null], "description": "The FIRST comfort glyph in the Result cell — scored on the COLD call, not a later conversion (e.g. '🔴 → 🟡 (re-rep ...)' reads 🔴)." },
+        "url": { "type": ["string", "null"], "description": "Canonical LeetCode URL, joined by lcNumber from the tracker's markdown links (problem_urls()). null when the number has no tracker entry yet." },
+        "difficulty": { "type": ["string", "null"], "enum": ["Easy", "Medium", "Hard", null], "description": "The Probe log's Difficulty cell, else joined by lcNumber from the tracker (_difficulty_by_num()). null when neither has it." },
+        "file": { "type": ["string", "null"], "description": "Repo-relative POSIX path of the solution file: the probe's own dsa/probes/<n>_*.py if it has one, else the tracker solution file (solution_path()), else null." }
+      }
+    },
+    "workloadDay": {
+      "type": "object",
+      "description": "One scheduled day's planned-vs-completed effort units, priced under the current cse.config.yml weights.",
+      "required": ["date", "planned", "done", "built", "partial"],
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "planned": { "type": ["number", "null"], "description": "The day's planned units: the header's pinned `· planned X units` figure (frozen when a row was first deferred off the started day) when present, else the header's stated total; null when the header carried none." },
+        "done": { "type": "number", "description": "Sum of the struck-through rows' price, 1 decimal place." },
+        "built": { "type": "number", "description": "Sum of the day's rows' price excluding rows deferred off it (done + remaining), 1 decimal place." },
+        "partial": { "type": "boolean", "description": "True when at least one row could not be priced exactly (no problem number, or untracked and guessed) — done/built are then a lower bound." }
+      }
+    },
+    "scheduleWeek": {
+      "type": "object",
+      "description": "One week's Daily Schedule table: weekOf (the Monday) and all 7 days.",
+      "required": ["weekOf", "days"],
+      "properties": {
+        "weekOf": { "type": "string", "format": "date", "description": "ISO date of the week's Monday." },
+        "days": { "type": "array", "minItems": 7, "maxItems": 7, "items": { "$ref": "#/definitions/scheduleDay" } }
+      }
+    },
+    "scheduleDay": {
+      "type": "object",
+      "description": "One day of the current week's board.",
+      "required": ["date", "weekday", "items"],
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "weekday": { "type": "string", "description": "Full weekday name, e.g. 'Monday'." },
+        "label": { "type": ["string", "null"], "description": "The day header's trailing note (after the units), e.g. '4 🔴 re-reps + Greedy reviews'. null if the header carried none." },
+        "units": { "type": ["number", "null"], "description": "The header's first figure, the day's built units; the planned figure is workload[].planned." },
+        "items": { "type": "array", "items": { "$ref": "#/definitions/scheduleItem" } }
+      }
+    },
+    "scheduleItem": {
+      "type": "object",
+      "description": "One row of a schedule day's Daily Schedule table.",
+      "required": ["lcNumber", "title", "technique", "startComfort", "difficulty", "done"],
+      "properties": {
+        "lcNumber": { "type": ["integer", "null"], "description": "Read via eb.SCHED_NUM first (the same parse effort_budget.py prices with); if that finds no `[`/`**` before the number (by design, mirrors effort_budget.py — e.g. a bare-number 🆕 intake row), falls back to a leading-digits match on the tag-stripped, link-unwrapped title. null only when neither finds a number." },
+        "title": { "type": "string" },
+        "technique": { "type": ["string", "null"] },
+        "startComfort": { "type": ["string", "null"], "enum": ["🔴", "🟡", "🟢", "🎓", null], "description": "The comfort glyph as written at the weekly build (col S) — null for a 🆕/🎯/🎤-tagged row, which carries no prior comfort." },
+        "startNote": { "type": ["string", "null"], "maxLength": 16, "description": "The S cell's note after its glyph (same normalisation as endNote): s0, s1, s2, prov. null when the cell has no glyph or nothing after it." },
+        "difficulty": { "type": ["string", "null"], "enum": ["Easy", "Medium", "Hard", null], "description": "Joined from the tracker's Difficulty column by lcNumber (the schedule file itself has no difficulty column) — null when the number isn't in dsa_progress.md yet (e.g. a 🆕 intake row)." },
+        "url": { "type": ["string", "null"], "description": "Prefers the row's own `[LC](...)`/`[NC](...)` link straight off the Problem cell; falls back to the tracker join by lcNumber (problem_urls()) — the site's own AlgorithmMeta.id is a shortened route slug, not the LC slug, so it cannot build this link itself. null when neither source has one." },
+        "tags": { "type": "array", "items": { "type": "string" }, "description": "Build-time tags read off the row's leading glyphs: ⚠️→protected, 🔥→backfill, 🆕→new, 🎯→probe, 🎤→mock, ⚙️→variant, 🔤→primer, →→moved." },
+        "kind": { "type": "string", "enum": ["rep", "new", "probe", "mock", "complexity", "primer"], "description": "complexity when the Technique cell is 'Complexity' (checked before any tag, since a complexity re-ask row is also 🎯-tagged); else mock/new/primer/probe from the row's tags; else rep." },
+        "done": { "type": "boolean", "description": "True when the row is struck through (`~~...~~`) in the source table." },
+        "endComfort": { "type": ["string", "null"], "enum": ["🔴", "🟡", "🟢", "🎓", null], "description": "The comfort glyph as written at the END of the rep (col E) — the E cell is usually blank until the row is done, so this is usually null until then, but it is read off the cell's own content and never falls back to startComfort: a done row whose E cell carries no glyph still reads null, so the board shows only what was actually earned." },
+        "endNote": { "type": ["string", "null"], "maxLength": 16, "description": "The E cell's free-form note after its glyph, stripped/collapsed/lowercased — vocabulary seen in real weeks: s0, s1, s2, prov, dropped. Only ever set when endComfort is non-null; null otherwise, even if the raw cell had trailing text. When the E cell carries only a 🟢 glyph, the note is derived from the start (🔴/🟡 → s0; 🟢 s0/prov → s1; 🟢 s1/s2 → s2)." },
+        "nextReview": { "type": ["string", "null"], "format": "date", "description": "The row's Next-review date (col Next) iff that cell is, once stripped, nothing but an ISO date; null for a free-form or blank Next cell." },
+        "file": { "type": ["string", "null"], "description": "Repo-relative POSIX path of the learner's own solution file for this number (links.solution_files(), keyed by lcNumber; a twin takes the first sorted path); null when no file exists under the configured source roots. A PATH, never code — progress.json stays code-free; the site turns it into a blob/<branch>/<path> link. Null when the row has no lcNumber." },
+        "deferredTo": { "type": ["string", "null"], "format": "date", "description": "ISO date the row was moved to when it was not done on its planned day: the Next cell of a row that is not struck. null otherwise." },
+        "pulledIn": { "type": "boolean", "description": "True for the destination copy of a row pulled to an earlier day: a leading `←` with no deferredTo. False for the origin row (it carries deferredTo), a `→` row and every other row." }
+      }
+    },
+    "problem": {
+      "type": "object",
+      "required": ["lcNumber", "title", "comfort", "repDates", "timeline"],
+      "properties": {
+        "lcNumber": { "type": "integer" },
+        "title": { "type": "string" },
+        "url": { "type": ["string", "null"], "description": "Canonical LeetCode URL for deep-linking." },
+        "file": { "type": ["string", "null"], "description": "Repo-relative POSIX path of the learner's own solution file for this number (links.solution_files(), keyed by lcNumber; a twin takes the first sorted path); null when no file exists under the configured source roots. A PATH, never code — progress.json stays code-free; the site turns it into a blob/<branch>/<path> link." },
+        "difficulty": { "type": "string", "enum": ["Easy", "Medium", "Hard"] },
+        "category": { "type": ["string", "null"] },
+        "comfort": { "type": "string", "enum": ["🔴", "🟡", "🟢", "🎓", "🏆"] },
+        "level": { "type": ["integer", "null"], "description": "Comfort as an ordinal 0-4 for plotting." },
+        "streak": { "type": "integer", "minimum": 0 },
+        "nextReview": { "type": "string", "format": "date" },
+        "heldUntil": { "type": "string", "format": "date", "description": "The hold's `until` from docs/foundations/dsa/mastery/holds.yml for this row (`<lcNumber>. <title>`); absent when the row has no hold. May be in the past; the site shows it only while it is today or later." },
+        "repDates": { "type": "array", "items": { "type": "string", "format": "date" } },
+        "timeline": {
+          "type": "array",
+          "description": "Per-rep comfort earned, reconstructed from the weekly schedules. comfort is null where a rep predates the schedule archive — an activity dot, never a fabricated value.",
+          "items": {
+            "type": "object",
+            "required": ["date"],
+            "properties": {
+              "date": { "type": "string", "format": "date" },
+              "comfort": { "type": ["string", "null"] },
+              "level": { "type": ["integer", "null"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

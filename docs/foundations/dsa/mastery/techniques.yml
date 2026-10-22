@@ -1,0 +1,801 @@
+# Canonical DSA technique vocabulary.
+#
+# The tracker (dsa_progress.md) is keyed by PROBLEM. This file is keyed by TECHNIQUE,
+# and `scripts/technique_coverage.py` joins the two to produce technique_coverage.md.
+#
+# Schema
+# ------
+#   name          canonical technique name. This is the vocabulary — keep it stable;
+#                 everything downstream keys off it.
+#   family        grouping for the report, roughly the dsa/leetcode/<folder> pattern.
+#   doc           the /learn cheat-sheet's join key: the technique doc's filename stem
+#                 under docs/foundations/dsa/patterns/techniques/ (underscores, e.g.
+#                 `doc: two_pointer`). scripts/build_cheatsheets.py reads a doc's family/
+#                 tier by joining on this key and raises a hard BuildError if zero or more
+#                 than one entry in this file carries a given `doc:` — a vocabulary bug,
+#                 not a content gap. Exactly one entry per technique doc; not every entry
+#                 needs one (sub-variant entries like "Binary Search on Answer" don't —
+#                 the doc is joined once, from its single best-matching entry). See
+#                 docs/foundations/dsa/patterns/README.md's "The machine-readable
+#                 contract" section for the full contract.
+#   min_problems  coverage bar. Defaults to 3 (a technique needs 3-4 surface forms before
+#                 it is a skill rather than recall of one problem). Drop to 1-2 for
+#                 patterns that are genuinely problem-specific — Dutch National Flag has
+#                 exactly one canonical problem and flagging it "thin" forever is noise.
+#   tier          curriculum tier, for the honest denominator: "core" (already-started
+#                 NC150/pattern-doc techniques — the implicit default when a technique
+#                 carries no `tier:` key, so pre-existing entries are not rewritten), "dp"
+#                 (the DP framework lenses — knapsack, interval DP, LIS, LCS, space
+#                 compression — plus core 1D/2D DP), "tier1" (Knowledge Expansion Queue,
+#                 ABOVE the interview-ROI line — still shows up in hard interviews),
+#                 "tier2"/"tier3" (BELOW the line — competitive-programming horizon only;
+#                 see the "INTERVIEW-ROI LINE" marker below). A `tier` never changes a gap
+#                 check — `is_started` already gates every check off techniques with zero
+#                 `problems`, which is exactly the state every not-yet-started entry is
+#                 declared in. Tiering only lets the dashboard show breadth split as
+#                 "practiced · above the line · below the line" instead of one flat
+#                 fraction that reads misleadingly high or low either way.
+#   variants      alternative METHODS for the same technique, when exercising both is
+#                 worth an interview rep. A variant with zero problems is a gap.
+#                 `queued: <trigger>` marks one already sitting in the Waiting Room or
+#                 Expansion Queue, so a known gap is not re-reported as a new finding.
+#                 Trigger vocabulary matches dsa_progress.md: graduates:<n>, rated:<n>,
+#                 surplus>=<n>, phase:<Name>, combined with +.
+#   problems      list of {number, method?, variant?, review?}
+#                   number   LeetCode number — the join key, same as the tracker
+#                   method   match ONLY the tracker row whose title parenthetical equals
+#                            this. Required for problems carrying several rows (200 has
+#                            DFS + BFS, 323 has DFS + BFS + Union-Find). Omit to match
+#                            every row for that number.
+#                   variant  which declared variant this row credits. Defaults to
+#                            `method` — set it explicitly when the row has no
+#                            parenthetical but the method is known (269 is Kahn's).
+#                   review   true = the method here is an ASSUMPTION, because the tracker
+#                            row carries no parenthetical. Confirm, add the parenthetical
+#                            to the tracker, then drop this flag.
+#
+# Adding a solved problem here is not optional bookkeeping: the report lists every
+# unmapped tracker row, so anything left out shows up as a gap in the vocabulary itself.
+
+version: 1
+
+defaults:
+  min_problems: 3
+
+techniques:
+  # ── Arrays & hashing ────────────────────────────────────────────────────────
+  - name: Hash Map Lookup
+    family: arrays_and_hash
+    min_problems: 2
+    problems:
+      - {number: 1}
+      - {number: 219}
+
+  - name: Hash Set Membership
+    family: arrays_and_hash
+    problems:
+      - {number: 217}
+      - {number: 36}
+      - {number: 128}
+
+  - name: Frequency Counting
+    family: arrays_and_hash
+    min_problems: 2
+    problems:
+      - {number: 242}
+      - {number: 49}
+
+  - name: Prefix/Suffix Products
+    family: arrays_and_hash
+    min_problems: 1
+    problems:
+      - {number: 238}
+
+  - name: Boyer-Moore Voting
+    family: arrays_and_hash
+    min_problems: 2
+    problems:
+      - {number: 169}
+      - {number: 229}
+
+  - name: Length-Prefix Encoding
+    family: arrays_and_hash
+    min_problems: 1
+    problems:
+      - {number: 271}
+
+  - name: In-Place Array Rotation
+    family: arrays_and_hash
+    min_problems: 1
+    problems:
+      - {number: 189}
+
+  - name: Array/String Fundamentals
+    family: arrays_and_hash
+    min_problems: 1
+    problems:
+      - {number: 1929}
+      - {number: 66}
+      - {number: 14}
+
+  # ── Two pointers ────────────────────────────────────────────────────────────
+  - name: Two Pointers (converging)
+    family: two_pointers
+    doc: two_pointer
+    problems:
+      - {number: 125}
+      - {number: 344}
+      - {number: 680}
+      - {number: 167}
+      - {number: 15}
+      - {number: 18}
+      - {number: 11}
+      - {number: 88}
+      - {number: 1768}
+
+  - name: Fast/Slow In-Place Write
+    family: two_pointers
+    problems:
+      - {number: 26}
+      - {number: 80}
+      - {number: 27}
+      - {number: 283}
+
+  - name: Dutch National Flag
+    family: two_pointers
+    min_problems: 1
+    problems:
+      - {number: 75, method: Dutch Flag}
+
+  - name: Prefix/Suffix Max
+    family: two_pointers
+    min_problems: 1
+    variants:
+      - {name: Array}
+      - {name: Two Pointer, queued: "graduates:42"}
+    problems:
+      - {number: 42, method: Array}
+
+  # ── Sliding window ──────────────────────────────────────────────────────────
+  - name: Sliding Window
+    family: sliding_window
+    doc: sliding_window
+    problems:
+      - {number: 3}
+      - {number: 424}
+      - {number: 567}
+      - {number: 121}
+
+  # ── Greedy ──────────────────────────────────────────────────────────────────
+  # Its own family (decision `greedy-family-oct18`): Pattern Sense asks for the family first,
+  # and a greedy problem filed under sliding_window would teach the wrong first answer.
+  - name: Greedy (single pass)
+    family: greedy
+    min_problems: 1
+    problems:
+      - {number: 122}
+
+  # ── Intervals ───────────────────────────────────────────────────────────────
+  # Not yet started here. The flavours are keyed by SORT KEY + ANSWER SHAPE, which is also
+  # the recognition discriminator (decision `intervals-split-four-ways-oct6`): sort by START
+  # when the answer is a SET OF INTERVALS, sort by END when the answer is a COUNT OF
+  # INTERVALS KEPT, sweep-line when the answer is a COUNT OF SIMULTANEOUS things. Each
+  # flavour gets its own bar. Only the first entry carries the /learn cheat-sheet `doc:`
+  # key (one entry per technique doc; build_cheatsheets.py joins on it).
+  - name: "Intervals: Merge & Insert (sort by start)"
+    family: intervals
+    doc: intervals
+    variants:
+      - {name: "Merge overlapping (sort by start)"}
+      - {name: "Insert into sorted (3-phase sweep)"}
+      - {name: "Stab / shrink-the-overlap (min end)"}
+    problems: []
+
+  - name: "Interval Scheduling (sort by end)"
+    family: intervals
+    variants:
+      - {name: "Keep max non-overlapping / min removals"}
+    problems: []
+
+  - name: "Sweep Line / Max Concurrent"
+    family: intervals
+    variants:
+      - {name: "Min-heap of ends"}
+      - {name: "Event sweep (+1/-1)"}
+    problems: []
+
+  - name: "Interval List Intersection (two pointers)"
+    family: intervals
+    variants:
+      - {name: "Two sorted lists, advance the earlier end"}
+    problems: []
+
+  # ── Prefix sum ──────────────────────────────────────────────────────────────
+  - name: Prefix Sum
+    family: prefix_sum
+    doc: prefix_sum
+    min_problems: 2
+    problems:
+      - {number: 560}
+      - {number: 53, method: Prefix Sum}
+
+  - name: Kadane
+    family: prefix_sum
+    min_problems: 1
+    problems:
+      - {number: 53, method: Kadane}
+
+  # ── Binary search ───────────────────────────────────────────────────────────
+  - name: Binary Search
+    family: binary_search
+    doc: binary_search
+    problems:
+      - {number: 704}
+      - {number: 74}
+      - {number: 33}
+      - {number: 153}
+      - {number: 162}
+      - {number: 540}
+      - {number: 2300}
+
+  - name: Binary Search on Answer
+    family: binary_search
+    min_problems: 2
+    problems:
+      - {number: 875}
+      - {number: 1011}
+
+  # ── Stack ───────────────────────────────────────────────────────────────────
+  - name: Stack (matching)
+    family: stack
+    min_problems: 1
+    problems:
+      - {number: 20}
+
+  - name: Monotonic Stack
+    family: stack
+    doc: monotonic_stack
+    problems:
+      - {number: 496}
+      - {number: 503}
+      - {number: 901}
+
+  # ── Linked list ─────────────────────────────────────────────────────────────
+  # Not yet started here; carries the /learn cheat-sheet `doc:` key so
+  # build_cheatsheets.py can join dummy_node.md's family/tier.
+  - name: Dummy Node
+    family: linked_list
+    tier: core
+    doc: dummy_node
+    problems: []
+
+  - name: Linked List Reversal
+    family: linked_list
+    doc: in_place_reversal
+    min_problems: 1
+    variants:
+      - {name: Iterative}
+      - {name: Recursion}
+    problems:
+      - {number: 206, method: Iterative}
+      - {number: 206, method: Recursion}
+
+  - name: Linked List Merge
+    family: linked_list
+    min_problems: 1
+    variants:
+      - {name: Iterative}
+      - {name: Recursion}
+    problems:
+      - {number: 21, method: Iterative}
+      - {number: 21, method: Recursion}
+
+  - name: Remove Nth From End
+    family: linked_list
+    min_problems: 1
+    variants:
+      - {name: Iterative}
+      - {name: Postorder Recursion}
+      - {name: Preorder Recursion, queued: "expansion — parked Jul 9"}
+    problems:
+      - {number: 19, method: Iterative}
+      - {number: 19, method: Postorder Recursion}
+
+  - name: Floyd's Cycle / Midpoint
+    family: linked_list
+    doc: fast_slow_pointer
+    min_problems: 2
+    problems:
+      - {number: 141}
+      - {number: 143}
+
+  - name: Linked List Arithmetic
+    family: linked_list
+    min_problems: 1
+    problems:
+      - {number: 2}
+
+  - name: Deep Copy via Hash Map
+    family: linked_list
+    min_problems: 1
+    problems:
+      - {number: 138}
+
+  - name: HashMap + Doubly Linked List (LRU)
+    family: linked_list
+    min_problems: 1
+    problems:
+      - {number: 146}
+
+  # ── Trees ───────────────────────────────────────────────────────────────────
+  - name: Tree DFS (recursive)
+    family: trees
+    doc: tree_dfs
+    problems:
+      - {number: 226}
+      - {number: 104}
+      - {number: 110}
+      - {number: 100}
+      - {number: 572}
+      - {number: 1448}
+
+  - name: Tree DFS with Postorder Return
+    family: trees
+    min_problems: 2
+    problems:
+      - {number: 543}
+      - {number: 124}
+
+  - name: Tree BFS (level order)
+    family: trees
+    doc: tree_bfs
+    min_problems: 2
+    problems:
+      - {number: 102}
+      - {number: 199}
+
+  - name: BST Descent
+    family: trees
+    min_problems: 2
+    problems:
+      - {number: 235}
+      - {number: 98}
+
+  - name: Tree Construction (Divide & Conquer)
+    family: trees
+    min_problems: 1
+    problems:
+      - {number: 105}
+
+  # ── Tries ───────────────────────────────────────────────────────────────────
+  - name: Trie
+    family: tries
+    min_problems: 2
+    problems:
+      - {number: 208, method: Prefix Tree}
+      - {number: 211}
+
+  # ── Heap ────────────────────────────────────────────────────────────────────
+  - name: Heap / Priority Queue
+    family: heap
+    problems:
+      - {number: 703}
+      - {number: 1046}
+      - {number: 973}
+      - {number: 621}
+      - {number: 355}
+      - {number: 347}
+
+  # ── Graphs ──────────────────────────────────────────────────────────────────
+  - name: Grid DFS
+    family: graphs
+    problems:
+      - {number: 200, method: DFS}
+      - {number: 695, method: DFS}
+
+  - name: Grid BFS
+    family: graphs
+    problems:
+      - {number: 200, method: BFS}
+      - {number: 130, method: BFS}
+      - {number: 733, method: BFS}
+      # 417 is BFS-only by decision (Jul 28, 2026) — DO NOT re-open this.
+      # The file also holds an earlier undated DFS attempt, so it HAS been solved both
+      # ways, but the learner reads the problem as naturally BFS (multi-source from each
+      # ocean's border) and wants one row. Consequence, accepted: the DFS attempt is
+      # credited to nothing, and Grid DFS therefore sits at 2/3 thin on 200 + 695 — a
+      # real gap to fill with a third grid-DFS problem, not an accounting artifact to
+      # paper over by re-crediting 417.
+      - {number: 417, method: BFS}
+
+  - name: Multi-source BFS
+    family: graphs
+    min_problems: 1
+    problems:
+      - {number: 994}
+
+  - name: Graph Clone (DFS + Hash Map)
+    family: graphs
+    min_problems: 1
+    problems:
+      - {number: 133}
+
+  - name: Graph Cycle Detection (DFS)
+    family: graphs
+    min_problems: 1
+    problems:
+      - {number: 261, method: DFS}
+
+  - name: Connected Components
+    family: graphs
+    variants:
+      - {name: DFS}
+      - {name: BFS}
+      - {name: Union-Find}
+    problems:
+      - {number: 323, method: DFS}
+      - {number: 323, method: BFS}
+      - {number: 323, method: Union-Find}
+
+  - name: Union-Find
+    family: graphs
+    doc: union_find
+    problems:
+      - {number: 130, method: Union-Find}
+      - {number: 261, method: Union-Find}
+      - {number: 684, method: Union-Find}
+      - {number: 721, method: Union-Find}
+
+  - name: Topological Sort
+    family: graphs
+    doc: topological_sort
+    variants:
+      - {name: Kahn's (BFS)}
+      - {name: DFS postorder, queued: "graduates:210"}
+    problems:
+      - {number: 207, variant: Kahn's (BFS)}
+      - {number: 210, variant: Kahn's (BFS)}
+      - {number: 269, variant: Kahn's (BFS)}
+
+  - name: BFS on Implicit Graph
+    family: graphs
+    min_problems: 1
+    problems:
+      - {number: 127, method: BFS}
+
+  # ── Advanced graphs ─────────────────────────────────────────────────────────
+  - name: Dijkstra
+    family: advanced_graphs
+    problems:
+      - {number: 743, method: Dijkstra}
+      - {number: 778, method: Dijkstra / Min-Heap}
+
+  - name: Bellman-Ford
+    family: advanced_graphs
+    variants:
+      - {name: Standard}
+      - {name: Contrast rep on 743, queued: "graduates:743"}
+    problems:
+      - {number: 787, method: Bellman-Ford, variant: Standard}
+
+  - name: Floyd-Warshall (all-pairs shortest path)
+    family: advanced_graphs
+    doc: floyd_warshall
+    min_problems: 1
+    problems:
+      - {number: 1334, method: Floyd-Warshall}
+
+  - name: Hierholzer (Eulerian path)
+    family: advanced_graphs
+    min_problems: 1
+    problems:
+      - {number: 332, method: Hierholzer}
+
+  - name: Prim's MST
+    family: advanced_graphs
+    doc: prims_mst
+    min_problems: 1
+    problems:
+      - {number: 1584, method: Prim's MST}
+
+  # ── Backtracking ────────────────────────────────────────────────────────────
+  # Not yet started here; carries the /learn cheat-sheet `doc:` key so
+  # build_cheatsheets.py can join backtracking.md's family/tier.
+  - name: Backtracking
+    family: backtracking
+    tier: core
+    doc: backtracking
+    problems: []
+
+  # ── Recursion ───────────────────────────────────────────────────────────────
+  # Not yet started here; carries the /learn cheat-sheet `doc:` key so
+  # build_cheatsheets.py can join recursion.md's family/tier.
+  - name: Recursion
+    family: recursion
+    tier: core
+    doc: recursion
+    problems: []
+
+  # ── Sorting & divide and conquer ────────────────────────────────────────────
+  - name: Divide & Conquer / Sorting
+    family: sorting
+    min_problems: 2
+    variants:
+      - {name: Merge Sort}
+      - {name: Quick Sort, queued: "expansion — sorting deep-dive"}
+      - {name: Radix Sort, queued: "expansion — sorting deep-dive"}
+      - {name: Counting Sort, queued: "expansion — sorting deep-dive"}
+      - {name: Timsort, queued: "expansion — sorting deep-dive"}
+      - {name: D&C on 53, queued: "rated:912 + surplus>=1"}
+    problems:
+      - {number: 912, method: Merge Sort}
+
+  # ══════════════════════════════════════════════════════════════════════════════
+  # NOT-STARTED CURRICULUM — the honest denominator.
+  #
+  # Every entry below has NO `problems` key (or an empty one) on purpose:
+  # `is_started` (technique_coverage.py) is `bool(self.rows)`, so a technique with
+  # nothing solved is `is_started: False` and is excluded from every gap check
+  # (no-green / thin / variant) and from the Action List — it only adds to the
+  # total in the header line and gets one row in the Coverage table with Gaps =
+  # `*not started*`. Promote an entry to "started" the normal way: add its first
+  # `problems:` row once a rep is actually seated.
+  # ══════════════════════════════════════════════════════════════════════════════
+
+  # ── Demand-sourced core families (decision `company-demand-families-sep26`) ──────
+  # `company_demand.py` maps a problem tag to one of these families; a demand family with
+  # no entry here is a `NO FAMILY` verdict in its report. Fill `problems:` as reps are seated.
+
+  # ── Strings (tier: core) ──
+  - name: String Parsing / Manipulation
+    family: strings
+    tier: core
+    problems: []
+
+  - name: String Building & Encoding
+    family: strings
+    tier: core
+    problems: []
+
+  # ── Math & Simulation (tier: core) ──
+  - name: Math / Number Manipulation
+    family: math_sim
+    tier: core
+    problems: []
+
+  - name: Simulation / Matrix Walk
+    family: math_sim
+    tier: core
+    problems: []
+
+  # ── Design — composed data structures (tier: core) ──
+  # An LRU cache stays credited under linked_list (HashMap + Doubly Linked List); this
+  # family is for hit-counter / time-based KV / LFU-style composition.
+  - name: Design (composed data structures)
+    family: design
+    tier: core
+    problems: []
+
+  # ── Bit Manipulation (tier: core) ──
+  - name: Bit Manipulation
+    family: bit_manipulation
+    tier: core
+    problems: []
+
+  # ── DP framework lenses + the two core roadmap phases (tier: dp) ────────────────
+  # The DP framework lenses (knapsack / interval / LIS / LCS / space compression)
+  # plus the core 1D/2D DP roadmap phases themselves. 1D Dynamic Programming carries the
+  # /learn cheat-sheet `doc:` key so build_cheatsheets.py can join dynamic_programming.md's
+  # family/tier (memoization.md was folded into that doc). problems: [] because nothing is
+  # credited to Memoization yet, like every entry in this not-started block.
+  - name: Memoization
+    family: dynamic_programming
+    tier: dp
+    problems: []
+
+  - name: Knapsack
+    family: dynamic_programming
+    tier: dp
+    min_problems: 3
+
+  - name: Interval DP
+    family: dynamic_programming
+    tier: dp
+    min_problems: 3
+
+  - name: Longest Increasing Subsequence
+    family: dynamic_programming
+    tier: dp
+    min_problems: 1
+
+  - name: Longest Common Subsequence
+    family: dynamic_programming
+    tier: dp
+    min_problems: 1
+
+  - name: Space Compression
+    family: dynamic_programming
+    tier: dp
+    min_problems: 1
+
+  - name: 1D Dynamic Programming
+    family: dynamic_programming
+    tier: dp
+    doc: dynamic_programming
+    min_problems: 3
+
+  - name: 2D Dynamic Programming
+    family: dynamic_programming
+    tier: dp
+    min_problems: 3
+
+  # ── Tier 1 — Knowledge Expansion Queue, ABOVE the interview-ROI line (tier: tier1) ──
+  # Segment tree, Fenwick, KMP, XOR trie, Manacher's, matrix expo, Tarjan's,
+  # meet-in-the-middle, reservoir sampling, difference array, number theory.
+  # Advanced, but still shows up in *hard* interviews.
+  - name: Segment Tree
+    family: expansion
+    tier: tier1
+    min_problems: 1
+
+  - name: Fenwick Tree (BIT)
+    family: expansion
+    tier: tier1
+    min_problems: 1
+
+  - name: KMP
+    family: expansion
+    tier: tier1
+    min_problems: 1
+
+  - name: XOR Trie
+    family: expansion
+    tier: tier1
+    min_problems: 1
+
+  - name: Manacher's Algorithm
+    family: expansion
+    tier: tier1
+    min_problems: 1
+
+  - name: Matrix Exponentiation
+    family: expansion
+    tier: tier1
+    min_problems: 1
+
+  - name: Tarjan's SCC
+    family: expansion
+    tier: tier1
+    min_problems: 1
+
+  - name: Meet-in-the-Middle
+    family: expansion
+    tier: tier1
+    min_problems: 1
+
+  - name: Reservoir Sampling
+    family: expansion
+    tier: tier1
+    min_problems: 1
+
+  - name: Difference Array
+    family: expansion
+    tier: tier1
+    min_problems: 1
+
+  - name: Number Theory
+    family: expansion
+    tier: tier1
+    min_problems: 1
+
+  # ══════════ INTERVIEW-ROI LINE — everything above still pays interview dividends; ══════════
+  # ══════════ everything below is competitive-programming depth only.            ══════════
+
+  # ── Tier 2 — "further horizon", BELOW the line (tier: tier2) ────────────────────
+  # Sweep line, max-flow, LCA, advanced shortest-path (bidirectional search /
+  # Johnson's), Mo's algorithm, SOS DP, suffix automaton, Aho-Corasick,
+  # persistent structures.
+  - name: Sweep Line
+    family: expansion
+    tier: tier2
+    min_problems: 1
+
+  - name: Max-Flow
+    family: expansion
+    tier: tier2
+    min_problems: 1
+
+  - name: LCA
+    family: expansion
+    tier: tier2
+    min_problems: 1
+
+  - name: Bidirectional Search / Johnson's
+    family: expansion
+    tier: tier2
+    min_problems: 1
+
+  - name: Mo's Algorithm
+    family: expansion
+    tier: tier2
+    min_problems: 1
+
+  - name: SOS DP
+    family: expansion
+    tier: tier2
+    min_problems: 1
+
+  - name: Suffix Automaton
+    family: expansion
+    tier: tier2
+    min_problems: 1
+
+  - name: Aho-Corasick
+    family: expansion
+    tier: tier2
+    min_problems: 1
+
+  - name: Persistent Structures
+    family: expansion
+    tier: tier2
+    min_problems: 1
+
+  # ── Tier 3 — "competitive / research horizon", BELOW the line (tier: tier3) ─────
+  # HLD, centroid decomposition, link-cut trees, suffix automaton/Eertree,
+  # FFT/NTT, MCMF & min-cut modeling, D&C DP / Aliens trick, segment tree beats,
+  # 2-SAT, advanced geometry, Sprague-Grundy. (Suffix Automaton is already
+  # declared once, under Tier 2 above — not duplicated here.)
+  - name: Heavy-Light Decomposition
+    family: expansion
+    tier: tier3
+    min_problems: 1
+
+  - name: Centroid Decomposition
+    family: expansion
+    tier: tier3
+    min_problems: 1
+
+  - name: Link-Cut Trees
+    family: expansion
+    tier: tier3
+    min_problems: 1
+
+  - name: Eertree
+    family: expansion
+    tier: tier3
+    min_problems: 1
+
+  - name: FFT/NTT
+    family: expansion
+    tier: tier3
+    min_problems: 1
+
+  - name: MCMF / Min-Cut Modeling
+    family: expansion
+    tier: tier3
+    min_problems: 1
+
+  - name: D&C DP (Aliens Trick)
+    family: expansion
+    tier: tier3
+    min_problems: 1
+
+  - name: Segment Tree Beats
+    family: expansion
+    tier: tier3
+    min_problems: 1
+
+  - name: 2-SAT
+    family: expansion
+    tier: tier3
+    min_problems: 1
+
+  - name: Advanced Geometry
+    family: expansion
+    tier: tier3
+    min_problems: 1
+
+  - name: Sprague-Grundy
+    family: expansion
+    tier: tier3
+    min_problems: 1

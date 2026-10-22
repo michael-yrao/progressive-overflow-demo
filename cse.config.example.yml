@@ -1,0 +1,231 @@
+# cse-coach configuration — copy to cse.config.yml and edit (bootstrap writes this for you).
+# See docs/planning/cse-coach-extraction-design.md §4 in the design repo for rationale.
+
+learner: "Your Name"
+start_date: 2026-07-13
+timezone: UTC            # IANA zone name (e.g. America/New_York); week boundaries and every Action's dates use it
+target: competitive      # DEFAULT, mission-level goal. fintech_interview | faang_interview | competitive
+reach_beyond: 1          # tiers PAST the target so it's hit with margin. MIN 1, enforced — 0 is rejected.
+daily_cap: 5           # legacy problem COUNT cap — superseded by effort_budget below,
+                       # kept so an older config keeps working. Nothing reads it.
+
+# The effort budget — a cost-weighted daily ceiling, replacing the problem COUNT cap.
+# Price a day with: python scripts/effort_budget.py --day 560 912 235 88   (SD is unpriced — no --sd)
+#
+# Why: a problem is not a unit of work. In one real week, three days were each "7
+# problems" and measured 5.5 / 8.0 / 10.5 units — a count cannot tell a five-minute
+# 🟢 Easy from a 🔴 Hard, so the cap let a day quietly run 90% heavier than another
+# with the identical number on it.
+effort_budget:
+  # units = comfort_units × difficulty, rated by the comfort the row carries GOING IN
+  # (never the one it earns — the budget is built before the day runs).
+  #
+  # ⚠️ KEYED BY GLYPH ON PURPOSE, not by the words blank/shaky/clean/graduated: those
+  # are what update_review_dates.py's fallback config scrape searches for. An earlier
+  # draft used the words and was read as INTERVALS — Shaky 10 days -> 2, Graduated
+  # 180 -> 0 — silently rewriting three rows' review dates. The parser now reads YAML
+  # structure, but glyph keys mean even the fallback cannot collide.
+  comfort_units:
+    "🔴": 3.0
+    "🟡": 2.0
+    "🟢": 1.0
+    "🎓": 0.5
+  difficulty: {Easy: 0.5, Medium: 1.0, Hard: 1.5}
+
+  # ── Familiarity discounting ─────────────────────────────────────────────────────────
+  # The flat `comfort_units × difficulty` price cannot tell a Hard seen twice from a Hard
+  # wrestled eight times. Three layers discount for demonstrated familiarity, but ONLY where
+  # it is earned, so the conversion pressure the budget exists to apply (a 🟡 bills ~12× a
+  # 🟢 forever) is preserved on genuinely-stuck rows. Full derivation:
+  # docs/foundations/effort_budget.md. The unified price is:
+  #   base(comfort, streak) × difficulty(tier, demoted?) × attempt_factor
+  # `effort_budget.py` is the single implementation; nothing else prices a day.
+
+  # (A) Streak-graded green — a 🟢 proven across more reps costs less, decaying toward 🎓.
+  # Keyed by streak (int). A streak past the top key uses the top key; a missing block
+  # falls back to comfort_units["🟢"]. Reds/yellows have no streak and are untouched.
+  green_streak_units:
+    0: 1.0
+    1: 0.8
+    2: 0.6
+
+  # (B) Earned difficulty demotion — once a problem is PROVEN (🟢 at min_streak, or 🎓), it
+  # prices one difficulty tier easier, so a well-worn Hard bills like a Medium. Only fires
+  # on proven rows, so it never cheapens a struggling one.
+  difficulty_demotion:
+    trigger: {comfort: "🟢", min_streak: 2}   # 🎓 always counts as proven
+    map: {Hard: Medium, Medium: Easy, Easy: Easy}
+
+  # (C) Attempt-count decay — relief for CHRONIC rows only. Applies to 🔴/🟡 (greens are
+  # handled by A+B) and does nothing before min_attempts, so a fresh blank stays full price.
+  # After that, −per_attempt for each attempt beyond (min_attempts − 1), floored so a chronic
+  # 🔴 Hard never drops below the priciest cleaner tier (no ordering inversion).
+  attempt_decay:
+    applies_to: ["🔴", "🟡"]
+    min_attempts: 5
+    per_attempt: 0.05
+    floor: 0.70
+
+  # A hard ceiling, one number for every day. NOT derived from demand, and never
+  # raised to chase a backlog: a Medium 🟡 bills ~73 units/year against 🟢 s2's ~6.1,
+  # so a rep rushed into a 🟡 costs 12× forever and raising the ceiling to catch up
+  # INCREASES future demand. Demand sets the floor; the ceiling is a quality judgment.
+  ceiling: 8.0
+  floor_min: 3.0          # "always do something" minimum, under the advisory ceil(demand)
+  max_rows_per_day: 8     # row cap: every day-block row except Complexity-technique rows; struck rows count
+  intake_per_week: 2      # 🆕 rows the weekly build seats (🎤 mock / 🎯 probe are not intake); lower it for a lighter stretch
+  intake_pause_overdue_unproven: 8   # overdue unproven rows at which the next build seats no 🆕
+  carry_forward_min_streak: 2        # a 🟢 row may be carried past its week only at this streak or above (🎓 always)
+  # SD is OFF-BOARD and UNPRICED: a mock takes the evening, not the DSA effort ceiling, so it
+  # never bills against this budget. (The retired `sd_mock_units` / `sd_deep_dive_units` keys are
+  # gone — pricing an SD slot against a ceiling the DSA reps already fill would bill the day twice.)
+
+pillars:                 # which pillars to run and how to weight focus
+  priority: [dsa, system_design]   # ordered emphasis; your choice
+  # Readiness gates are RECOMMENDED, not hard locks — the coach warns on
+  # front-running; a fluent senior can override. Defaults (mastery-based):
+  gates:
+    system_design_mocks:              # earliest to start running cold SD mocks
+      recommend_after: "dsa.milestone >= 60% retired AND {hashing, heap, trees, graphs} comfortable"
+      # SD study is the learner's own, off-schedule, from week 1 (see system_design below);
+      # this gate is only about when the COACH starts running scored mock interviews.
+
+system_design:           # how the coach interleaves SD mock interviews alongside DSA
+  cadence: mock_plus_deep_dive   # mock_plus_deep_dive | mock_only | paused
+  #
+  # THE MOCK-INTERVIEW MODEL. The learner studies system design on their OWN, off the
+  # schedule, using a resource of their choice (HelloInterview, Grokking, DDIA, …). The
+  # coach's entire SD job is running COLD MOCK INTERVIEWS on that material and scoring them
+  # on the 7-point rubric (docs/foundations/system_design/study_guide.md). Studying is the
+  # learner's half; the adversarial half — cold mocks, sustained pushback, scoring, what to
+  # fix next — is the coach's, because that is the part you cannot do alone.
+  #
+  #   Sunday      → THE MOCK: one cold ~45-min mock on the next board question + ~15-min
+  #                 debrief written to system_design/mocks/<date>_<slug>.md. Off-board, unpriced.
+  #   One midweek → THE DEEP-DIVE ROUND: ~25 min of pushback on a design already mocked,
+  #                 drawn from that debrief's open-probe bank. Off-board, unpriced.
+  #                 CONDITIONAL — it does not exist until a probe bank has something in it;
+  #                 when the bank is empty the slot returns to DSA warmups.
+  #
+  # ONE QUESTION = ONE ROW = ONE MOCK = ONE RATING. A design spread over several sessions
+  # cannot be rated — the second sitting is no longer cold — and an unratable rep never
+  # enters the interval engine at all. If a mock overruns, finish at HLD depth and rate what
+  # happened; push untouched deep dives to a separate row.
+  #
+  # cadence values:
+  #   mock_plus_deep_dive — Sunday mock + the conditional midweek deep-dive. THE DEFAULT.
+  #   mock_only           — Sunday mock only (no midweek deep-dive round).
+  #   paused              — no SD slot is scheduled. "Study mode": the learner is building
+  #                         their own foundation and mocks start when THEY say so. A day with
+  #                         no SD slot just carries an extra DSA problem by the standing rule.
+  #
+  # The midweek deep-dive is a WARMUP SWAP — it never cuts the 45-min DSA active block.
+
+new_problem_intake:      # weekly NEW-problem cap, tiered by category difficulty
+  # A new problem is NOT a 1-slot commitment — beware the "blank tax". In a hard,
+  # algorithm-dense category the first attempt almost always logs 🔴 (a new algorithm per
+  # problem), and every 🔴 spawns a +2-day retry that eats a warmup slot — so one hard new
+  # problem is really ~3 slots over its first fortnight. At full intake that cascade
+  # consumes a large share of weekly warmup capacity servicing RECENT material, starving
+  # the review backlog. Cap harder categories LOWER so the cascade has room to settle
+  # before the next new problem lands. Which category is which tier lives in the roadmap
+  # (curriculum/dsa/milestone.yml, per-phase `difficulty_tier`) — a category earns a harder
+  # tier when its new problems consistently log 🔴 on first exposure.
+  moderate: 5            # pattern reused across problems; first attempt often 🟡 not 🔴
+  hard:     4            # a new algorithm per problem (Dijkstra, MST, backtracking); first try ~🔴
+  hardest:  3            # DP and the like — hardest + slowest, highest blank rate
+
+intervals:               # days until next review, by Comfort + streak
+  # provisional: the FIRST Clean directly after a Blank (logged with streak 0) — a short
+  # lock-down check, because one 🟢 right after a 🔴 may be recall of fresh teaching, not
+  # durable retention. Survives (Clean again) → log streak 1 → the normal +30 ladder.
+  clean:  { provisional: 10, streak1: 30, streak2: 60, graduated: 180 }
+  shaky:  10
+  blank:  2
+graduate_at_streak: 3    # Clean streaks to reach 🎓 graduated (then the +180 spot-check tier)
+
+solutions:
+  # DEFAULT is Python-only; engine stays language-agnostic so you can widen this.
+  roots: ["dsa/leetcode"]
+  globs: ["*.py"]                       # widen to *.java, *.ts, … if you like
+  filename_pattern: "{number}_{name}"   # 19_remove_nth_node.py
+
+# Problem numbers whose source file exists but should NOT be auto-added to the
+# tracker (e.g. a leftover file for a problem you haven't reached yet). Empty by
+# default; drop a number in here to park it, remove it once you solve + log it.
+discovery_skip: []
+
+# Gamification thresholds — read by scripts/gamify.py, which emits progress.json (the
+# honest-progress data contract the progressiveoverflow.com dashboard renders). Only
+# TUNED NUMBERS live here; the badge catalog (names/icons/descriptions) is content and
+# lives in gamify.py. Decision: `gamification-progress-platform` (decisions.yml).
+#
+# ⚠️ KEYS ARE DELIBERATELY NEUTRAL. None contains the substrings blank/shaky/clean/
+# graduated — those are exactly what update_review_dates.py's fallback config scrape
+# searches for, and on Aug 7, 2026 a word-keyed block was read as INTERVALS and silently
+# corrupted three review dates (see the glyph warning on `effort_budget` above). Keep
+# everything nested under `gamification:` with names that cannot collide.
+gamification:
+  # A study-day streak rewards SHOWING UP, not grinding. A missed day spends one streak
+  # freeze from a bank that replenishes — the Duolingo idea, sized so the streak never
+  # pushes daily over-review against the effort budget (whose own rule is "never raise
+  # the ceiling to catch up"). A gap longer than the bank breaks the run.
+  streak_freeze_max: 2                   # most freezes the bank holds
+  streak_freeze_earn_every: 7            # study days that earn one freeze (never past the max)
+  streak_milestones: [7, 30, 100]        # 🔥 badge thresholds (study-days)
+  trophy_milestones: [1, 10, 25, 50]     # 💎 badge thresholds (🎓 graduated + 🏆 retired)
+  on_schedule_target: 0.9                # fraction of active rows expected not-overdue
+
+# The output-quality standard (F1 · groundedness · narrative · readability) that a coaching
+# turn is graded against — see references/output-quality.md and evals/rubric.md. Read by
+# scripts/judge_output.py; its DEFAULT_CONFIG mirrors this block (checked by
+# scripts/check_single_source.py).
+output_quality:
+  judge_model: claude-sonnet-5      # the LLM judge; scripts/judge_output.py --model overrides it
+  pass_threshold: 0.75              # aggregate 0–1 below which judge_output.py --check exits 1
+  readability:
+    max_sentence_words: 20          # the sentence-length guide the rubric applies
+
+# Self-evaluation loop cadence — the SessionStart hook injects a "META-REVIEW OVERDUE"
+# banner when the log's last meta-review is older than meta_review_days OR the open-entry
+# count reaches open_threshold. (Operational cadence, not an engine-tuned value.)
+self_eval:
+  meta_review_days: 14
+  open_threshold: 8
+
+dsa_mock:
+  every_days: 28          # cadence between DSA mock interviews (the Sunday 🎤 slot)
+  first_due: PLACEHOLDER  # (start_date + every_days) — set it to when YOUR first mock is due;
+                          # afterwards the clock reads docs/foundations/dsa/mocks/README.md's log
+
+# The weekly Pattern Sense recognition deck (scripts/pattern_sense.py, dashboard/pattern_sense.yml).
+# `starts` is the first deck's Monday; `per_week` is the problems in each deck. The script has
+# no default for either: a missing block is an error.
+pattern_sense:
+  starts: PLACEHOLDER     # set it to the Monday of your first deck (a Monday on or after start_date)
+  per_week: 5
+
+automation:
+  weekly_build: false             # the weekly-build Action runs only when true; onboarding writes true
+  build_lead_hours: 0             # how early before Monday 00:00 local the build may run (max 10, the cron window)
+  practice_index_url: https://raw.githubusercontent.com/michael-yrao/cse-progress/main/dashboard/practice-index.json
+  prefer_practice_spec: true      # seat problems the site can run first
+  bigo_reference_url: https://raw.githubusercontent.com/michael-yrao/cse-progress/main/dashboard/big-o.json  # published Big-O reference the fold falls back to when bigo.yml has no entry; absent = no fetch
+
+backlog_forecast:
+  steady_max_slope: 1.0       # backlog slope (rows/week, weeks 8->26) at or below which the configured intake reads steady
+  piling_min_slope: 4.0       # slope at or above which it reads piling (--check exits 1)
+  optimistic_green_rate: 0.9  # 🟢 share for a class with no tally data (🟢 s2/🎓) in the optimistic bracket; the rest go 🟡
+
+# The per-technique coverage bar — read by scripts/technique_coverage.py (formula:
+# floor = clamp(ceil(plan_share * declared), floor_min, floor_max); threshold =
+# floor + unclean, where `declared` is the technique's distinct declared problem
+# count and `unclean` is how many of its credited problems are still 🔴/🟡 best
+# comfort). Replaces the old flat `techniques.yml` `defaults.min_problems` — a fixed
+# default didn't fit a vocabulary spanning techniques with 1 declared problem and
+# techniques with 15. A technique's own `min_problems:` in techniques.yml, when present,
+# overrides `floor` only; `unclean` is still added on top.
+coverage_threshold:
+  plan_share: 0.5   # share of a technique's declared problems the floor asks for
+  floor_min: 1      # a technique with very few declared problems still wants at least this many
+  floor_max: 5      # a technique with a huge declared set doesn't need the whole set drilled

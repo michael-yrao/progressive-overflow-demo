@@ -1,0 +1,49 @@
+name: CI
+
+# Runs the test suite and the contract checks on the template itself. The inverse of the engine
+# workflows' guard: a repo generated from the template copies this file but never runs it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: ${{ github.event.repository.is_template }}
+    runs-on: ubuntu-latest
+    env:
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements.txt pytest
+
+      # Explicit paths: pytest skips dot-directories, so a bare run would drop .claude/hooks/tests.
+      - run: python -m pytest scripts tests .claude/hooks/tests -q
+
+      - name: Checks
+        shell: bash
+        run: |
+          # Exit policy of .githooks/pre-commit: cheat sheets fail on any non-zero; the
+          # exporters fail on exit 2 (schema violation) and warn on exit 1 (drift).
+          python scripts/check_cheatsheets.py --check
+          for cmd in \
+            "scripts/export_practice.py --check" \
+            "scripts/export_showcase.py --check" \
+            "scripts/export_bigo.py --check" \
+            "scripts/export_manifest.py --check" \
+            "scripts/pattern_sense.py export --check"; do
+            rc=0
+            python $cmd || rc=$?
+            if [ "$rc" -eq 1 ]; then echo "::warning::$cmd exited 1"; fi
+            if [ "$rc" -gt 1 ]; then exit "$rc"; fi
+          done

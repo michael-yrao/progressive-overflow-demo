@@ -1,0 +1,40 @@
+# Interview-sourced application backlog — a PULL POOL, not a checklist.
+# Pull from it DURING the knowledge-expansion phase (post-NC150, Tier 1), gated by
+# patterns already learned. A 🟡/🔴 pull is a diagnostic, not a cue to learn ad-hoc.
+#
+# This pool is intentionally EXTERNAL/dynamic: company banks rotate, so we point at
+# live sources rather than freezing a list. Treat static frequency PDFs as
+# pattern-distribution signal only.
+pillar: dsa
+kind: application_backlog
+phase: expansion_tier1
+sources:
+  - name: "LeetCode company filter (Premium), 6-month window"
+    signal: highest
+    note: "Most accurate recency signal; worth it once actively interviewing."
+  - name: "NeetCode.io company lists"
+    signal: high
+    note: "Curated, fresher than static PDFs; free."
+  - name: "LeetCode Discuss / Blind"
+    signal: high
+    note: "Real candidates posting recent questions; search company + year."
+  - name: "Glassdoor interview questions"
+    signal: medium
+    note: "Less technical detail; useful for recency confirmation."
+rule: >
+  Your knowledge drives selection, not the company's list. Never march a list
+  top-to-bottom. Don't pull from a company you're actively interviewing at that
+  week — keep those as genuine unknowns. Log every pull in dsa_progress.md.
+
+# Concrete fetcher: pulls a company's list on demand and gates it by the patterns
+# you've already retired/cleaned (so the pool IS "what you've learned so far").
+tool:
+  script: scripts/pull_interview.py
+  source_repo: liquidslr/leetcode-company-wise-problems   # ~470 companies, has topic tags
+  examples:
+    - "python scripts/pull_interview.py --company Google"
+    - "python scripts/pull_interview.py --company Stripe --window 6mo --difficulty MEDIUM"
+  how_it_gates: >
+    Reads your Clean/Retired problems from the tracker, maps them to patterns
+    (via solution folders + milestone curriculum), and keeps only fetched problems
+    whose LeetCode topics intersect those patterns — ranked by interview frequency.

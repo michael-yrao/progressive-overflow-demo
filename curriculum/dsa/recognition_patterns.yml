@@ -1,0 +1,65 @@
+# DSA recognition patterns — the cross-cutting trigger→technique map that NC150's
+# by-DATA-STRUCTURE layout hides. A learner can finish all 150 and still lack a
+# "when I see X, reach for Y" reflex; this catalog is that reflex, made explicit.
+#
+# Each entry is a RECOGNITION unit (not a phase): a problem SHAPE → the technique it
+# implies → the ONE picking feature that separates it from its nearest neighbor →
+# anchor problems already in NC150. This is the seed for a learner's readable
+# `mastery/recognition_patterns.md`; it feeds the recognition front-gate (skill §3
+# step 3, [[feedback_recognition_gate]]) and pairs with the per-learner miss ledger
+# `mastery/recognition_gotchas.md`.
+#
+# Drill ONE card/week as a warmup note — zero new-problem load (re-labels problems the
+# learner already owns). The point is the picking feature: name it out loud before coding.
+pillar: dsa
+kind: recognition_catalog
+
+patterns:
+  - trigger: "subarray sum / count of subarrays equal to k"
+    technique: "prefix-sum + hashmap of running sums"
+    picks_it: "contiguous subarray AND an exact-sum target (not a window you can shrink)"
+    anchors: [560, 238]
+  - trigger: "nearest greater/smaller element, histogram, stock span, car fleet"
+    technique: "monotonic stack (or deque)"
+    picks_it: "you need the nearest larger/smaller element, and elements resolve in stack order"
+    anchors: [739, 84, 901, 853]
+  - trigger: "minimum/maximum feasible value; 'smallest speed/capacity that works'"
+    technique: "binary search on the ANSWER space"
+    picks_it: "the answer is monotonic (once feasible, everything larger is too) even if the input isn't sorted"
+    anchors: [875, 1011, 410]
+  - trigger: "cycle detection, find-the-duplicate, middle of a list"
+    technique: "fast/slow pointers (Floyd)"
+    picks_it: "a linked structure or an implicit next() function, and O(1) space required"
+    anchors: [141, 287, 143]
+  - trigger: "dynamic connectivity, number of components, redundant edge, valid tree"
+    technique: "union-find (DSU)"
+    picks_it: "you keep MERGING groups and asking 'are these two connected?' (undirected)"
+    anchors: [684, 261, 323]
+  - trigger: "valid ordering under dependencies, course schedule, alien dictionary"
+    technique: "topological sort (Kahn's BFS or DFS post-order)"
+    picks_it: "a DAG and the question is 'produce a valid linear order' or 'is one possible?'"
+    anchors: [207, 210, 269]
+  - trigger: "running median, balance two halves of a stream"
+    technique: "two heaps (max-heap low half, min-heap high half)"
+    picks_it: "streaming data + repeated median/kth query, needing O(log n) insert"
+    anchors: [295, 480]
+  - trigger: "enumerate all subsets/permutations/combinations, 'find all ways'"
+    technique: "backtracking (choose → recurse → un-choose)"
+    picks_it: "you must ENUMERATE solutions (not just count/optimize) and can prune partial ones"
+    anchors: [78, 46, 39, 79]
+  - trigger: "longest/shortest contiguous run satisfying a condition"
+    technique: "sliding window (two pointers, expand/contract)"
+    picks_it: "contiguous AND the condition is monotonic as the window grows/shrinks"
+    anchors: [3, 424, 76, 239]
+  - trigger: "k most/least frequent, k largest, k closest"
+    technique: "heap of size k (or bucket sort for O(n))"
+    picks_it: "you want the TOP-K, not a full sort — heap beats sort when k << n"
+    anchors: [347, 973, 215]
+  - trigger: "fewest steps / shortest path on a grid or unweighted graph"
+    technique: "BFS (level-order)"
+    picks_it: "every edge costs the SAME — uniform cost is what lets BFS give shortest path"
+    anchors: [200, 994, 127, 286]
+  - trigger: "minimum cost/time over a WEIGHTED graph"
+    technique: "Dijkstra (min-heap)"
+    picks_it: "edges are weighted and non-negative (uniform → BFS; negative/k-hop → Bellman-Ford)"
+    anchors: [743, 787, 778]

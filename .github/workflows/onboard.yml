@@ -1,0 +1,70 @@
+# Onboards a learner's copy of the template: the site writes intake.yml, this runs bootstrap on it
+# (config, roadmap, tracker, week 1), then commits the result and removes intake.yml.
+# Never runs in the template itself, and does nothing once cse.config.yml exists.
+name: onboard
+
+on:
+  push:
+    branches: [main]
+    paths: ['intake.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: onboard
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  onboard:
+    if: ${{ !github.event.repository.is_template }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Check there is something to onboard
+        id: gate
+        run: |
+          if [ -f cse.config.yml ]; then
+            echo "::notice::already onboarded"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ ! -f intake.yml ]; then
+            echo "::notice::no intake.yml"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: ./.github/actions/engine-setup
+        if: steps.gate.outputs.run == 'true'
+
+      - name: Bootstrap from intake.yml
+        if: steps.gate.outputs.run == 'true'
+        run: python scripts/bootstrap.py --intake intake.yml --non-interactive
+
+      - name: Use the learner's timezone
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          tz="$(python scripts/config_value.py timezone --zone)"
+          echo "TZ=$tz" >> "$GITHUB_ENV"
+
+      - name: Read the commit message parts
+        id: learner
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          name="$(python scripts/config_value.py learner)"
+          start="$(python scripts/config_value.py start_date)"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "start=$start" >> "$GITHUB_OUTPUT"
+
+      - name: Stage the config and remove the intake
+        if: steps.gate.outputs.run == 'true'
+        run: git add -f cse.config.yml && git rm -q intake.yml
+
+      - uses: ./.github/actions/commit-push
+        if: steps.gate.outputs.run == 'true'
+        with:
+          message: 'chore(onboard): ${{ steps.learner.outputs.name }}, start ${{ steps.learner.outputs.start }}'

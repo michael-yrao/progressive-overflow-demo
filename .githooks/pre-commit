@@ -1,0 +1,364 @@
+#!/bin/sh
+# Version-controlled pre-commit hook (tracked in .githooks/, used via core.hooksPath).
+# One-time setup per machine/clone:   git config core.hooksPath .githooks
+#
+# Auto-updates the DSA spaced-repetition tracker before commit when it (or any solution
+# file under a configured root) is staged: recomputes review dates and re-sorts the table.
+# Paths are read from cse.config.yml by the script.
+#
+# (The AI tracker was removed with the AI track on Aug 13, 2026. The System Design tracker
+# left on Aug 15, 2026 and CAME BACK on Aug 16 — only third-party course-excerpt material stayed
+# private, and a tracker of question names + comfort + dates is not that. It is handled by the
+# second block below, with --tracker rather than source discovery: there are no SD source files.)
+# ⚠️ Git runs this hook with a console in the system ANSI codepage (cp1252 on Windows).
+# Python inherits it, and the FIRST emoji any script below prints — ✅, ⚠️, a comfort glyph
+# in a problem title — raises UnicodeEncodeError and kills that script mid-report.
+#
+# The failure is worse than a crash because every block here is report-only and ends in
+# `|| true`: the traceback scrolls past, the commit succeeds, and the check LOOKS like it
+# ran. Found Aug 21, 2026 — reconcile.py fired exactly as designed, at the one moment a
+# decision is recorded, and printed a traceback instead of the backlog.
+#
+# Belt and braces with scripts/_console.py: this covers every script this hook invokes,
+# including ones added later that forget the import; that module covers every other context
+# (Git Bash, a piped run, CI), where nothing sets this variable.
+export PYTHONIOENCODING=utf-8
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+if echo "$STAGED" | grep -qE "dsa_progress\.md$|holds\.yml$|^dsa/leetcode/.*\.(py|java|ts|js|cpp)$"; then
+  echo "Auto-updating the DSA spaced-repetition tracker..."
+  if command -v py >/dev/null 2>&1; then
+    py scripts/update_review_dates.py --staged-only
+  elif command -v python >/dev/null 2>&1; then
+    python scripts/update_review_dates.py --staged-only
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 scripts/update_review_dates.py --staged-only
+  else
+    echo "Error: Python not found. Install Python to enable the auto-updater." >&2
+    exit 1
+  fi
+  DSA="docs/foundations/dsa/mastery/dsa_progress.md"
+  [ -f "$DSA" ] && git add "$DSA"
+fi
+
+# System Design tracker. Same 7-column table and the same interval math as the DSA one, but
+# --tracker instead of --staged-only: rows are added by hand and there is nothing to discover.
+if echo "$STAGED" | grep -qE "design_progress\.md$"; then
+  echo "Auto-updating the System Design tracker..."
+  SD="docs/foundations/system_design/mastery/design_progress.md"
+  if command -v py >/dev/null 2>&1; then
+    py scripts/update_review_dates.py --tracker "$SD"
+  elif command -v python >/dev/null 2>&1; then
+    python scripts/update_review_dates.py --tracker "$SD"
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 scripts/update_review_dates.py --tracker "$SD"
+  else
+    echo "Error: Python not found. Install Python to enable the auto-updater." >&2
+    exit 1
+  fi
+  [ -f "$SD" ] && git add "$SD"
+fi
+
+# Technique coverage. Keyed by TECHNIQUE rather than by problem, so it answers "is
+# Dijkstra actually learned" — a question the per-problem tracker structurally cannot.
+# Must run AFTER the block above, which rewrites dsa_progress.md; this reads it.
+COVERAGE_TRIGGER=$(echo "$STAGED" | grep -E "dsa_progress\.md$|techniques\.yml$|^dsa/leetcode/.*\.(py|java|ts|js|cpp)$")
+if [ -n "$COVERAGE_TRIGGER" ]; then
+  echo "Regenerating technique coverage..."
+  COVERAGE="docs/foundations/dsa/mastery/technique_coverage.md"
+  if command -v py >/dev/null 2>&1; then
+    py scripts/technique_coverage.py
+  elif command -v python >/dev/null 2>&1; then
+    python scripts/technique_coverage.py
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 scripts/technique_coverage.py
+  fi
+  # Non-fatal by design: a missing PyYAML or a hand-edit mid-refactor of techniques.yml
+  # must not block committing the day's actual work. The report simply goes stale, and
+  # `technique_coverage.py --check` reports that.
+  [ -f "$COVERAGE" ] && git add "$COVERAGE"
+fi
+
+# Priority-sort a staged schedule. Source fix for a row landing out of order mid-week (see
+# decisions.yml `board-priority-sort-sep29`). Live weeks only (docs/foundations/schedules/, not
+# archive/): a closed week is not re-ordered by an unrelated later commit. Must run BEFORE the
+# GAMIFY_TRIGGER block below, which reads the schedule to price and render it.
+SCHEDULE_FILES=$(echo "$STAGED" | grep -E "^docs/foundations/schedules/[0-9]{8}_schedule\.md$")
+if [ -n "$SCHEDULE_FILES" ]; then
+  echo "Priority-sorting the staged schedule..."
+  for FILE in $SCHEDULE_FILES; do
+    SCHEDULE_HASH_BEFORE=$(git hash-object "$FILE")
+    if command -v py >/dev/null 2>&1; then
+      py scripts/schedule_priority.py "$FILE" || true
+    elif command -v python >/dev/null 2>&1; then
+      python scripts/schedule_priority.py "$FILE" || true
+    elif command -v python3 >/dev/null 2>&1; then
+      python3 scripts/schedule_priority.py "$FILE" || true
+    fi
+    SCHEDULE_HASH_AFTER=$(git hash-object "$FILE")
+    [ "$SCHEDULE_HASH_BEFORE" != "$SCHEDULE_HASH_AFTER" ] && git add "$FILE"
+  done
+fi
+
+# run_py <args>: run a Python script with whichever interpreter exists (py, python, python3);
+# returns 0 when none is installed, as the per-block fallbacks above did. Used by the
+# dashboard-contract blocks below (progress, showcase, Big-O, practice, manifest), whose runs
+# stop the commit on exit 2 (the payload violates its schema, or jsonschema is not installed) and
+# stay report-only on exit 1 (drift).
+run_py() {
+  if command -v py >/dev/null 2>&1; then
+    py "$@"
+  elif command -v python >/dev/null 2>&1; then
+    python "$@"
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 "$@"
+  fi
+}
+
+# Honest-progress contract. Regenerates progress.json (the data the progressiveoverflow.com
+# dashboard renders) from the tracker + schedules + coverage. Must run AFTER the two blocks
+# above, which rewrite dsa_progress.md and technique_coverage.md; this reads both. Fires when
+# any of its inputs — the tracker, a schedule, the coverage view, or the config thresholds —
+# is staged, or the code that computes it (gamify.py, or effort_budget.py, which prices the
+# workload series), OR when COVERAGE_TRIGGER fired above: a commit touching only techniques.yml
+# or a solution file regenerates technique_coverage.md via that block but wouldn't otherwise
+# match GAMIFY_TRIGGER's own grep, which silently skipped the contract that reads the coverage
+# it just regenerated. Report-only on drift (a stale dashboard is never a reason to block the
+# day's work), but exit 2 — a payload that violates dashboard/progress.schema.json — stops the
+# commit. See decisions.yml `gamify-parity-oct6`.
+GAMIFY_TRIGGER=$(echo "$STAGED" | grep -E "dsa_progress\.md$|holds\.yml$|^docs/foundations/schedules/.*\.md$|technique_coverage\.md$|cse\.config\.yml$|^scripts/gamify\.py$|^scripts/effort_budget\.py$")
+if [ -n "$GAMIFY_TRIGGER" ] || [ -n "$COVERAGE_TRIGGER" ]; then
+  echo "Regenerating progress.json..."
+  # README_HASH_BEFORE guards the README add below: gamify.py rewrites README's badges, and
+  # `git add README.md` unconditionally would also sweep in any unrelated unstaged README
+  # edit the author was mid-way through. Stage it only if gamify.py actually changed it.
+  README_HASH_BEFORE=""
+  [ -f "README.md" ] && README_HASH_BEFORE=$(git hash-object README.md)
+  GAMIFY_RC=0
+  run_py scripts/gamify.py || GAMIFY_RC=$?
+  if [ "$GAMIFY_RC" -eq 2 ]; then
+    echo "ERROR: dashboard/progress.json violates its schema, or jsonschema is not installed" >&2
+    exit 1
+  fi
+  if [ "$GAMIFY_RC" -eq 0 ]; then
+    [ -f "dashboard/progress.json" ] && git add "dashboard/progress.json"
+    [ -f "dashboard/progress-summary.json" ] && git add "dashboard/progress-summary.json"
+    [ -f "dashboard/schedule-history.json" ] && git add "dashboard/schedule-history.json"
+  else
+    echo "WARNING: gamify.py exited $GAMIFY_RC; dashboard outputs were not staged" >&2
+  fi
+  if [ -f "README.md" ]; then
+    README_HASH_AFTER=$(git hash-object README.md)
+    [ "$README_HASH_BEFORE" != "$README_HASH_AFTER" ] && git add "README.md"
+  fi
+fi
+
+# Grounded-solutions showcase contract. Regenerates dashboard/showcase.json (the verbatim
+# code slices the progressiveoverflow.com visualizers fetch at runtime) from
+# dashboard/showcase.yml + the staged solution files (--from-index). Fires when a solution file, the
+# manifest, or the generator itself is staged — the three places a pick can drift from
+# reality. An EMPTY manifest writes nothing (the site then falls back to the author's
+# showcase), so there is no showcase.json to stage until the first entry is added. Also runs
+# `--check` report-only: a bad showcase pick doesn't block the commit (exit 1), but a payload
+# that violates its schema (exit 2) does. See decisions.yml `dashboard-contract-exporters-oct6`.
+SHOWCASE_TRIGGER=$(echo "$STAGED" | grep -E "^dsa/leetcode/.*\.py$|dashboard/showcase\.yml$|scripts/export_showcase\.py$")
+if [ -n "$SHOWCASE_TRIGGER" ]; then
+  echo "Regenerating showcase.json..."
+  # --from-index: read each solution file's STAGED content, so an unstaged scaffold for an
+  # unrelated problem cannot abort the regeneration.
+  run_py scripts/export_showcase.py --from-index || true
+  SHOWCASE_RC=0
+  run_py scripts/export_showcase.py --check --from-index || SHOWCASE_RC=$?
+  if [ "$SHOWCASE_RC" -eq 2 ]; then
+    echo "ERROR: dashboard/showcase.json violates its schema" >&2
+    exit 1
+  fi
+  [ -f "dashboard/showcase.json" ] && git add "dashboard/showcase.json"
+fi
+
+# Big-O trainer contract. Regenerates dashboard/big-o.json (the site's Big-O Trainer deck —
+# real code slices + canonical-label answers) from dashboard/bigo.yml + the staged solution
+# files (--from-index), mirroring the showcase block above (an empty manifest writes nothing). Fires when a
+# solution file, the manifest, either generator (export_bigo.py reads
+# es.read_lines/symbol_table; export_showcase.py changes can change what those return), the
+# complexity-miss ledger (isMiss), or the tracker (difficulty) is staged — the places a pick
+# or a derived field can drift from reality. Report-only on exit 1, stops the commit on exit 2.
+BIGO_TRIGGER=$(echo "$STAGED" | grep -E "^dsa/leetcode/.*\.py$|dashboard/bigo\.yml$|scripts/export_bigo\.py$|scripts/export_showcase\.py$|complexity_gotchas\.md$|dsa_progress\.md$")
+if [ -n "$BIGO_TRIGGER" ]; then
+  echo "Regenerating big-o.json..."
+  run_py scripts/export_bigo.py --from-index || true
+  BIGO_RC=0
+  run_py scripts/export_bigo.py --check --from-index || BIGO_RC=$?
+  if [ "$BIGO_RC" -eq 2 ]; then
+    echo "ERROR: dashboard/big-o.json violates its schema" >&2
+    exit 1
+  fi
+  [ -f "dashboard/big-o.json" ] && git add "dashboard/big-o.json"
+fi
+
+# Pattern Sense weekly deck. Regenerates dashboard/pattern-sense.json (the site's "This week"
+# recognition deck: family + technique answer key, no slug or title) from dashboard/pattern_sense.yml
+# and the techniques.yml vocabulary, mirroring the Big-O block above. Fires when the deck file, the
+# generator, or techniques.yml (the family/technique chips and their hash) is staged. Exit 2 (schema)
+# stops the commit; exit 1 (a deck that fails its checks, or a stale file) stays report-only. See
+# decisions.yml `pattern-sense-weekly-oct18`.
+PATTERN_SENSE_TRIGGER=$(echo "$STAGED" | grep -E "dashboard/pattern_sense\.yml$|scripts/pattern_sense\.py$|techniques\.yml$")
+if [ -n "$PATTERN_SENSE_TRIGGER" ]; then
+  echo "Regenerating pattern-sense.json..."
+  run_py scripts/pattern_sense.py export || true
+  PATTERN_SENSE_RC=0
+  run_py scripts/pattern_sense.py export --check || PATTERN_SENSE_RC=$?
+  if [ "$PATTERN_SENSE_RC" -eq 2 ]; then
+    echo "ERROR: dashboard/pattern-sense.json violates its schema" >&2
+    exit 1
+  fi
+  [ -f "dashboard/pattern-sense.json" ] && git add "dashboard/pattern-sense.json"
+fi
+
+# Practice-runner contract. Regenerates dashboard/practice.json (the statements, stubs and stored
+# test cases the progressiveoverflow.com practice page runs code against) from the hand-authored
+# specs in dsa/tests/, mirroring the showcase block above. Fires when a spec, the generator, or
+# new_problem.py (which reads the same specs for statement and signature) is staged. Report-only
+# on exit 1 (a bad spec doesn't block the commit), stops the commit on exit 2.
+PRACTICE_TRIGGER=$(echo "$STAGED" | grep -E "^dsa/tests/.*\.yml$|scripts/export_practice\.py$|scripts/new_problem\.py$")
+if [ -n "$PRACTICE_TRIGGER" ]; then
+  echo "Regenerating practice.json..."
+  run_py scripts/export_practice.py || true
+  PRACTICE_RC=0
+  run_py scripts/export_practice.py --check || PRACTICE_RC=$?
+  if [ "$PRACTICE_RC" -eq 2 ]; then
+    echo "ERROR: dashboard/practice.json violates its schema" >&2
+    exit 1
+  fi
+  [ -f "dashboard/practice.json" ] && git add "dashboard/practice.json"
+fi
+
+# Dashboard manifest (dashboard/manifest.json: sha256 + size of every dashboard JSON, so the site
+# re-fetches only what changed). Fires when ANY dashboard/*.json or dashboard/showcase/*.json is
+# staged. The trigger is read fresh (not from $STAGED, which predates the blocks above, and with
+# deletions included) after staging the derived files they write, so hashes are of what lands.
+# Derived files are staged only alongside their source (practice.json / showcase.json).
+# --staged hashes the index's bytes (what the commit holds), not the working tree's. Report-only
+# except exit 2 (the manifest violates its schema), which stops the commit.
+FRESH_STAGED=$(git diff --cached --name-only)
+if echo "$FRESH_STAGED" | grep -qx "dashboard/practice.json"; then
+  [ -f "dashboard/practice-index.json" ] && git add "dashboard/practice-index.json"
+fi
+if echo "$FRESH_STAGED" | grep -qx "dashboard/showcase.json"; then
+  [ -f "dashboard/showcase-index.json" ] && git add "dashboard/showcase-index.json"
+  [ -d "dashboard/showcase" ] && git add "dashboard/showcase/"
+fi
+MANIFEST_TRIGGER=$(git diff --cached --name-only | grep -E "^dashboard/(showcase/)?[^/]+\.json$")
+if [ -n "$MANIFEST_TRIGGER" ]; then
+  echo "Regenerating manifest.json..."
+  MANIFEST_RC=0
+  run_py scripts/export_manifest.py --staged || MANIFEST_RC=$?
+  if [ "$MANIFEST_RC" -eq 2 ]; then
+    echo "ERROR: dashboard/manifest.json violates its schema" >&2
+    exit 1
+  fi
+  [ -f "dashboard/manifest.json" ] && git add "dashboard/manifest.json"
+fi
+
+# Single source of truth for tuned values (see CLAUDE.md). Fires when the config, a script
+# that carries defaults, or a rules document is staged — i.e. exactly the three places a
+# value can be copied to. Reports; never blocks.
+#
+# ⚠️ WARN-ONLY ON PURPOSE. The prose half of this check is heuristic (it cannot tell
+# "+2 days" as a rule from "+2 days" inside a dated log entry), and a heuristic that can
+# block a commit gets disabled within a week — at which point the check exists and never
+# fires, which is the failure it was written to prevent. The exact half (script defaults vs
+# config) is loud enough to act on: it prints ❌ and names both files.
+SSOT_TRIGGER=$(echo "$STAGED" | grep -E "cse\.config(\.example)?\.yml$|^scripts/.*\.py$|CLAUDE\.md$|^docs/foundations/.*\.md$")
+if [ -n "$SSOT_TRIGGER" ]; then
+  if command -v py >/dev/null 2>&1; then
+    py scripts/check_single_source.py || true
+  elif command -v python >/dev/null 2>&1; then
+    python scripts/check_single_source.py || true
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 scripts/check_single_source.py || true
+  fi
+fi
+
+# /learn cheat-sheet contract (learn-cheatsheet-contract-sep22 — decisions.yml). Fires when
+# a technique doc, the signal table, the technique vocabulary, or either generator script is
+# staged — the inputs scripts/build_cheatsheets.py reads. Blocking as of Sep 23, 2026: all 18
+# technique docs pass `--check` (see check_cheatsheets.py's own docstring), so a contract
+# violation now fails the commit instead of just being reported. It does NOT regenerate
+# dashboard/cheat-sheets.json here — unlike progress.json, that stays a deliberate run, not
+# an on-commit side effect (see build_cheatsheets.py's own module docstring).
+CHEATSHEET_TRIGGER=$(echo "$STAGED" | grep -E "^docs/foundations/dsa/patterns/techniques/.*\.md$|intuition_cheatsheet\.md$|techniques\.yml$|^scripts/(build|check)_cheatsheets\.py$")
+if [ -n "$CHEATSHEET_TRIGGER" ]; then
+  if command -v py >/dev/null 2>&1; then
+    py scripts/check_cheatsheets.py --check || exit 1
+  elif command -v python >/dev/null 2>&1; then
+    python scripts/check_cheatsheets.py --check || exit 1
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 scripts/check_cheatsheets.py --check || exit 1
+  else
+    echo "Error: Python not found. Cannot run the cheat-sheet contract check." >&2
+    exit 1
+  fi
+fi
+
+# Schedule integrity. Fires when a rating lands (the tracker) or the board is edited — the two
+# ways a done rep and its schedule row can drift apart. Checks only the CURRENT week's file:
+# a struck row must carry its End + Next, and a rep the tracker dates inside this week must be
+# struck. Report-only, and silent-when-clean by design.
+#
+# ⚠️ It deliberately does NOT check that every future review date is pre-placed in some schedule
+# file. That reading of the rule reports 73 of 115 rows on a healthy repo — distant dates are
+# pulled by the weekly build's tracker sweep, not pushed row by row. See the script's docstring.
+if echo "$STAGED" | grep -qE "dsa_progress\.md$|design_progress\.md$|^docs/foundations/schedules/.*\.md$"; then
+  if command -v py >/dev/null 2>&1; then
+    py scripts/check_schedule_integrity.py || true
+  elif command -v python >/dev/null 2>&1; then
+    python scripts/check_schedule_integrity.py || true
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 scripts/check_schedule_integrity.py || true
+  fi
+fi
+
+# Scaffold-lifecycle leaks. Fires when the tracker, a probes/ file, or a leetcode source file
+# is staged — the moments a phantom row (a scaffolded-but-unattempted file discovery turned into
+# a row) or a stranded probe (an earned probe still under dsa/probes/, outside solutions.roots)
+# can appear. Report-only, silent-when-clean. See scripts/check_phantom_scaffolds.py.
+if echo "$STAGED" | grep -qE "dsa_progress\.md$|^dsa/probes/.*\.py$|^dsa/leetcode/.*\.(py|java|ts|js|cpp)$"; then
+  if command -v py >/dev/null 2>&1; then
+    py scripts/check_phantom_scaffolds.py || true
+  elif command -v python >/dev/null 2>&1; then
+    python scripts/check_phantom_scaffolds.py || true
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 scripts/check_phantom_scaffolds.py || true
+  fi
+fi
+
+# Rule reconciliation. Fires ONLY when decisions.yml is staged — i.e. the moment a decision
+# is recorded, which is exactly when the blast radius is worth seeing and when it is cheapest
+# to act on. Running it on every commit would print a 40-line backlog daily until someone
+# stopped reading it.
+#
+# Report-only, always: a rule that has not been re-read is not a broken commit, and the whole
+# design assumes reconciling is a deliberate human act (see scripts/reconcile.py).
+if echo "$STAGED" | grep -qE "^decisions\.yml$"; then
+  echo "A decision was recorded — rules not yet read against it:"
+  if command -v py >/dev/null 2>&1; then
+    py scripts/reconcile.py || true
+  elif command -v python >/dev/null 2>&1; then
+    python scripts/reconcile.py || true
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 scripts/reconcile.py || true
+  fi
+fi
+
+# Line-ending flips. A text-mode rewrite can turn a CRLF file into LF, staging a whole-file diff
+# for a one-line change. Compares each modified staged file's HEAD blob to its staged blob; runs
+# last so it sees what the blocks above staged. Report-only, silent-when-clean.
+if command -v py >/dev/null 2>&1; then
+  py scripts/check_line_endings.py || true
+elif command -v python >/dev/null 2>&1; then
+  python scripts/check_line_endings.py || true
+elif command -v python3 >/dev/null 2>&1; then
+  python3 scripts/check_line_endings.py || true
+fi
+exit 0

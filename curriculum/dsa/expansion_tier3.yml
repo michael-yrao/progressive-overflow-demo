@@ -1,0 +1,58 @@
+# DSA expansion — Tier 3 (competitive / research horizon, deepest layer).
+# ICPC / Codeforces territory; essentially zero interview payoff. Pursue only for
+# serious competitive-programming or systems-research depth, deliberately over
+# months. Almost none have clean LeetCode instances — practice on Codeforces/AtCoder.
+# Grouped by area; learn a group only after its Tier-1/2 prerequisites are solid.
+pillar: dsa
+tier: expansion_tier3
+roi: below_line
+default_pace_per_week: 1
+
+groups:
+  - name: Trees (advanced)
+    techniques:
+      - { name: "Heavy-Light Decomposition (HLD)", prereq: "segment tree + LCA", note: "path & subtree queries via segment trees over chains" }
+      - { name: "Centroid Decomposition", note: "D&C on trees for path-counting / distance problems" }
+      - { name: "DSU on tree (small-to-large)", note: "offline subtree queries by merging small into large" }
+      - { name: "Link-Cut Trees / Euler-Tour Trees", note: "online dynamic tree connectivity & path aggregates" }
+      - { name: "Virtual (auxiliary) trees", note: "compress a tree to the relevant k nodes for multi-query DP" }
+  - name: Strings (deepest)
+    techniques:
+      - { name: "Suffix Automaton (full) / Suffix Tree (Ukkonen)", note: "linear-time full-text index; distinct substrings, multi-string LCS" }
+      - { name: "Palindromic Tree (Eertree)", note: "all distinct palindromic substrings in O(n)" }
+      - { name: "Suffix array + LCP (Kasai) applications", note: "kth substring, longest repeated" }
+  - name: Math / number theory (advanced)
+    techniques:
+      - { name: "FFT / NTT (+ FWHT)", note: "polynomial multiplication & convolutions; FWHT for xor/and/or convolutions" }
+      - { name: "CRT, Lucas, Mobius inversion, totient sieve", note: "counting under modular / divisor constraints" }
+      - { name: "Discrete log (BSGS), primitive roots, Tonelli-Shanks", note: "modular log & sqrt" }
+      - { name: "Combinatorics: inclusion-exclusion, Burnside/Polya, Catalan/Stirling, generating functions" }
+  - name: Flows & matching (advanced)
+    techniques:
+      - { name: "Min-Cost Max-Flow (MCMF)", prereq: "max-flow (Tier 2)", note: "weighted flow via SPFA/Johnson potentials" }
+      - { name: "Min-cut modeling", note: "project selection / max-weight closure; Gomory-Hu tree for all-pairs min-cut" }
+      - { name: "General matching (Blossom); Hungarian for assignment" }
+  - name: DP optimizations (beyond CHT/Knuth)
+    techniques:
+      - { name: "Divide & Conquer DP optimization; Aliens trick (Lagrangian relaxation)" }
+      - { name: "Broken-profile / connected-component DP; advanced digit DP; bitmask DP over subsets" }
+  - name: Advanced data structures
+    techniques:
+      - { name: "Segment Tree Beats", note: "range chmin/chmax with sum via historic-max" }
+      - { name: "Li Chao tree (CHT for arbitrary lines); wavelet tree (kth in range)" }
+      - { name: "Persistent segment tree (deep); sqrt tree" }
+  - name: Graphs (advanced)
+    techniques:
+      - { name: "2-SAT", prereq: "SCC / Tarjan (Tier 1)", note: "implication graph + SCC" }
+      - { name: "Dominator trees; offline dynamic connectivity (DSU rollback + divide over time)" }
+  - name: Geometry (advanced)
+    techniques:
+      - { name: "Half-plane intersection, rotating calipers, Delaunay/Voronoi, KD-trees" }
+  - name: Game theory
+    techniques:
+      - { name: "Sprague-Grundy / Nim", note: "grundy numbers for impartial games" }
+
+prerequisite_chains: >
+  segment tree -> HLD / segment-tree-beats / Li Chao; LCA -> HLD / virtual trees;
+  SCC (Tarjan) -> 2-SAT; modular arithmetic -> NTT / discrete log;
+  max-flow (Tier 2) -> MCMF / min-cut modeling.

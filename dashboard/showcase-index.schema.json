@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://progressiveoverflow.com/schemas/showcase-index.v1.json",
+  "title": "cse-coach showcase-index contract",
+  "description": "One row per lcNumber in showcase.json, emitted by scripts/export_showcase.py (via scripts/dashboard_indexes.py) so the site can find a problem's file without fetching the full showcase.json. schemaVersion and generatedAt are copied from showcase.json.",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "problems"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "generatedAt": { "type": "string", "format": "date" },
+    "problems": {
+      "type": "array",
+      "description": "Sorted by lcNumber.",
+      "items": {
+        "type": "object",
+        "required": ["lcNumber", "variants", "file"],
+        "properties": {
+          "lcNumber": { "type": "integer", "minimum": 1 },
+          "variants": {
+            "type": "array",
+            "description": "Variant ids in showcase.json order.",
+            "minItems": 1,
+            "items": { "type": "string" }
+          },
+          "file": { "type": "string", "description": "Path relative to dashboard/, e.g. showcase/733.json." }
+        }
+      }
+    }
+  }
+}

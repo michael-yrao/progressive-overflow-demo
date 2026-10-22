@@ -1,0 +1,80 @@
+name: Regenerate
+
+# Re-runs the pre-commit hook over a push that bypassed it (a commit made through the GitHub API),
+# then commits the regenerated outputs. GITHUB_TOKEN pushes trigger no workflow and the actor guard
+# skips the bot, so it cannot loop; the outputs sit outside `paths`. See decisions.yml `site-hold`.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/foundations/dsa/mastery/dsa_progress.md'
+      - 'docs/foundations/dsa/mastery/techniques.yml'
+      - 'docs/foundations/dsa/mastery/complexity_gotchas.md'
+      - 'docs/foundations/dsa/mastery/holds.yml'
+      - 'docs/foundations/system_design/mastery/design_progress.md'
+      - 'docs/foundations/schedules/**'
+      - 'docs/foundations/dsa/patterns/techniques/**'
+      - 'docs/foundations/dsa/patterns/intuition_cheatsheet.md'
+      - 'dsa/leetcode/**'
+      - 'dsa/probes/**'
+      - 'dsa/tests/**'
+      - 'dashboard/showcase.yml'
+      - 'dashboard/bigo.yml'
+      - 'dashboard/pattern_sense.yml'
+      - 'cse.config.yml'
+      - 'decisions.yml'
+      - 'scripts/**'
+
+concurrency:
+  group: regenerate
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    if: ${{ github.actor != 'github-actions[bot]' && !github.event.repository.is_template }}
+    runs-on: ubuntu-latest
+    outputs:
+      pushed: ${{ steps.publish.outputs.pushed }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/engine-setup
+
+      - name: Fetch the last-processed marker
+        run: git fetch origin '+refs/regenerate/last:refs/regenerate/last' || true
+
+      - name: Replay the pre-commit hook
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: python scripts/replay_hook.py --before "$BEFORE" --after "$AFTER"
+
+      - name: Build commit message
+        id: message
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          echo "text=chore(regenerate): ${BEFORE:0:7}..${AFTER:0:7}" >> "$GITHUB_OUTPUT"
+
+      - id: publish
+        uses: ./.github/actions/commit-push
+        with:
+          message: ${{ steps.message.outputs.text }}
+
+      - name: Move the marker
+        env:
+          AFTER: ${{ github.sha }}
+        run: git push --force origin "$AFTER:refs/regenerate/last"
+
+  notify:
+    needs: regenerate
+    if: needs.regenerate.outputs.pushed == 'true'
+    uses: ./.github/workflows/notify-site.yml
+    secrets: inherit

@@ -1,0 +1,66 @@
+name: Fold attempts
+
+# Folds every complete rep saved under dsa/attempts/ (tracker, schedule, queues), commits through the
+# repo's pre-commit hook, pushes, then tells the site. A blocking check fails the job and pushes nothing.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dsa/attempts/**'
+  workflow_dispatch:
+
+concurrency:
+  group: fold-attempts
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  fold:
+    if: ${{ github.actor != 'github-actions[bot]' && !github.event.repository.is_template }}
+    runs-on: ubuntu-latest
+    outputs:
+      pushed: ${{ steps.publish.outputs.pushed }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/engine-setup
+
+      - name: Fold complete attempts
+        run: |
+          set -o pipefail
+          python scripts/fold_attempt.py --apply --all 2>&1 | tee "$RUNNER_TEMP/fold.log"
+
+      - name: Annotate refusals
+        run: |
+          grep -E '^refused:' "$RUNNER_TEMP/fold.log" | sed 's/^/::warning::/' || true
+
+      - name: Job summary
+        run: |
+          {
+            echo '### Fold attempts'
+            echo '```'
+            grep -E '^(folded|applied|refused):' "$RUNNER_TEMP/fold.log" || echo 'nothing to fold'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build commit message
+        id: message
+        run: |
+          parts=$(grep -E '^folded: ' "$RUNNER_TEMP/fold.log" | sed 's/^folded: //' | paste -sd ',' - | sed 's/,/, /g')
+          echo "text=chore(fold): ${parts}" >> "$GITHUB_OUTPUT"
+
+      - id: publish
+        uses: ./.github/actions/commit-push
+        with:
+          message: ${{ steps.message.outputs.text }}
+
+  notify:
+    needs: fold
+    if: needs.fold.outputs.pushed == 'true'
+    uses: ./.github/workflows/notify-site.yml
+    secrets: inherit

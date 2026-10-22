@@ -1,0 +1,22 @@
+# Personal, bootstrap-generated files — kept out of the template.
+# In YOUR fork, force-add these if you want them synced across machines:
+#   git add -f cse.config.yml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Agent worktree scratch (live git worktrees, never content)
+.claude/worktrees/
+
+# Sync conflict diffs (regenerated on demand; the manifest itself IS committed)
+.coach-sync/conflicts/

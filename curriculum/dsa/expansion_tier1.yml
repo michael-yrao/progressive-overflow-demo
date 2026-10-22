@@ -1,0 +1,53 @@
+# DSA expansion — Tier 1 (above the ROI line).
+# Genuinely advanced but still surfaces in HARD interviews. The top of the ROI
+# curve. Tackle AFTER NC150 is comfortable; ordered roughly by ROI.
+pillar: dsa
+tier: expansion_tier1
+roi: above_line
+default_pace_per_week: 2
+
+techniques:
+  # ── Core-fill (NC150-adjacent gaps — do these FIRST; medium difficulty, high interview
+  #    frequency). These are holes in NC150's coverage, not advanced techniques. Cap intake at
+  #    ≤1 new/week so the blank tax stays contained. ──
+  - name: Tree DP
+    representative: [{ number: 337, title: "House Robber III" }, { number: 968, title: "Binary Tree Cameras" }]
+    note: "DP whose recurrence runs over a tree — postorder, each node returns a small tuple of sub-answers (rob/not-rob). NC150 DP is all linear/grid/string, ZERO tree-DP; common medium. Core gap, not advanced."
+  - name: Design — O(1) data structures
+    representative: [{ number: 380, title: "Insert Delete GetRandom O(1)" }, { number: 460, title: "LFU Cache" }]
+    note: "OOD with hard per-op complexity targets: array+hashmap-of-index for O(1) random; two-hashmap+freq-buckets for LFU. NC150 'design' is LRU+Twitter only; 380 is a top-frequency phone screen. Core gap."
+
+  # ── Advanced (the original Tier-1 expansion — genuinely hard-interview techniques) ──
+  - name: Segment Tree
+    representative: [{ number: 307, title: "Range Sum Query - Mutable" }, { number: 315, title: "Count of Smaller Numbers After Self" }]
+    note: "Range query + update in O(log n) — what prefix sums can't do (mutable). Highest-value advanced structure."
+  - name: Fenwick / Binary Indexed Tree
+    representative: [{ number: 307, title: "Range Sum Query - Mutable" }, { number: 493, title: "Reverse Pairs" }]
+    note: "Lighter segment tree for prefix-sum-with-updates. Learn alongside segment tree."
+  - name: KMP (failure function)
+    representative: [{ number: 28, title: "Find the Index of the First Occurrence in a String" }, { number: 459, title: "Repeated Substring Pattern" }]
+    note: "O(n+m) substring search; the failure-function idea recurs across string problems."
+  - name: Bitwise / XOR Trie
+    representative: [{ number: 421, title: "Maximum XOR of Two Numbers in an Array" }]
+    note: "Max-XOR-pair by walking bits high→low through a binary trie."
+  - name: Manacher's algorithm
+    representative: [{ number: 5, title: "Longest Palindromic Substring" }, { number: 647, title: "Palindromic Substrings" }]
+    note: "O(n) palindrome — upgrade over the NC150 DP/expand approach."
+  - name: Matrix exponentiation
+    representative: [{ number: 509, title: "Fibonacci Number" }]
+    note: "Linear recurrences in O(log n) via matrix power."
+  - name: Tarjan's (SCC / bridges / articulation)
+    representative: [{ number: 1192, title: "Critical Connections in a Network" }]
+    note: "Strongly-connected components, critical edges."
+  - name: Meet in the middle
+    representative: [{ number: 1755, title: "Closest Subsequence Sum" }]
+    note: "Halve an exponential search: 2^n → 2·2^(n/2)."
+  - name: Reservoir sampling
+    representative: [{ number: 382, title: "Linked List Random Node" }, { number: 398, title: "Random Pick Index" }]
+    note: "Uniform random pick from a stream of unknown length."
+  - name: Difference array
+    representative: [{ number: 1109, title: "Corporate Flight Bookings" }]
+    note: "O(1) range updates, materialize at end. Prefix-sum's complement."
+  - name: Number theory kit
+    representative: [{ number: 204, title: "Count Primes" }, { number: 50, title: "Pow(x, n)" }]
+    note: "Sieve, modular inverse, binary exponentiation, nCr mod p."

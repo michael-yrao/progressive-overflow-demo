@@ -1,0 +1,240 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://progressiveoverflow.com/schemas/cheat-sheets.schema.json",
+  "title": "Cheat Sheets",
+  "description": "Contract for /learn's technique cheat sheet, generated from the technique docs (see scripts/build_cheatsheets.py's module docstring). `page` on a signal row marks a signal whose technique has no dedicated technique page (heap, Boyer-Moore voting, cyclic sort, two heaps, quickselect), so the site can skip linking it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "signals", "techniques", "decisionTree"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "generatedAt": {
+      "type": "string",
+      "description": "ISO 8601 timestamp of generation."
+    },
+    "signals": {
+      "type": "array",
+      "description": "The landing 'Signal -> technique' table, from intuition_cheatsheet.md.",
+      "items": { "$ref": "#/definitions/signal" }
+    },
+    "techniques": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/technique" }
+    },
+    "decisionTree": {
+      "description": "The 'Decision tree' bullet list from intuition_cheatsheet.md (shape -> cue -> technique), rooted at one inner node.",
+      "$ref": "#/definitions/decisionInnerNode"
+    }
+  },
+  "definitions": {
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["see", "reach", "note"],
+      "properties": {
+        "see": {
+          "type": "string",
+          "description": "What you see in the prompt (the 'signal')."
+        },
+        "reach": {
+          "type": "string",
+          "description": "The technique id to reach for when this signal fires (a techniques[].id), unless `page` is false, in which case this is the technique's text label (no dedicated page exists)."
+        },
+        "note": {
+          "type": "string",
+          "description": "The short parenthetical/clarifying note from the table's 'Reach for' cell. Empty string when the table carries none."
+        },
+        "page": {
+          "type": "boolean",
+          "description": "false when `reach` names a technique with no dedicated technique page (single-trick techniques: heap, Boyer-Moore voting, cyclic sort, two heaps, quickselect). Omitted (treated as true) whenever a page exists."
+        }
+      }
+    },
+    "technique": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "name", "family", "tier", "whenToUse", "signals",
+        "picking", "variants", "pitfalls", "keyProblems", "docUrl"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Slug of the technique doc's filename (underscores -> hyphens)."
+        },
+        "name": {
+          "type": "string",
+          "description": "The doc's H1, with a trailing ' Patterns' dropped."
+        },
+        "family": {
+          "type": "string",
+          "description": "From techniques.yml's nearest-matching technique entry."
+        },
+        "tier": {
+          "type": "string",
+          "description": "From techniques.yml (defaults to 'core' when the matched entry carries no tier key)."
+        },
+        "whenToUse": {
+          "type": "string",
+          "description": "One sentence, extracted verbatim/trimmed from the doc. 'TODO' when the doc states no single when-to-use sentence."
+        },
+        "signals": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The technique's own recognition-signal bullets (distinct from the top-level signals table). Empty when the doc has none."
+        },
+        "picking": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["feature", "notWhen"],
+          "properties": {
+            "feature": {
+              "type": "string",
+              "description": "The one feature that picks this technique over its nearest neighbour. 'TODO' when no doc states a discriminator."
+            },
+            "notWhen": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/notWhenEntry" }
+            }
+          }
+        },
+        "variants": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/variant" }
+        },
+        "pitfalls": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Verbatim/trimmed bullets from the doc's pitfalls/gotchas section. Empty when the doc has none."
+        },
+        "keyProblems": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/keyProblem" }
+        },
+        "docUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Link to the full technique doc on GitHub (main branch)."
+        }
+      }
+    },
+    "notWhenEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["technique", "because"],
+      "properties": {
+        "technique": {
+          "type": "string",
+          "description": "The neighbouring technique's id (a techniques[].id) when it has a dedicated page, else its plain text label."
+        },
+        "because": {
+          "type": "string",
+          "description": "The doc-stated reason this technique is not the one named."
+        },
+        "page": {
+          "type": "boolean",
+          "description": "false when `technique` names a technique with no dedicated page (single-trick techniques: heap, Boyer-Moore voting, cyclic sort, two heaps, quickselect). Omitted (treated as true) whenever a page exists."
+        }
+      }
+    },
+    "variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "code", "complexity"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The variant/template heading, as given in the doc."
+        },
+        "when": {
+          "type": "string",
+          "description": "Optional: the doc-stated condition this variant applies under."
+        },
+        "code": {
+          "type": "string",
+          "description": "The variant's python code, copied verbatim from the doc's fenced code block (real newlines, original indentation)."
+        },
+        "complexity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["time", "space", "why"],
+          "properties": {
+            "time": { "type": "string" },
+            "space": { "type": "string" },
+            "why": {
+              "type": "string",
+              "description": "The doc's own why-clause. 'TODO' for all three fields when the doc states no complexity for this variant — never computed by the generator/extractor."
+            }
+          }
+        }
+      }
+    },
+    "keyProblem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lcNumber", "title"],
+      "properties": {
+        "lcNumber": {
+          "type": "integer",
+          "description": "LeetCode problem number, as given in the doc's Practice/Problems section."
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "decisionNode": {
+      "description": "One bullet of the decision tree: either a leaf (reaches a technique) or an inner node (asks a further question). Never both.",
+      "oneOf": [
+        { "$ref": "#/definitions/decisionLeaf" },
+        { "$ref": "#/definitions/decisionInnerNode" }
+      ]
+    },
+    "decisionInnerNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "children"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "The shape/cue this node asks about. A label ending in '?' is a question; the site infers this, there is no separate 'kind' field."
+        },
+        "children": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/decisionNode" }
+        }
+      }
+    },
+    "decisionLeaf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "reach", "reachLabel", "note"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "The cue that reaches this technique."
+        },
+        "reach": {
+          "type": "string",
+          "description": "The technique id to reach for (a techniques[].id), unless `page` is false, in which case this is the technique's text label (no dedicated page exists)."
+        },
+        "reachLabel": {
+          "type": "string",
+          "description": "The author's link/bold text for the technique as written in the doc — e.g. 'DFS postorder', 'sort by start, sweep' — shown by the site as the leaf's link text; `reach` stays the id/route key."
+        },
+        "note": {
+          "type": "string",
+          "description": "The short parenthetical note after the arrow. Empty string when the bullet carries none."
+        },
+        "page": {
+          "const": false,
+          "description": "Present and false when `reach` names a technique with no dedicated page. Omitted (treated as true) whenever a page exists."
+        }
+      }
+    }
+  }
+}

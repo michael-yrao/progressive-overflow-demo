@@ -1,0 +1,10 @@
+#!/bin/sh
+# Version-controlled pre-push hook (tracked in .githooks/, used via core.hooksPath).
+# Activated by the same one-time setup as pre-commit:  git config core.hooksPath .githooks
+#
+# Sweeps local Python bytecode caches before pushing. __pycache__/ is gitignored so
+# nothing is ever committed; this just keeps the working tree clean of the dirs that
+# running the tracker scripts / solution files leaves behind. Runs at push (not commit)
+# because the pre-commit hook invokes Python and would immediately recreate them.
+find . -type d -name __pycache__ -not -path './.git/*' -prune -exec rm -rf {} + 2>/dev/null
+exit 0

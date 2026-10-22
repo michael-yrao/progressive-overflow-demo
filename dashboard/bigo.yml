@@ -1,0 +1,13 @@
+# The Big-O Trainer's manifest: one entry per LeetCode number (or per twin file, keyed
+# `lc:variant`), picking which real attempt answers its time/space question.
+# Empty on purpose: until you add an entry, scripts/export_bigo.py writes no
+# dashboard/big-o.json and the site shows the author's trainer deck instead.
+#
+# Entry shape (see the docstring of scripts/export_bigo.py):
+#   - lc: 1
+#     time: O(n)               # a label from COMPLEXITY_POOL in scripts/export_bigo.py, or TODO
+#     space: O(n)
+#     symbol: twoSum           # optional: defaults to the file's latest dated attempt
+#     whyTime: one-line reason shown on reveal   # optional, as are whySpace / note / variant / file
+schemaVersion: 1
+entries: []
