@@ -408,9 +408,8 @@ def build_summary_lines(table_rows: list[dict], retired: int = 0) -> list[str]:
         for row in attempted_rows
         if extract_problem_number(row["problem"]) is not None
     })
-    solutions_done = len(attempted_rows)
     rowless_probes = count_rowless_probes()
-    _p = f"+{rowless_probes}" if rowless_probes else ""  # the `+N` probe-fold suffix, shared by all three counts
+    _p = f"+{rowless_probes}" if rowless_probes else ""  # the `+N` probe-fold suffix, shared by both counts
     total_attempts = sum(count_attempt_dates(row["attempts"]) for row in table_rows)
     clean = sum(1 for row in table_rows if row["comfort"] == COMFORT_CLEAN)
     shaky = sum(1 for row in table_rows if row["comfort"] == COMFORT_SHAKY)
@@ -426,13 +425,13 @@ def build_summary_lines(table_rows: list[dict], retired: int = 0) -> list[str]:
         # trying and possibly failing, and the code gets written every time — what varies is the rating,
         # not whether a solution happened. "Rep" is also the vocabulary the rest of the system already
         # uses. Only the label changed; the count is still one per dated entry in `Attempt Dates`.
-        # All three counts see only the table below. Disposable 🟢 probes earn no row, so each is folded
+        # Both counts see only the table below. Disposable 🟢 probes earn no row, so each is folded
         # in as `base+4` (source: the probe log in dsa/probes/README.md) — one rowless probe is one
-        # problem, one solution, AND one rep (a single cold attempt). The base is the review-rotation
-        # count; the `+N` is the probe-only work. `+N` is omitted from all three when there are none.
+        # problem AND one rep (a single cold attempt). The base is the review-rotation count; the
+        # `+N` is the probe-only work. `+N` is omitted from both when there are none. (A "solutions"
+        # count of table rows was dropped Oct 22, 2026: it read as solution files, which it never was.)
         (
             f"> **{unique_problems}{_p}** problems "
-            f"&nbsp;·&nbsp; **{solutions_done}{_p}** solutions "
             f"&nbsp;·&nbsp; **{total_attempts}{_p}** reps"
         ),
         "",
