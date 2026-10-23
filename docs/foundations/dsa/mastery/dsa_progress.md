@@ -36,16 +36,14 @@ Notes for the coach / future agents:
 - Replace the example row below with your own once you log your first problem.
 -->
 
-> **56+3** problems &nbsp;·&nbsp; **56+3** solutions &nbsp;·&nbsp; **214+3** reps
+> **56+3** problems &nbsp;·&nbsp; **56+3** solutions &nbsp;·&nbsp; **216+3** reps
 
 | | 🏆 Retired | 🎓 Graduated | 🟢 Clean | 🟡 Shaky | 🔴 Blank |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| **Solutions** | 2 | 12 | 36 | 6 | 2 |
+| **Solutions** | 2 | 12 | 38 | 6 | 0 |
 
 | Difficulty | Problem | Comfort | Streak | Next Review Date | Latest Rep Date | Rep Dates |
 |---|---|---|---|---|---|---|
-| Medium | [238. Product of Array Except Self](https://leetcode.com/problems/product-of-array-except-self/) | 🔴 | 0 | 2026-10-16 | 2026-10-14 | 2026-06-09, 2026-07-11, 2026-07-14, 2026-08-15, 2026-10-14 |
-| Hard | [124. Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/) | 🔴 | 0 | 2026-10-18 | 2026-10-16 | 2026-06-23, 2026-07-05, 2026-07-17, 2026-08-16, 2026-10-16 |
 | Easy | [283. Move Zeroes](https://leetcode.com/problems/move-zeroes/) | 🟢 | 2 | 2026-10-19 | 2026-08-20 | 2026-06-27, 2026-07-08, 2026-07-21, 2026-08-20 |
 | Medium | [19. Remove Nth Node From End of List](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) | 🟡 | 0 | 2026-10-20 | 2026-10-10 | 2026-10-10 |
 | Medium | [33. Search in Rotated Sorted Array](https://leetcode.com/problems/search-in-rotated-sorted-array/) | 🟡 | 0 | 2026-10-20 | 2026-10-10 | 2026-08-18, 2026-08-29, 2026-09-10, 2026-10-10 |
@@ -78,6 +76,8 @@ Notes for the coach / future agents:
 | Medium | [74. Search a 2D Matrix](https://leetcode.com/problems/search-a-2d-matrix/) | 🟢 | 2 | 2026-11-18 | 2026-09-19 | 2026-08-14, 2026-09-19 |
 | Medium | [323. Number of Connected Components in an Undirected Graph](https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/) | 🟢 | 1 | 2026-11-18 | 2026-10-19 | 2026-08-25, 2026-09-04, 2026-10-07, 2026-10-13, 2026-10-19 |
 | Medium | [1011. Capacity To Ship Packages Within D Days](https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/) | 🟢 | 2 | 2026-11-18 | 2026-09-19 | 2026-08-17, 2026-09-19 |
+| Medium | [238. Product of Array Except Self](https://leetcode.com/problems/product-of-array-except-self/) | 🟢 | 1 | 2026-11-20 | 2026-10-21 | 2026-06-09, 2026-07-11, 2026-07-14, 2026-08-15, 2026-10-14, 2026-10-21 |
+| Hard | [124. Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/) | 🟢 | 1 | 2026-11-21 | 2026-10-22 | 2026-06-23, 2026-07-05, 2026-07-17, 2026-08-16, 2026-10-16, 2026-10-22 |
 | Hard | [332. Reconstruct Itinerary](https://leetcode.com/problems/reconstruct-itinerary/) | 🟢 | 2 | 2026-11-21 | 2026-09-22 | 2026-08-07, 2026-08-18, 2026-09-22 |
 | Medium | [55. Jump Game](https://leetcode.com/problems/jump-game/) | 🟢 | 2 | 2026-11-22 | 2026-09-23 | 2026-08-19, 2026-09-23 |
 | Medium | [424. Longest Repeating Character Replacement](https://leetcode.com/problems/longest-repeating-character-replacement/) | 🟢 | 2 | 2026-11-22 | 2026-09-23 | 2026-08-23, 2026-09-23 |
@@ -107,5 +107,5 @@ Problems for algorithmic depth — not part of the spaced-repetition stats. Thes
 
 ## 🏆 Retired
 
-- 56. Merge Intervals — retired 2026-04-17
-- 347. Top K Frequent Elements — retired 2026-05-21
+- 56. Merge Intervals — retired 2026-04-19
+- 347. Top K Frequent Elements — retired 2026-05-23

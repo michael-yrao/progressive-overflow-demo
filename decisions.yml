@@ -1683,3 +1683,30 @@ decisions:
       order. The kickoff board moves from `links.py` to `remaining.py`. Strands any rule reading
       "build the lineup from links.py" for a day's board.
     affects: [kickoff, lineup, weekly_build]
+
+  - id: technique-catalogue-oct22
+    date: 2026-10-22
+    summary: >-
+      CHANGES where the DSA technique vocabulary lives. The catalogue moves to
+      `cse-coach/curriculum/dsa/techniques.yml`, engine-owned and synced by the existing
+      `curriculum/**/*.yml` entry of `ENGINE_PATHS`. `docs/foundations/dsa/mastery/techniques.yml`
+      stays learner-owned as an OVERLAY holding only the spec keys `queued` / `planned` / `review`,
+      variant `queued`, the learner's custom specs (9001-9999) and learner-local techniques.
+      `scripts/curriculum.py` `load_techniques(catalogue, overlay)` merges them: catalogue order
+      first, overlay learner keys merged into a matching (number, method) spec, unmatched specs
+      and variants appended, new names appended last, and other overlay keys on a catalogue name
+      ignored. `order` is the catalogue index. Catalogue specs now carry `title` / `url` /
+      `difficulty`, the planned-title fallback after the Waiting Room and `roadmap.yml`, so planned
+      problems get titles for every learner. `neetcode.yml` moves to `curriculum/dsa/neetcode.yml`.
+      cse-progress has no `update_coach.py` of its own and receives exactly the catalogue and
+      `neetcode.yml` by running cse-coach's updater scoped:
+      `python ../cse-coach/scripts/update_coach.py --root . --only curriculum/dsa/techniques.yml
+      --only curriculum/dsa/neetcode.yml`. It is scoped because a full `curriculum/**` sync would
+      bring `milestone.yml` into cse-progress and change its intake (`build_week.py`). A scoped
+      sync leaves `VERSION` and the other manifest entries alone. A new cse-coach Action
+      `demo.yml` rebuilds `michael-yrao/progressive-overflow-demo` on engine and curriculum
+      changes (secret `DEMO_DEPLOY_KEY`, an SSH deploy key with write access on the demo repo
+      only; template-only guard). cse-coach CI gains a freshness step: `technique_coverage.py
+      --check`, then `gamify.py --date` and a `git diff --exit-code` over the starter outputs.
+      `totals.solutions` is dropped from gamify and the schema. No `cse.config.yml` value changed.
+    affects: [techniques, curriculum, sync, dashboard, demo, ci]

@@ -9,9 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-import yaml
-
-from technique_coverage import TECHNIQUES_YML
+import curriculum
+from technique_coverage import CATALOGUE_YML, TECHNIQUES_YML
 
 FOLDER_FAMILY = {"1d_dynamic_programming": "dynamic_programming",
                  "2d_dynamic_programming": "dynamic_programming",
@@ -42,12 +41,11 @@ class PickGrade:
     answer: str
 
 
-def load_declarations(path: Path = TECHNIQUES_YML) -> tuple[dict[str, tuple[str, ...]], dict[str, str]]:
+def load_declarations(catalogue: Path = CATALOGUE_YML,
+                      overlay: Path = TECHNIQUES_YML) -> tuple[dict[str, tuple[str, ...]], dict[str, str]]:
     """(number -> declaring entry names in file order, name -> family); the first entry wins on a
-    duplicate name. A missing file gives two empty maps."""
-    if not path.is_file():
-        return {}, {}
-    entries = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("techniques") or []
+    duplicate name. Two missing files give two empty maps."""
+    entries = curriculum.load_techniques(catalogue, overlay)["techniques"]
     declared: dict[str, list[str]] = {}
     families: dict[str, str] = {}
     for entry in entries:

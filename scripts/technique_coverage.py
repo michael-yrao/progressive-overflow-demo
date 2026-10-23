@@ -92,9 +92,12 @@ def _load_yaml():
 
 yaml = _load_yaml()
 
+import curriculum  # noqa: E402 — needs the yaml `_load_yaml` just made importable
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MASTERY = REPO_ROOT / "docs" / "foundations" / "dsa" / "mastery"
 TECHNIQUES_YML = MASTERY / "techniques.yml"
+CATALOGUE_YML = REPO_ROOT / "curriculum" / "dsa" / "techniques.yml"
 TRACKER_MD = MASTERY / "dsa_progress.md"
 REPORT_MD = MASTERY / "technique_coverage.md"
 CSE_CONFIG_YML = REPO_ROOT / "cse.config.yml"
@@ -620,7 +623,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    config = yaml.safe_load(TECHNIQUES_YML.read_text(encoding="utf-8"))
+    config = curriculum.load_techniques(CATALOGUE_YML, TECHNIQUES_YML)
     rows = parse_tracker(TRACKER_MD)
     threshold_config = load_coverage_threshold_config()
     resolved, claimed = resolve(config, rows, threshold_config)

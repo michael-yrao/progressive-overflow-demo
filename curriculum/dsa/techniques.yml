@@ -1,0 +1,1333 @@
+# Canonical DSA technique catalogue.
+#
+# ENGINE-OWNED: this file ships with cse-coach and reaches a learner through ENGINE_PATHS'
+# `curriculum/**/*.yml`, so a learner never edits it. The LEARNER OVERLAY at
+# docs/foundations/dsa/mastery/techniques.yml holds everything personal and is merged over this
+# file by `scripts/curriculum.py` `load_techniques` (see "Overlay" below).
+#
+# The tracker (dsa_progress.md) is keyed by PROBLEM. This file is keyed by TECHNIQUE,
+# and `scripts/technique_coverage.py` joins the two to produce technique_coverage.md.
+#
+# Schema
+# ------
+#   name          canonical technique name. This is the vocabulary — keep it stable;
+#                 everything downstream keys off it.
+#   family        grouping for the report, roughly the dsa/leetcode/<folder> pattern.
+#   doc           the /learn cheat-sheet's join key (Sep 23, 2026 — see
+#                 docs/cse-coach/learn_cheatsheet_plan.md): the technique doc's filename
+#                 stem under docs/foundations/dsa/patterns/techniques/ (underscores, e.g.
+#                 `doc: two_pointer`). scripts/build_cheatsheets.py reads a doc's family/
+#                 tier by joining on this key and raises a hard BuildError if zero or more
+#                 than one entry in this file carries a given `doc:` — a vocabulary bug,
+#                 not a content gap. Exactly one entry per technique doc (18 docs today);
+#                 not every entry needs one (sub-variant entries like "Binary Search (min
+#                 boundary)" don't — the doc is joined once, from its single best-matching
+#                 entry).
+#   min_problems  OPTIONAL manual override of the coverage bar's computed floor (decision
+#                 `coverage-threshold-formula-sep27`). Without it, `technique_coverage.py`
+#                 sizes the floor off this entry's own declared problem count, per
+#                 `cse.config.yml`'s `coverage_threshold` (plan_share/floor_min/floor_max);
+#                 a technique's still-🔴/🟡 problems are always added on top of the floor,
+#                 override or not. Set this only when the formula's floor doesn't fit a
+#                 technique's actual shape (e.g. it is genuinely problem-specific, like
+#                 Dutch National Flag, or the learner wants more/less drilling than the
+#                 formula gives it).
+#   tier          curriculum tier, for the HONEST denominator (Sep 21, 2026): "core"
+#                 (already-started NC150/pattern-doc techniques — the implicit default
+#                 when a technique carries no `tier:` key), "dp" (the DP framework lenses —
+#                 knapsack, interval DP, LIS, LCS, space compression — plus core 1D/2D DP),
+#                 "tier1" (Knowledge Expansion Queue, ABOVE the interview-ROI line — still
+#                 shows up in hard interviews), "tier2"/"tier3" (BELOW the line —
+#                 competitive-programming horizon only). See study_guide.md's
+#                 "Interview-ROI Line". A `tier` never changes a gap check — `is_started`
+#                 already gates every check off techniques with zero `problems`. Tiering
+#                 only lets the dashboard show breadth as "N practiced · N above the line ·
+#                 M below" instead of one flat fraction that reads misleadingly high OR low
+#                 either way.
+#   builds_on     optional list of technique `name`s this technique PRESUPPOSES (Sep 26,
+#                 2026 — the site's skill tree). Each name must already exist as a `name:`
+#                 in this file; no self-reference; the graph must stay ACYCLIC (checked by
+#                 scripts/test_gamify.py's PayloadTests against the live file, not just the
+#                 authored list here). A technique with no `builds_on` is a ROOT of the
+#                 tree. Consumed by scripts/gamify.py's `enrich_techniques()` -> `buildsOn`
+#                 in progress.json/-summary.json.
+#   variants      alternative METHODS for the same technique, when exercising both is
+#                 worth an interview rep. A variant with zero problems is a gap.
+#                 The learner overlay's variant `queued: <trigger>` marks one already
+#                 sitting in the Waiting Room or Expansion Queue, so a known gap is not
+#                 re-reported as a new finding. Trigger vocabulary matches dsa_progress.md:
+#                 graduates:<n>, rated:<n>, surplus>=<n>, phase:<Name>, combined with +.
+#   problems      list of {number, method?, variant?, title, url, difficulty}
+#                   number      LeetCode number — the join key, same as the tracker
+#                   method      match ONLY the tracker row whose title parenthetical equals
+#                               this. Required for problems carrying several rows (200 has
+#                               DFS + BFS, 323 has DFS + BFS + Union-Find). Omit to match
+#                               every row for that number.
+#                   variant     which declared variant this row credits. Defaults to
+#                               `method` — set it explicitly when the row has no
+#                               parenthetical but the method is known (269 is Kahn's).
+#                   title       the problem's title, so a planned problem with no Waiting
+#                   url         Room row and no roadmap.yml row still shows a name, a link
+#                   difficulty  and a difficulty on the dashboard, for every learner.
+#                               Easy / Medium / Hard. Taken from the practice spec.
+#
+# Overlay
+# -------
+# The learner overlay (docs/foundations/dsa/mastery/techniques.yml) carries what is personal:
+#   - `queued`, `planned`, `review` on a `problems:` spec, matched to a spec here by
+#     (number, method) and merged into it:
+#       queued   <trigger> — declared, no tracker row yet, waiting on this trigger. Reported
+#                in the Gaps cell and the Action list rather than silently falling into "not
+#                reached yet". OPTIONAL on an untracked spec: a spec with no tracker row and
+#                no `queued` key is still counted in the site's `planned` via gamify.py's
+#                `planned_for()`, with `trigger: null`.
+#       planned  false = declared for credit if it ever earns a tracker row, but NOT part of
+#                the plan: excluded from the dashboard's planned list and from plannedTotal.
+#                Use for a recognition probe. When a number has several specs in one entry,
+#                it is excluded only when EVERY untracked spec for that number carries
+#                `planned: false`.
+#       review   true = the method here is an ASSUMPTION, because the tracker row carries no
+#                parenthetical. Confirm, add the parenthetical to the tracker, then drop it.
+#   - `queued` on a variant, matched by `name`.
+#   - the learner's own custom-problem specs (numbers 9001-9999), appended after this
+#     file's specs for that technique.
+#   - learner-local techniques whose `name` this file lacks, appended after all entries here.
+# Any other key on an overlay entry for a name in this file is ignored; this file owns family,
+# tier, doc, builds_on and min_problems.
+#
+# Adding a solved problem here is not optional bookkeeping: the report lists every
+# unmapped tracker row, so anything left out shows up as a gap in the vocabulary itself.
+
+version: 1
+
+
+techniques:
+  # ── Arrays & hashing ────────────────────────────────────────────────────────
+  - name: Hash Map Lookup
+    family: arrays_and_hash
+    problems:
+      - {number: 1, title: Two Sum, url: "https://leetcode.com/problems/two-sum/", difficulty: Easy}
+      - {number: 219, title: Contains Duplicate II, url: "https://leetcode.com/problems/contains-duplicate-ii/", difficulty: Easy}
+
+  - name: Hash Set Membership
+    family: arrays_and_hash
+    builds_on: ["Hash Map Lookup"]
+    problems:
+      - {number: 217, title: Contains Duplicate, url: "https://leetcode.com/problems/contains-duplicate/", difficulty: Easy}
+      - {number: 36, title: Valid Sudoku, url: "https://leetcode.com/problems/valid-sudoku/", difficulty: Medium}
+      - {number: 128, title: Longest Consecutive Sequence, url: "https://leetcode.com/problems/longest-consecutive-sequence/", difficulty: Medium}
+
+  - name: Frequency Counting
+    family: arrays_and_hash
+    builds_on: ["Hash Map Lookup"]
+    problems:
+      - {number: 242, title: Valid Anagram, url: "https://leetcode.com/problems/valid-anagram/", difficulty: Easy}
+      - {number: 49, title: Group Anagrams, url: "https://leetcode.com/problems/group-anagrams/", difficulty: Medium}
+
+  - name: Prefix/Suffix Products
+    family: arrays_and_hash
+    builds_on: ["Array/String Fundamentals"]
+    problems:
+      - {number: 238, title: Product of Array Except Self, url: "https://leetcode.com/problems/product-of-array-except-self/", difficulty: Medium}
+
+  - name: Boyer-Moore Voting
+    family: arrays_and_hash
+    builds_on: ["Frequency Counting"]
+    problems:
+      - {number: 169, title: Majority Element, url: "https://leetcode.com/problems/majority-element/", difficulty: Easy}
+      - {number: 229, title: Majority Element II, url: "https://leetcode.com/problems/majority-element-ii/", difficulty: Medium}
+
+  - name: Length-Prefix Encoding
+    family: arrays_and_hash
+    builds_on: ["Array/String Fundamentals"]
+    problems:
+      - {number: 271, title: Encode and Decode Strings, url: "https://leetcode.com/problems/encode-and-decode-strings/", difficulty: Medium}
+
+  - name: In-Place Array Rotation
+    family: arrays_and_hash
+    builds_on: ["Array/String Fundamentals"]
+    problems:
+      - {number: 189, title: Rotate Array, url: "https://leetcode.com/problems/rotate-array/", difficulty: Medium}
+
+  - name: Array/String Fundamentals
+    family: arrays_and_hash
+    problems:
+      - {number: 1929, title: Concatenation of Array, url: "https://leetcode.com/problems/concatenation-of-array/", difficulty: Easy}
+      - {number: 66, title: Plus One, url: "https://leetcode.com/problems/plus-one/", difficulty: Easy}
+      - {number: 14, title: Longest Common Prefix, url: "https://leetcode.com/problems/longest-common-prefix/", difficulty: Easy}
+
+  # ── Two pointers ────────────────────────────────────────────────────────────
+  - name: Two Pointers (converging)
+    family: two_pointers
+    builds_on: ["Array/String Fundamentals"]
+    doc: two_pointer
+    problems:
+      - {number: 125, title: Valid Palindrome, url: "https://leetcode.com/problems/valid-palindrome/", difficulty: Easy}
+      - {number: 344, title: Reverse String, url: "https://leetcode.com/problems/reverse-string/", difficulty: Easy}
+      - {number: 680, title: Valid Palindrome II, url: "https://leetcode.com/problems/valid-palindrome-ii/", difficulty: Easy}
+      - {number: 167, title: Two Sum II - Input Array Is Sorted, url: "https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/", difficulty: Medium}
+      - {number: 15, title: "3Sum", url: "https://leetcode.com/problems/3sum/", difficulty: Medium}
+      - {number: 11, title: Container With Most Water, url: "https://leetcode.com/problems/container-with-most-water/", difficulty: Medium}
+      - {number: 88, title: Merge Sorted Array, url: "https://leetcode.com/problems/merge-sorted-array/", difficulty: Easy}
+      - {number: 1768, title: Merge Strings Alternately, url: "https://leetcode.com/problems/merge-strings-alternately/", difficulty: Easy}
+
+  - name: Fast/Slow In-Place Write
+    family: two_pointers
+    builds_on: ["Two Pointers (converging)"]
+    problems:
+      - {number: 26, title: Remove Duplicates from Sorted Array, url: "https://leetcode.com/problems/remove-duplicates-from-sorted-array/", difficulty: Easy}
+      - {number: 80, title: Remove Duplicates from Sorted Array II, url: "https://leetcode.com/problems/remove-duplicates-from-sorted-array-ii/", difficulty: Medium}
+      - {number: 27, title: Remove Element, url: "https://leetcode.com/problems/remove-element/", difficulty: Easy}
+      - {number: 283, title: Move Zeroes, url: "https://leetcode.com/problems/move-zeroes/", difficulty: Easy}
+
+  - name: Dutch National Flag
+    family: two_pointers
+    builds_on: ["Fast/Slow In-Place Write"]
+    problems:
+      - {number: 75, method: Dutch Flag, title: Sort Colors, url: "https://leetcode.com/problems/sort-colors/", difficulty: Medium}
+
+  - name: Prefix/Suffix Max
+    family: two_pointers
+    builds_on: ["Prefix/Suffix Products"]
+    variants:
+      - {name: Array}
+      - {name: Two Pointer}
+    problems:
+      - {number: 42, method: Array, title: Trapping Rain Water, url: "https://leetcode.com/problems/trapping-rain-water/", difficulty: Hard}
+
+  # ── Sliding window ──────────────────────────────────────────────────────────
+  - name: Sliding Window
+    family: sliding_window
+    builds_on: ["Two Pointers (converging)", "Frequency Counting"]
+    doc: sliding_window
+    problems:
+      - {number: 3, title: Longest Substring Without Repeating Characters, url: "https://leetcode.com/problems/longest-substring-without-repeating-characters/", difficulty: Medium}
+      - {number: 424, title: Longest Repeating Character Replacement, url: "https://leetcode.com/problems/longest-repeating-character-replacement/", difficulty: Medium}
+      - {number: 567, title: Permutation in String, url: "https://leetcode.com/problems/permutation-in-string/", difficulty: Medium}
+      - {number: 121, title: Best Time to Buy and Sell Stock, url: "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/", difficulty: Easy}
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) —
+      # roadmap.yml. The file itself is parked in `discovery_skip` (see cse.config.yml) —
+      # that governs weekly-build discovery, not this vocabulary declaration.
+      - {number: 76, title: Minimum Window Substring, url: "https://leetcode.com/problems/minimum-window-substring/", difficulty: Hard}
+
+  - name: Greedy (single pass)
+    family: greedy
+    builds_on: ["Array/String Fundamentals"]
+    problems:
+      - {number: 122, title: Best Time to Buy and Sell Stock II, url: "https://leetcode.com/problems/best-time-to-buy-and-sell-stock-ii/", difficulty: Medium}
+      - {number: 55, title: Jump Game, url: "https://leetcode.com/problems/jump-game/", difficulty: Medium}   # reachability frontier: track furthest reach in one pass (Sep 5, 2026)
+      - {number: 45, title: Jump Game II, url: "https://leetcode.com/problems/jump-game-ii/", difficulty: Medium}   # min-jumps via BFS-layer frontier ([prev_end+1, farthest]) (Sep 8, 2026)
+      - {number: 763, title: Partition Labels, url: "https://leetcode.com/problems/partition-labels/", difficulty: Medium}  # partition frontier: extend to max last-index of chars seen, cut at i==end (Sep 9, 2026)
+      - {number: 134, title: Gas Station, url: "https://leetcode.com/problems/gas-station/", difficulty: Medium}  # gas station: running-tank reset (Kadane-shaped), start=i+1 on negative + total>=0 gate (Sep 9, 2026)
+      - {number: 846, title: Hand of Straights, url: "https://leetcode.com/problems/hand-of-straights/", difficulty: Medium}  # hand of straights: min-anchor + count-map consume (smallest must start a run); O(1) lookup kills the O(n^2) (Sep 11, 2026)
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+      - {number: 1899, title: Merge Triplets to Form Target Triplet, url: "https://leetcode.com/problems/merge-triplets-to-form-target-triplet/", difficulty: Medium}
+      - {number: 678, title: Valid Parenthesis String, url: "https://leetcode.com/problems/valid-parenthesis-string/", difficulty: Medium}
+
+  # ── Intervals ───────────────────────────────────────────────────────────────
+  # Phase "Intervals + Greedy" opened Aug 24, 2026.
+  # The flavours are keyed by SORT KEY + ANSWER SHAPE, which is also the recognition
+  # discriminator: sort by START when the answer is a SET OF INTERVALS (union work),
+  # sort by END when the answer is a COUNT OF INTERVALS KEPT (scheduling), sweep-line
+  # when the answer is a COUNT OF SIMULTANEOUS things. Declared Aug 28, 2026 — before
+  # that this technique carried no `variants:` at all, so the report read `3 (56,57,435)`
+  # with the bar met and could not surface a breadth gap even in principle.
+  #
+  # Split into four techniques on Oct 6, 2026 (decision `intervals-split-four-ways-oct6`):
+  # sort key + answer shape is the recognition discriminator, so each flavour gets its own
+  # bar ("there are flavors of intervals"). Only the first entry carries `doc: intervals`
+  # (one entry per technique doc; build_cheatsheets.py joins on it).
+  - name: "Intervals: Merge & Insert (sort by start)"
+    family: intervals
+    builds_on: ["Divide & Conquer / Sorting"]
+    doc: intervals
+    variants:
+      - {name: "Merge overlapping (sort by start)"}
+      - {name: "Insert into sorted (3-phase sweep)"}
+      - {name: "Stab / shrink-the-overlap (min end)"}
+    problems:
+      - {number: 56, variant: "Merge overlapping (sort by start)", title: Merge Intervals, url: "https://leetcode.com/problems/merge-intervals/", difficulty: Medium}
+      - {number: 57, variant: "Insert into sorted (3-phase sweep)", title: Insert Interval, url: "https://leetcode.com/problems/insert-interval/", difficulty: Medium}
+      - {number: 452, variant: "Stab / shrink-the-overlap (min end)", title: Minimum Number of Arrows to Burst Balloons, url: "https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/", difficulty: Medium}
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+      - {number: 252, title: Meeting Rooms, url: "https://leetcode.com/problems/meeting-rooms/", difficulty: Easy}
+
+  - name: "Interval Scheduling (sort by end)"
+    family: intervals
+    builds_on: ["Divide & Conquer / Sorting"]
+    variants:
+      - {name: Keep max non-overlapping / min removals}
+    problems:
+      - {number: 435, variant: Keep max non-overlapping / min removals, title: Non-overlapping Intervals, url: "https://leetcode.com/problems/non-overlapping-intervals/", difficulty: Medium}
+
+  - name: "Sweep Line / Max Concurrent"
+    family: intervals
+    builds_on: ["Divide & Conquer / Sorting"]
+    variants:
+      - {name: Min-heap of ends}
+      - {name: "Event sweep (+1/-1)"}
+    problems:
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+      - {number: 253, title: Meeting Rooms II, url: "https://leetcode.com/problems/meeting-rooms-ii/", difficulty: Medium}
+      - {number: 1851, title: Minimum Interval to Include Each Query, url: "https://leetcode.com/problems/minimum-interval-to-include-each-query/", difficulty: Hard}
+
+  - name: "Interval List Intersection (two pointers)"
+    family: intervals
+    builds_on: ["Divide & Conquer / Sorting"]
+    variants:
+      - {name: "Two sorted lists, advance the earlier end"}
+    problems:
+      - {number: 986, title: Interval List Intersections, url: "https://leetcode.com/problems/interval-list-intersections/", difficulty: Medium}
+
+  # ── Prefix sum ──────────────────────────────────────────────────────────────
+  # Bar raised to the file default of 3 on Aug 16, 2026 (tier A/B of the
+  # coverage review: a LeetCode topic tag exists that can actually source it).
+  - name: Prefix Sum
+    family: prefix_sum
+    builds_on: ["Array/String Fundamentals"]
+    doc: prefix_sum
+    problems:
+      - {number: 560, title: Subarray Sum Equals K, url: "https://leetcode.com/problems/subarray-sum-equals-k/", difficulty: Medium}
+      - {number: 525, title: Contiguous Array, url: "https://leetcode.com/problems/contiguous-array/", difficulty: Medium}  # replaces 53's retired Prefix Sum variant (Oct 12, 2026)
+
+  - name: Kadane
+    family: prefix_sum
+    builds_on: ["Prefix Sum"]
+    problems:
+      - {number: 53, method: Kadane, title: Maximum Subarray, url: "https://leetcode.com/problems/maximum-subarray/", difficulty: Medium}
+
+  # ── Binary search ─────────────────────────────────────────────────────
+  #
+  # ⭐ TWO AXES, and they are independent (restructured Aug 30, 2026 at the learner's call).
+  #
+  #   AXIS 1 — WHAT YOU CONVERGE ON:  exact match | min boundary | max boundary
+  #   AXIS 2 — WHAT YOU SEARCH OVER:  the array | the answer space  ("on answer", below)
+  #
+  # A problem is listed under one entry per axis it exercises, which the schema already
+  # allows (74 was in two entries before this change). Learner, Aug 30: *"keep [on-answer]
+  # as a second axis, harder problems typically have more than just one axis."*
+  #
+  # ⚠️ WHY THIS WAS RESTRUCTURED — the taxonomy was ASYMMETRIC and the asymmetry hid a gap.
+  # `Binary Search (max boundary)` was already keyed on the BIAS and already spanned both
+  # search spaces (74 array-space, 1552 answer-space). The min side was not keyed that way
+  # at all: its answer-space half sat in `Binary Search on Answer` and its array-space half
+  # was never named — it was diffused through a generic seven-problem `Binary Search` bucket
+  # that also held the exact-match problems. So coverage reported "Binary Search: 7 problems,
+  # healthy" and was structurally unable to answer *"how many min-boundary reps do I have?"*
+  # — the identical failure the Aug 17 note below describes, mirrored onto the other bias.
+  #
+  # Found when 153 graduated (Aug 30) and the learner asked for coverage on both boundaries:
+  # *"this is min boundary, max boundary is slightly different … our existing problem set
+  # should have a lot of min boundary binary search since it is the default for most
+  # non-exact match binary searches."* Correct, and none of it was visible from the file.
+  - name: Binary Search (exact match)
+    family: binary_search
+    builds_on: ["Array/String Fundamentals"]
+    doc: binary_search
+    problems:
+      - {number: 704, title: Binary Search, url: "https://leetcode.com/problems/binary-search/", difficulty: Easy}    # the base rung — target present or not
+      - {number: 33, title: Search in Rotated Sorted Array, url: "https://leetcode.com/problems/search-in-rotated-sorted-array/", difficulty: Medium}     # rotated, still an exact-match target search
+
+  # AXIS 1, min bias. The default shape for any non-exact-match search: you want the
+  # SMALLEST value satisfying a monotone predicate, so the answer lives at `r` on exit and
+  # the ordinary `m = (l + r) // 2` is correct. This is the bias the learner reaches for by
+  # default, which is exactly why it needed naming — an unnamed default is unmeasurable.
+  #
+  # ⚠️ 875 and 1011 are ALSO on the second axis (`Binary Search on Answer`). They are
+  # min-boundary practice regardless of searching the answer space rather than an array —
+  # that was the learner's Aug 30 point and it is why they are listed here too.
+  - name: Binary Search (min boundary)
+    family: binary_search
+    builds_on: ["Binary Search (exact match)"]
+    problems:
+      - {number: 153, title: Find Minimum in Rotated Sorted Array, url: "https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/", difficulty: Medium}    # first index of the rotation — Graduated Aug 30
+      - {number: 2300, title: Successful Pairs of Spells and Potions, url: "https://leetcode.com/problems/successful-pairs-of-spells-and-potions/", difficulty: Medium}   # first potion index that clears the threshold
+      - {number: 162, title: Find Peak Element, url: "https://leetcode.com/problems/find-peak-element/", difficulty: Medium}    # first index where the sequence turns — peak
+      - {number: 540, title: Single Element in a Sorted Array, url: "https://leetcode.com/problems/single-element-in-a-sorted-array/", difficulty: Medium}    # first index where pair-start parity breaks (learner's call, Aug 30)
+      - {number: 34, title: Find First and Last Position of Element in Sorted Array, url: "https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/", difficulty: Medium}     # the first-position half — clean cold; last-position half taught (done Sep 6)
+      - {number: 875, title: Koko Eating Bananas, url: "https://leetcode.com/problems/koko-eating-bananas/", difficulty: Medium}    # => also axis 2 — smallest k that works
+      - {number: 1011, title: Capacity To Ship Packages Within D Days, url: "https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/", difficulty: Medium}   # => also axis 2 — smallest capacity that works
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+      - {number: 4, title: Median of Two Sorted Arrays, url: "https://leetcode.com/problems/median-of-two-sorted-arrays/", difficulty: Hard}
+
+  # AXIS 2 — the search space IS the answer, not an array you were handed. Kept as its own
+  # entry rather than folded into the bias entries (learner's call, Aug 30): recognizing that
+  # you must MANUFACTURE the search space is a distinct recognition skill from knowing which
+  # bias to use once you have one. Fold it in and that signal becomes invisible.
+  #
+  # ⚠️ Bar was raised to the file default of 3 on Aug 16, 2026 (tier A/B of the coverage
+  # review: a LeetCode topic tag exists that can actually source it).
+  #
+  # ⚠️ This entry held ONLY the two minimizing problems until Aug 30, which is what made the
+  # axis read as a min-only concern. 1552 is answer-space with the MAX bias and belongs here
+  # as much as 875 does; adding it is what makes this a real second axis rather than a
+  # synonym for "min boundary on answer".
+  - name: Binary Search on Answer
+    family: binary_search
+    builds_on: ["Binary Search (min boundary)"]
+    problems:
+      - {number: 875, title: Koko Eating Bananas, url: "https://leetcode.com/problems/koko-eating-bananas/", difficulty: Medium}    # => also axis 1, min
+      - {number: 1011, title: Capacity To Ship Packages Within D Days, url: "https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/", difficulty: Medium}   # => also axis 1, min
+      - {number: 1552, title: Magnetic Force Between Two Balls, url: "https://leetcode.com/problems/magnetic-force-between-two-balls/", difficulty: Medium}   # => also axis 1, max — maximize the minimum gap
+      - {number: 3620, title: Network Recovery Pathways, url: "https://leetcode.com/problems/network-recovery-pathways/", difficulty: Hard}   # => also axis 1, max — the check is a Dijkstra on cost ≤ k
+
+  # Added Aug 17, 2026. The learner noticed 69 was only their SECOND max-boundary rep and
+  # asked to fill the technique — and nothing in the repo could have surfaced that, because
+  # the vocabulary had no entry for it: 74 sat inside the generic `Binary Search` bucket
+  # among seven problems, and `Binary Search on Answer` holds only minimizing forms.
+  #
+  # What makes it one technique rather than a detail of the others: you are looking for the
+  # LARGEST value that still satisfies a monotone predicate, so the answer lives at `l` on
+  # exit and the midpoint must round UP — `m = (l + r + 1) // 2`. With the ordinary
+  # `(l + r) // 2` the search stalls on a two-element window and loops forever. That single
+  # bias is the whole technique and it is invisible from the minimizing side.
+  #
+  # ⚠️ 69 Sqrt(x) is deliberately NOT listed. It was a 🟢 recognition probe, so by the probe
+  # rule it has no tracker row — declaring it here would report it forever as "not reached".
+  # The consequence is real and worth stating: coverage credits this technique with 74 only,
+  # so the two problems below are what actually close it.
+  - name: Binary Search (max boundary)
+    family: binary_search
+    builds_on: ["Binary Search (exact match)"]
+    problems:
+      - {number: 74, title: Search a 2D Matrix, url: "https://leetcode.com/problems/search-a-2d-matrix/", difficulty: Medium}     # largest row whose first element <= target
+      - {number: 34, title: Find First and Last Position of Element in Sorted Array, url: "https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/", difficulty: Medium}     # both boundaries in one problem — the two biases side by side (done Sep 6, 🟡)
+      - {number: 1552, title: Magnetic Force Between Two Balls, url: "https://leetcode.com/problems/magnetic-force-between-two-balls/", difficulty: Medium}   # ⏳ maximize the minimum gap — => also axis 2 (on answer)
+      - {number: 3620, title: Network Recovery Pathways, url: "https://leetcode.com/problems/network-recovery-pathways/", difficulty: Hard}   # largest score T whose Dijkstra check still says yes — => also axis 2
+
+  # ── Stack ───────────────────────────────────────────────────────────────────
+  - name: Stack (matching)
+    family: stack
+    builds_on: ["Array/String Fundamentals"]
+    problems:
+      - {number: 20, title: Valid Parentheses, url: "https://leetcode.com/problems/valid-parentheses/", difficulty: Easy}
+
+  # The base rung of the expression-evaluator family. RPN is the easy form because
+  # the notation has already resolved precedence and parens — 224/227/772 are the
+  # same stack with those two problems added back, and are the reason this rung
+  # exists at all. Added Aug 11, 2026 via 150.
+  - name: Stack (expression evaluation)
+    family: stack
+    builds_on: ["Stack (matching)"]
+    problems:
+      - {number: 150, title: Evaluate Reverse Polish Notation, url: "https://leetcode.com/problems/evaluate-reverse-polish-notation/", difficulty: Medium}
+      - {number: 394, title: Decode String, url: "https://leetcode.com/problems/decode-string/", difficulty: Medium}
+
+  # Not a monotonic stack and not expression evaluation: the stack stores AUGMENTED
+  # entries so a query that would otherwise be a scan becomes a read of the top. The
+  # transferable idea is "carry the answer-so-far alongside each element", which is what
+  # makes O(1) getMin survive a LIFO pop. Added Aug 12, 2026 via 155.
+  - name: Stack (augmented entries)
+    family: stack
+    builds_on: ["Stack (matching)"]
+    problems:
+      - {number: 155, method: Pair with Min-So-Far, title: Min Stack, url: "https://leetcode.com/problems/min-stack/", difficulty: Medium}
+
+  - name: Monotonic Stack
+    family: stack
+    builds_on: ["Stack (matching)"]
+    doc: monotonic_stack
+    problems:
+      - {number: 496, title: Next Greater Element I, url: "https://leetcode.com/problems/next-greater-element-i/", difficulty: Easy}
+      - {number: 503, title: Next Greater Element II, url: "https://leetcode.com/problems/next-greater-element-ii/", difficulty: Medium}
+      - {number: 901, title: Online Stock Span, url: "https://leetcode.com/problems/online-stock-span/", difficulty: Medium}
+      - {number: 739, title: Daily Temperatures, url: "https://leetcode.com/problems/daily-temperatures/", difficulty: Medium}
+      # 853 taught unrated Aug 15, 2026; rated rep Aug 17 came back 🟢 (provisional,
+      # Streak 0 -> lock-down check Aug 27). ⚠️ It is a green in the coverage count but a
+      # PROVISIONAL one — if the Aug 27 check slips, this technique's green count drops
+      # with it, so do not read it as settled phase-exit evidence until then.
+      - {number: 853, title: Car Fleet, url: "https://leetcode.com/problems/car-fleet/", difficulty: Medium}
+      # 84 done Sep 4, 2026 (unseen, first exposure) — largest-rectangle variant: each pop
+      # finalizes the popped bar's rectangle (height × nearest-smaller-both-sides width).
+      # Fully taught → 🔴 (never-encoded); re-rep Sep 6 measures it. Closes the Stack phase.
+      - {number: 84, title: Largest Rectangle in Histogram, url: "https://leetcode.com/problems/largest-rectangle-in-histogram/", difficulty: Hard}
+      # Waiting Room rows (dsa_progress.md), each keeping its existing trigger verbatim
+      # (`solved:84`): 85 and 1504 (the row-histogram-reduction siblings of 84).
+      - {number: 85, title: Maximal Rectangle, url: "https://leetcode.com/problems/maximal-rectangle/", difficulty: Hard}
+      - {number: 1504, title: Count Submatrices With All Ones, url: "https://leetcode.com/problems/count-submatrices-with-all-ones/", difficulty: Medium}
+
+  # ── Monotonic deque ─────────────────────────────────────────────────────────
+  # Distinct from Monotonic Stack: a deque pops from BOTH ends — the back to keep it
+  # decreasing, the FRONT to evict the max once it slides out of the window. 239 is
+  # the canonical sliding-window-maximum use; niche — only one problem is declared, so
+  # the computed coverage floor is already 1 with no override needed.
+  - name: Monotonic Deque
+    family: stack
+    builds_on: ["Monotonic Stack", "Sliding Window"]
+    problems:
+      - {number: 239, title: Sliding Window Maximum, url: "https://leetcode.com/problems/sliding-window-maximum/", difficulty: Hard}
+
+  # ── Linked list ─────────────────────────────────────────────────────────────
+  # Added for the /learn cheat-sheet contract (Sep 23, 2026) — dummy_node.md carried no
+  # techniques.yml entry (the plan's guess was "linked_list", confirmed here since every
+  # other linked-list technique already uses that family). Credits, by bare number (the
+  # dummy-node pattern applies regardless of which method the row's parenthetical names),
+  # each of 21, 19, 2, 83, 82, 86 that has a dsa_progress.md row: 21 (Merge Two Sorted
+  # Lists), 19 (Remove Nth Node From End), 2 (Add Two Numbers). 83, 82, 86 have no row in
+  # the tracker yet, so they're left out rather than credited speculatively. Each number
+  # credited here is already credited elsewhere too (Linked List Merge, Remove Nth From
+  # End, Linked List Arithmetic) — crediting one number to more than one entry is this
+  # file's normal model (200 credits both DFS and BFS the same way), not double-counting.
+  - name: Dummy Node
+    family: linked_list
+    tier: core
+    doc: dummy_node
+    problems:
+      - {number: 21, title: Merge Two Sorted Lists, url: "https://leetcode.com/problems/merge-two-sorted-lists/", difficulty: Easy}
+      - {number: 19, title: Remove Nth Node From End of List, url: "https://leetcode.com/problems/remove-nth-node-from-end-of-list/", difficulty: Medium}
+      - {number: 2, title: Add Two Numbers, url: "https://leetcode.com/problems/add-two-numbers/", difficulty: Medium}
+
+  - name: Linked List Reversal
+    family: linked_list
+    builds_on: ["Dummy Node"]
+    doc: in_place_reversal
+    variants:
+      - {name: Iterative}
+      - {name: Recursion}
+    problems:
+      - {number: 206, method: Iterative, title: Reverse Linked List, url: "https://leetcode.com/problems/reverse-linked-list/", difficulty: Easy}
+      - {number: 206, method: Recursion, title: Reverse Linked List, url: "https://leetcode.com/problems/reverse-linked-list/", difficulty: Easy}
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) —
+      # roadmap.yml. No `method:` (unlike this entry's existing rows).
+      - {number: 25, title: Reverse Nodes in k-Group, url: "https://leetcode.com/problems/reverse-nodes-in-k-group/", difficulty: Hard}
+
+  - name: Linked List Merge
+    family: linked_list
+    builds_on: ["Dummy Node"]
+    variants:
+      - {name: Iterative}
+      - {name: Recursion}
+    problems:
+      - {number: 21, method: Iterative, title: Merge Two Sorted Lists, url: "https://leetcode.com/problems/merge-two-sorted-lists/", difficulty: Easy}
+      - {number: 21, method: Recursion, title: Merge Two Sorted Lists, url: "https://leetcode.com/problems/merge-two-sorted-lists/", difficulty: Easy}
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) —
+      # roadmap.yml. Also declared under Heap / Priority Queue above (dual credit).
+      - {number: 23, title: Merge k Sorted Lists, url: "https://leetcode.com/problems/merge-k-sorted-lists/", difficulty: Hard}
+
+  - name: Remove Nth From End
+    family: linked_list
+    builds_on: ["Dummy Node", "Two Pointers (converging)"]
+    variants:
+      - {name: Iterative}
+      - {name: Postorder Recursion}
+      - {name: Preorder Recursion}
+    problems:
+      - {number: 19, method: Iterative, title: Remove Nth Node From End of List, url: "https://leetcode.com/problems/remove-nth-node-from-end-of-list/", difficulty: Medium}
+      - {number: 19, method: Postorder Recursion, title: Remove Nth Node From End of List, url: "https://leetcode.com/problems/remove-nth-node-from-end-of-list/", difficulty: Medium}
+
+  # Bar raised to the file default of 3 on Aug 16, 2026 (tier A/B of the
+  # coverage review: a LeetCode topic tag exists that can actually source it).
+  - name: Floyd's Cycle / Midpoint
+    family: linked_list
+    builds_on: ["Dummy Node"]
+    doc: fast_slow_pointer
+    problems:
+      - {number: 141, title: Linked List Cycle, url: "https://leetcode.com/problems/linked-list-cycle/", difficulty: Easy}
+      - {number: 143, title: Reorder List, url: "https://leetcode.com/problems/reorder-list/", difficulty: Medium}
+
+  - name: Linked List Arithmetic
+    family: linked_list
+    builds_on: ["Dummy Node"]
+    problems:
+      - {number: 2, title: Add Two Numbers, url: "https://leetcode.com/problems/add-two-numbers/", difficulty: Medium}
+
+  - name: Deep Copy via Hash Map
+    family: linked_list
+    builds_on: ["Hash Map Lookup", "Dummy Node"]
+    problems:
+      - {number: 138, title: Copy List with Random Pointer, url: "https://leetcode.com/problems/copy-list-with-random-pointer/", difficulty: Medium}
+
+  # Bar raised to the file default of 3 on Aug 16, 2026 (tier A/B of the
+  # coverage review: a LeetCode topic tag exists that can actually source it).
+  - name: HashMap + Doubly Linked List (LRU)
+    family: linked_list
+    builds_on: ["Hash Map Lookup", "Dummy Node"]
+    problems:
+      - {number: 146, title: LRU Cache, url: "https://leetcode.com/problems/lru-cache/", difficulty: Medium}
+      - {number: 1472, title: Design Browser History, url: "https://leetcode.com/problems/design-browser-history/", difficulty: Medium}
+
+  # ── Trees ───────────────────────────────────────────────────────────────────
+  - name: Tree DFS (recursive)
+    family: trees
+    builds_on: ["Recursion"]
+    doc: tree_dfs
+    problems:
+      - {number: 226, title: Invert Binary Tree, url: "https://leetcode.com/problems/invert-binary-tree/", difficulty: Easy}
+      - {number: 104, title: Maximum Depth of Binary Tree, url: "https://leetcode.com/problems/maximum-depth-of-binary-tree/", difficulty: Easy}
+      - {number: 110, title: Balanced Binary Tree, url: "https://leetcode.com/problems/balanced-binary-tree/", difficulty: Easy}
+      - {number: 100, title: Same Tree, url: "https://leetcode.com/problems/same-tree/", difficulty: Easy}
+      - {number: 572, title: Subtree of Another Tree, url: "https://leetcode.com/problems/subtree-of-another-tree/", difficulty: Easy}
+      - {number: 1448, title: Count Good Nodes in Binary Tree, url: "https://leetcode.com/problems/count-good-nodes-in-binary-tree/", difficulty: Medium}
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+      - {number: 297, title: Serialize and Deserialize Binary Tree, url: "https://leetcode.com/problems/serialize-and-deserialize-binary-tree/", difficulty: Hard}
+
+  - name: Tree DFS with Postorder Return
+    family: trees
+    builds_on: ["Tree DFS (recursive)"]
+    problems:
+      - {number: 543, title: Diameter of Binary Tree, url: "https://leetcode.com/problems/diameter-of-binary-tree/", difficulty: Easy}
+      - {number: 124, title: Binary Tree Maximum Path Sum, url: "https://leetcode.com/problems/binary-tree-maximum-path-sum/", difficulty: Hard}
+
+  # Bar raised to the file default of 3 on Aug 16, 2026 (tier A/B of the
+  # coverage review: a LeetCode topic tag exists that can actually source it).
+  - name: Tree BFS (level order)
+    family: trees
+    builds_on: ["Tree DFS (recursive)"]
+    doc: tree_bfs
+    problems:
+      - {number: 102, title: Binary Tree Level Order Traversal, url: "https://leetcode.com/problems/binary-tree-level-order-traversal/", difficulty: Medium}
+      - {number: 199, title: Binary Tree Right Side View, url: "https://leetcode.com/problems/binary-tree-right-side-view/", difficulty: Medium}
+
+  - name: BST Descent
+    family: trees
+    builds_on: ["Tree DFS (recursive)", "Binary Search (exact match)"]
+    problems:
+      - {number: 235, title: Lowest Common Ancestor of a Binary Search Tree, url: "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/", difficulty: Medium}
+      - {number: 98, title: Validate Binary Search Tree, url: "https://leetcode.com/problems/validate-binary-search-tree/", difficulty: Medium}
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+      - {number: 230, title: Kth Smallest Element in a BST, url: "https://leetcode.com/problems/kth-smallest-element-in-a-bst/", difficulty: Medium}
+
+  - name: Tree Construction (Divide & Conquer)
+    family: trees
+    builds_on: ["Tree DFS with Postorder Return", "Divide & Conquer / Sorting"]
+    problems:
+      - {number: 105, title: Construct Binary Tree from Preorder and Inorder Traversal, url: "https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/", difficulty: Medium}
+
+  # ── Tries ───────────────────────────────────────────────────────────────────
+  # Bar raised to the file default of 3 on Aug 16, 2026 (tier A/B of the
+  # coverage review: a LeetCode topic tag exists that can actually source it).
+  - name: Trie
+    family: tries
+    builds_on: ["Tree DFS (recursive)", "Hash Map Lookup"]
+    problems:
+      - {number: 208, method: Prefix Tree, title: "Implement Trie (Prefix Tree)", url: "https://leetcode.com/problems/implement-trie-prefix-tree/", difficulty: Medium}
+      - {number: 211, title: Design Add and Search Words Data Structure, url: "https://leetcode.com/problems/design-add-and-search-words-data-structure/", difficulty: Medium}
+      - {number: 648, title: Replace Words, url: "https://leetcode.com/problems/replace-words/", difficulty: Medium}
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) —
+      # roadmap.yml. Also declared under Backtracking below (dual credit).
+      - {number: 212, title: Word Search II, url: "https://leetcode.com/problems/word-search-ii/", difficulty: Hard}
+      # Waiting Room row (dsa_progress.md), trigger quoted verbatim: `rated:139`.
+      - {number: 472, title: Concatenated Words, url: "https://leetcode.com/problems/concatenated-words/", difficulty: Hard}
+
+  # ── Heap ────────────────────────────────────────────────────────────────────
+  - name: Heap / Priority Queue
+    family: heap
+    builds_on: ["Divide & Conquer / Sorting"]
+    problems:
+      - {number: 703, title: Kth Largest Element in a Stream, url: "https://leetcode.com/problems/kth-largest-element-in-a-stream/", difficulty: Easy}
+      - {number: 1046, title: Last Stone Weight, url: "https://leetcode.com/problems/last-stone-weight/", difficulty: Easy}
+      - {number: 973, title: K Closest Points to Origin, url: "https://leetcode.com/problems/k-closest-points-to-origin/", difficulty: Medium}
+      - {number: 621, title: Task Scheduler, url: "https://leetcode.com/problems/task-scheduler/", difficulty: Medium}
+      - {number: 355, title: Design Twitter, url: "https://leetcode.com/problems/design-twitter/", difficulty: Medium}
+      - {number: 347, title: Top K Frequent Elements, url: "https://leetcode.com/problems/top-k-frequent-elements/", difficulty: Medium}
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — the
+      # roadmap catalog (roadmap.yml). 23 is ALSO declared under Linked List Merge below
+      # (this file's normal dual-credit model, same as 200 crediting both Grid DFS/BFS).
+      - {number: 295, title: Find Median from Data Stream, url: "https://leetcode.com/problems/find-median-from-data-stream/", difficulty: Hard}
+      - {number: 23, title: Merge k Sorted Lists, url: "https://leetcode.com/problems/merge-k-sorted-lists/", difficulty: Hard}
+      # NC150 audit Oct 10, 2026 (decision coverage-recalibration-oct10): Kth Largest Element in an Array was in no phase row and no queue.
+      - {number: 215, title: Kth Largest Element in an Array, url: "https://leetcode.com/problems/kth-largest-element-in-an-array/", difficulty: Medium}
+
+  # ── Graphs ──────────────────────────────────────────────────────────────────
+  - name: Grid DFS
+    family: graphs
+    builds_on: ["Tree DFS (recursive)"]
+    problems:
+      - {number: 200, method: DFS, title: Number of Islands, url: "https://leetcode.com/problems/number-of-islands/", difficulty: Medium}
+      - {number: 695, method: DFS, title: Max Area of Island, url: "https://leetcode.com/problems/max-area-of-island/", difficulty: Medium}
+
+  - name: Grid BFS
+    family: graphs
+    builds_on: ["Tree BFS (level order)"]
+    problems:
+      - {number: 200, method: BFS, title: Number of Islands, url: "https://leetcode.com/problems/number-of-islands/", difficulty: Medium}
+      - {number: 130, method: BFS, title: Surrounded Regions, url: "https://leetcode.com/problems/surrounded-regions/", difficulty: Medium}
+      # ⚠️ 695 is deliberately NOT listed here (resolved Aug 17, 2026 — it was the only
+      # `Method drift` finding in the coverage report). It was solved BFS on Aug 15 and an
+      # entry was added on the dual-credit convention used for 200 and 323 — but that
+      # convention needs TWO TRACKER ROWS, one per method, and 695 has only one, titled
+      # "(DFS)". `_matches` joins on that parenthetical, so the entry could never match and
+      # showed up as drift forever.
+      #
+      # Splitting the row was rejected on the learner's own 417 precedent (Jul 28, 2026):
+      # solved both ways, ONE row kept, and the other method "credited to nothing" —
+      # accepted explicitly, marked DO NOT re-open. The same trade applies, and here it is
+      # even cheaper: Grid BFS is already 🎓 with four problems, so it loses nothing, while
+      # a second row would add permanent review demand AND re-date the DFS row (whose real
+      # last DFS rep is Jun 17, not Aug 15) — moving a due date to fix a bookkeeping label.
+      #
+      # The BFS rep is not lost: it is recorded in recognition_gotchas.md, which is where
+      # the variant choice actually mattered.
+      - {number: 733, method: BFS, title: Flood Fill, url: "https://leetcode.com/problems/flood-fill/", difficulty: Easy}
+      # 417 is BFS-only by decision (Jul 28, 2026) — DO NOT re-open this.
+      # The file also holds an earlier undated DFS attempt, so it HAS been solved both
+      # ways, but the learner reads the problem as naturally BFS (multi-source from each
+      # ocean's border) and wants one row. Consequence, accepted: the DFS attempt is
+      # credited to nothing, and Grid DFS therefore sits at 2/3 thin on 200 + 695 — a
+      # real gap to fill with a third grid-DFS problem, not an accounting artifact to
+      # paper over by re-crediting 417.
+      - {number: 417, method: BFS, title: Pacific Atlantic Water Flow, url: "https://leetcode.com/problems/pacific-atlantic-water-flow/", difficulty: Medium}
+
+  # Bar raised to the file default of 3 on Aug 16, 2026 (tier A/B of the
+  # coverage review: a LeetCode topic tag exists that can actually source it).
+  - name: Multi-source BFS
+    family: graphs
+    builds_on: ["Grid BFS"]
+    problems:
+      - {number: 994, title: Rotting Oranges, url: "https://leetcode.com/problems/rotting-oranges/", difficulty: Medium}
+      # NC150 audit Oct 10, 2026 (decision coverage-recalibration-oct10): Walls and Gates (LC-premium) was in no phase row and no queue.
+      - {number: 286, title: Walls and Gates, url: "https://leetcode.com/problems/walls-and-gates/", difficulty: Medium}
+      # Already a Grind 75 Fill row in dsa_progress.md; declared here so the technique's planned count is honest.
+      - {number: 542, title: "01 Matrix", url: "https://leetcode.com/problems/01-matrix/", difficulty: Medium}
+
+  - name: Graph Clone (DFS + Hash Map)
+    family: graphs
+    builds_on: ["Grid DFS", "Hash Map Lookup"]
+    problems:
+      - {number: 133, title: Clone Graph, url: "https://leetcode.com/problems/clone-graph/", difficulty: Medium}
+
+  - name: Graph Cycle Detection (DFS)
+    family: graphs
+    builds_on: ["Grid DFS"]
+    problems:
+      - {number: 261, method: DFS, title: Graph Valid Tree, url: "https://leetcode.com/problems/graph-valid-tree/", difficulty: Medium}
+      # Dual credit with Topological Sort (802 stays declared there with no method). method: DFS, so it
+      # credits this technique only if the tracker row's parenthetical reads DFS (3-colour cycle detection
+      # is 802's natural solution; a Kahn's solve credits Topo only). Decision coverage-recalibration-oct10.
+      - {number: 802, method: DFS, title: Find Eventual Safe States, url: "https://leetcode.com/problems/find-eventual-safe-states/", difficulty: Medium}
+
+  # Distinct from the graph flavour above: there is no adjacency list and no
+  # explicit graph. A function maps each value to exactly one successor, so the
+  # walk is a rho shape (tail into a loop) and the only question is whether the
+  # loop contains the target. Added Aug 11, 2026 via probe #2.
+  - name: Cycle Detection in an Iterated Sequence
+    family: graphs
+    builds_on: ["Floyd's Cycle / Midpoint", "Hash Set Membership"]
+    variants:
+      - {name: Seen-Set}
+      # GATE RELAXED Aug 23, 2026 (decisions.yml sibling-gate-yellow-not-green): the `green:202`
+      # hold was stricter than the standard 🟡+ consolidation gate. For a THIN technique a second
+      # surface form is another path to the first 🟢 AND trains transfer, so waiting on green:base
+      # can deadlock a technique stuck at 🟡. Now gated on the standard 🟡+, which 202 already is.
+      # (Floyd Fast/Slow is a variant ON 202, so it rides 202's own next rep rather than a new
+      # problem.) The retained guard: a HEAVILY coach-guided 🟡 counts as 🔴 -> convert first.
+      - {name: Floyd Fast/Slow}
+    problems:
+      - {number: 202, method: Seen-Set, title: Happy Number, url: "https://leetcode.com/problems/happy-number/", difficulty: Easy}
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+      - {number: 287, title: Find the Duplicate Number, url: "https://leetcode.com/problems/find-the-duplicate-number/", difficulty: Medium}
+
+  - name: Connected Components
+    family: graphs
+    builds_on: ["Grid DFS"]
+    variants:
+      - {name: DFS}
+      - {name: BFS}
+      - {name: Union-Find}
+    problems:
+      - {number: 323, method: DFS, title: Number of Connected Components in an Undirected Graph, url: "https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/", difficulty: Medium}
+      - {number: 323, method: BFS, title: Number of Connected Components in an Undirected Graph, url: "https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/", difficulty: Medium}
+      - {number: 323, method: Union-Find, title: Number of Connected Components in an Undirected Graph, url: "https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/", difficulty: Medium}
+      - {number: 547, title: Number of Provinces, url: "https://leetcode.com/problems/number-of-provinces/", difficulty: Medium}  # Number of Provinces (Union-Find) — 🎯 Probe #7, adjacency matrix (Sep 11, 2026); row dropped Sep 16 (dsa/probes/README.md)
+
+  - name: Union-Find
+    family: graphs
+    builds_on: ["Connected Components"]
+    doc: union_find
+    problems:
+      - {number: 130, method: Union-Find, title: Surrounded Regions, url: "https://leetcode.com/problems/surrounded-regions/", difficulty: Medium}
+      - {number: 261, method: Union-Find, title: Graph Valid Tree, url: "https://leetcode.com/problems/graph-valid-tree/", difficulty: Medium}
+      - {number: 684, method: Union-Find, title: Redundant Connection, url: "https://leetcode.com/problems/redundant-connection/", difficulty: Medium}
+      - {number: 721, method: Union-Find, title: Accounts Merge, url: "https://leetcode.com/problems/accounts-merge/", difficulty: Medium}
+      - {number: 1202, method: Union-Find, title: Smallest String With Swaps, url: "https://leetcode.com/problems/smallest-string-with-swaps/", difficulty: Medium}
+
+  - name: Topological Sort
+    family: graphs
+    builds_on: ["Graph Cycle Detection (DFS)", "Grid BFS"]
+    doc: topological_sort
+    variants:
+      - {name: "Kahn's (BFS)"}
+      - {name: DFS postorder}
+    problems:
+      - {number: 207, variant: "Kahn's (BFS)", title: Course Schedule, url: "https://leetcode.com/problems/course-schedule/", difficulty: Medium}
+      - {number: 210, variant: "Kahn's (BFS)", title: Course Schedule II, url: "https://leetcode.com/problems/course-schedule-ii/", difficulty: Medium}
+      - {number: 269, variant: "Kahn's (BFS)", title: Alien Dictionary, url: "https://leetcode.com/problems/alien-dictionary/", difficulty: Hard}
+      # Waiting Room rows (dsa_progress.md), each keeping its existing trigger verbatim
+      # (`surplus>=1`): 802 (topo consolidation rep #4) and 2115 (rep #5).
+      - {number: 802, title: Find Eventual Safe States, url: "https://leetcode.com/problems/find-eventual-safe-states/", difficulty: Medium}
+      - {number: 2115, title: Find All Possible Recipes from Given Supplies, url: "https://leetcode.com/problems/find-all-possible-recipes-from-given-supplies/", difficulty: Medium}
+
+  - name: BFS on Implicit Graph
+    family: graphs
+    builds_on: ["Grid BFS"]
+    problems:
+      - {number: 127, method: BFS, title: Word Ladder, url: "https://leetcode.com/problems/word-ladder/", difficulty: Hard}
+      # Waiting Room rows (dsa_progress.md), each keeping its existing trigger verbatim
+      # (`solved:127`): 815 (Bus Routes) and 1197 (Minimum Knight Moves, HelloInterview
+      # premium link).
+      - {number: 815, title: Bus Routes, url: "https://leetcode.com/problems/bus-routes/", difficulty: Hard}
+      - {number: 1197, title: Minimum Knight Moves, url: "https://leetcode.com/problems/minimum-knight-moves/", difficulty: Medium}
+
+  # ── Advanced graphs ─────────────────────────────────────────────────────────
+  - name: Dijkstra
+    family: advanced_graphs
+    builds_on: ["Heap / Priority Queue", "Grid BFS"]
+    variants:
+      - {name: "Min-over-max (minimize the maximum edge)"}
+      - {name: "Max-min bottleneck (maximize the minimum edge)"}
+      - {name: "0/1 edge weights (0-1 BFS vs Dijkstra)"}
+      - {name: "Multiplicative relaxation (maximize the product)"}
+    problems:
+      - {number: 743, method: "Dijkstra — min-heap", title: Network Delay Time, url: "https://leetcode.com/problems/network-delay-time/", difficulty: Medium}
+      - {number: 778, method: Dijkstra / Min-Heap, title: Swim in Rising Water, url: "https://leetcode.com/problems/swim-in-rising-water/", difficulty: Hard}
+      - {number: 1631, method: Dijkstra, variant: "Min-over-max (minimize the maximum edge)", title: Path With Minimum Effort, url: "https://leetcode.com/problems/path-with-minimum-effort/", difficulty: Medium}
+      - {number: 2812, method: Dijkstra, variant: "Max-min bottleneck (maximize the minimum edge)", title: Find the Safest Path in a Grid, url: "https://leetcode.com/problems/find-the-safest-path-in-a-grid/", difficulty: Medium}
+      - {number: 1102, method: Dijkstra, title: Path With Maximum Minimum Value, url: "https://leetcode.com/problems/path-with-maximum-minimum-value/", difficulty: Medium}  # LeetCode-premium, restored Oct 4, 2026 under problem-link-order-oct04, practiced on progressiveoverflow, spec pending
+      - {number: 3650, method: Dijkstra, title: Minimum Cost Path with Edge Reversals, url: "https://leetcode.com/problems/minimum-cost-path-with-edge-reversals/", difficulty: Medium}
+      - {number: 1368, method: Dijkstra, variant: "0/1 edge weights (0-1 BFS vs Dijkstra)", title: Minimum Cost to Make at Least One Valid Path in a Grid, url: "https://leetcode.com/problems/minimum-cost-to-make-at-least-one-valid-path-in-a-grid/", difficulty: Hard}
+      - {number: 1514, method: Dijkstra, variant: "Multiplicative relaxation (maximize the product)", title: Path with Maximum Probability, url: "https://leetcode.com/problems/path-with-maximum-probability/", difficulty: Medium}
+      # 3620 rated 🔴 Oct 4, 2026: the max-min score is NOT found by a max-min relaxation here — a
+      # budget on total cost sits on top, so Dijkstra (on cost) is the yes/no check inside a
+      # max-boundary binary search on the score. Credited there too, not to the Max-min variant.
+      - {number: 3620, method: Dijkstra, title: Network Recovery Pathways, url: "https://leetcode.com/problems/network-recovery-pathways/", difficulty: Hard}
+
+  # Split from Dijkstra, Oct 4, 2026 (decision `dense-dijkstra-split-oct04`) — learner's call:
+  # "it should have its own section. two sections for dijkstra". Same rule as the Prim's /
+  # Kruskal's split: credited by the implementation you would CHOOSE. Dense = edges allowed up
+  # to ~n², where the O(V²) linear min-scan beats the O(E log V) heap; the code is array-scan
+  # Prim's (1584) with the relax key changed from the bare edge to dist[u] + w.
+  - name: Dense Dijkstra
+    family: advanced_graphs
+    builds_on: ["Dijkstra"]
+    problems:
+      - {number: 743, method: "Dijkstra — array-scan", title: Network Delay Time, url: "https://leetcode.com/problems/network-delay-time/", difficulty: Medium}
+      # The set, Oct 4, 2026 — learner's call: 4–5 problems, seated in the
+      # Bit-Math phase so it takes no focus off Backtracking/DP. Company pull first
+      # (`pull_interview.py --company Google,Amazon,Meta,Microsoft,Apple --technique "Shortest
+      # Path" --no-gate`): 1976 (n ≤ 200, roads ≤ n(n−1)/2; Amazon·Google·Meta·Microsoft) and 2699
+      # (n ≤ 100, edges ≤ n(n−1)/2). The pull had no third dense problem, so 2662 is hand-picked
+      # (a complete graph over ≤ 402 points). 2642 (n ≤ 100) was declined so it stays in the
+      # Floyd-Warshall queue.
+      - {number: 1976, title: Number of Ways to Arrive at Destination, url: "https://leetcode.com/problems/number-of-ways-to-arrive-at-destination/", difficulty: Medium}
+      - {number: 2662, title: Minimum Cost of a Path With Special Roads, url: "https://leetcode.com/problems/minimum-cost-of-a-path-with-special-roads/", difficulty: Medium}
+      - {number: 2699, title: Modify Graph Edge Weights, url: "https://leetcode.com/problems/modify-graph-edge-weights/", difficulty: Hard}
+
+  - name: Bellman-Ford
+    family: advanced_graphs
+    builds_on: ["Dijkstra"]
+    variants:
+      - {name: Standard}
+      - {name: Contrast rep on 743}
+      - {name: "Negative edges (SSSP, -Infinity propagation)"}
+      - {name: "Negative-cycle detection (arbitrage / log-transform)"}
+    problems:
+      - {number: 787, method: Bellman-Ford, variant: Standard, title: Cheapest Flights Within K Stops, url: "https://leetcode.com/problems/cheapest-flights-within-k-stops/", difficulty: Medium}
+
+  # min_problems dropped Aug 15, 2026 — no override; the coverage floor is the formula's
+  # computed value (see cse.config.yml's coverage_threshold, decision
+  # `coverage-threshold-formula-sep27`).
+  # Learner: "I want more practice with floyd warshall… this applies for all the harder
+  # algorithms, we should have more than just one problem tackling it."
+  #   queued: 2642 Design Graph With Shortest Path Calculator (Hard) — F-W under edge insertion.
+  # 1462 done Aug 25, 2026 — F-W as a PATTERN (boolean transitive closure), came back 🟡 (recognition
+  # miss: opened on Union-Find; execution clean). Gives the technique a 2nd surface form.
+  - name: Floyd-Warshall (all-pairs shortest path)
+    family: advanced_graphs
+    builds_on: ["Dijkstra"]
+    doc: floyd_warshall
+    problems:
+      - {number: 1334, method: Floyd-Warshall, title: Find the City With the Smallest Number of Neighbors at a Threshold Distance, url: "https://leetcode.com/problems/find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance/", difficulty: Medium}
+      - {number: 1462, method: Floyd-Warshall / Transitive Closure, title: Course Schedule IV, url: "https://leetcode.com/problems/course-schedule-iv/", difficulty: Medium}
+      - {number: 399, method: Floyd-Warshall, title: Evaluate Division, url: "https://leetcode.com/problems/evaluate-division/", difficulty: Medium}
+
+  # Learner self-reported 50:50 on execution (Aug 15) while recognition is the
+  # strongest call in the ledger. LeetCode has only three Eulerian problems total;
+  # all three are wanted. Oct 10, 2026: min_problems: 3 re-added (decision
+  # `coverage-recalibration-oct10`) — the learner wants all three, and 332 took 6 reps to its first 🟢.
+  #   queued: 2097 Valid Arrangement of Pairs (Hard) — purest Hierholzer, start node
+  #           must be derived from out-in degree; 332 hands the start over for free.
+  #   queued: 753 Cracking the Safe (Hard) — de Bruijn via Eulerian circuit.
+  # Both slotted in the Aug 17 week, AFTER the Aug 18 rated rep on 332.
+  # Split Aug 18, 2026 after the learner ran the explicit-stack form for the first time and
+  # pinned the other for a later rep: "we did not do the minHeap method today and I would like
+  # to do it another time."
+  #
+  # ⚠️ TWO ORTHOGONAL AXES — corrected by the learner the same day ("min heap is not
+  # recursive"), after the coach's first draft of this entry fused them into one variant name:
+  #   (a) ORDERING     — min-heap  vs  pre-sorted adjacency list
+  #   (b) CONTROL FLOW — recursion vs  explicit stack
+  # They are independent: min-heap+stack and pre-sorted+recursion are both valid and neither has
+  # been written. The variants below track axis (a), because that is the one the learner named and
+  # the one that changes the code's shape; axis (b) is recorded here rather than as variants so the
+  # coverage report does not multiply into four cells that nothing schedules.
+  #
+  # What has actually been repped on 332: min-heap + recursion (Jul 22 / Jul 28 / Aug 4), and
+  # pre-sorted + explicit stack (Aug 18). Both axes flipped together, so neither crossed
+  # combination is evidence for anything.
+  #
+  # ✅ SPLIT INTO TWO TRACKER ROWS, Aug 18, 2026 — learner's call: "I do want these to be separate
+  # lines, I want to practice both." Follows the 19 Postorder/Iterative and 206 Iterative/Recursion
+  # convention. Verified against the .history stash before splitting: every prior attempt on 332
+  # (Jul 22 / Jul 28 / Aug 4, plus the Aug 14 teach) imports heapq, so the whole pre-Aug-18 history
+  # belongs to the min-heap row and the pre-sorted row starts fresh at Aug 18.
+  - name: Hierholzer (Eulerian path)
+    family: advanced_graphs
+    min_problems: 3
+    builds_on: ["Graph Cycle Detection (DFS)"]
+    variants:
+      - {name: pre-sorted adjacency}
+      - {name: min-heap ordering}
+    problems:
+      - {number: 332, method: min-heap ordering, title: Reconstruct Itinerary, url: "https://leetcode.com/problems/reconstruct-itinerary/", difficulty: Hard}
+      - {number: 332, method: pre-sorted adjacency, title: Reconstruct Itinerary, url: "https://leetcode.com/problems/reconstruct-itinerary/", difficulty: Hard}
+      - {number: 2097, title: Valid Arrangement of Pairs, url: "https://leetcode.com/problems/valid-arrangement-of-pairs/", difficulty: Hard}   # Sep 5, 2026 — purest Hierholzer: no lexical order (so off the ordering-variant axis), start derived from out-in degree
+      - {number: 753, title: Cracking the Safe, url: "https://leetcode.com/problems/cracking-the-safe/", difficulty: Hard}
+
+  # min_problems dropped Aug 15, 2026 — no override; the coverage floor is the formula's
+  # computed value (see cse.config.yml's coverage_threshold, decision
+  # `coverage-threshold-formula-sep27`).
+  #
+  # Split from Kruskal's MST, Sep 26, 2026 (decision `mst-split-sep26`) — learner's call:
+  # Prim's and Kruskal's are two separate techniques, each credited by the problems where
+  # that method is the one you would actually CHOOSE (corrected the same day, decision
+  # `mst-split-correction-sep26`): DENSE input (complete graph, coordinates, a distance
+  # matrix) -> Prim's; an EDGE LIST on a sparse graph -> Kruskal's. 1584 is a complete graph,
+  # so it credits Prim's only — its Aug 19/26 Kruskal implementations were a teach and a
+  # check on the teach, not a method choice, and carry no tracker row.
+  - name: Prim's MST
+    family: advanced_graphs
+    builds_on: ["Heap / Priority Queue", "Dijkstra"]
+    doc: prims_mst
+    problems:
+      - {number: 1584, method: Prim's MST, title: Min Cost to Connect All Points, url: "https://leetcode.com/problems/min-cost-to-connect-all-points/", difficulty: Medium}
+
+  - name: Kruskal's MST
+    family: advanced_graphs
+    builds_on: ["Union-Find"]
+    problems:
+      - {number: 1489, method: Kruskal, title: Find Critical and Pseudo-Critical Edges in Minimum Spanning Tree, url: "https://leetcode.com/problems/find-critical-and-pseudo-critical-edges-in-minimum-spanning-tree/", difficulty: Hard}
+      - {number: 1135, method: Kruskal, title: Connecting Cities With Minimum Cost, url: "https://leetcode.com/problems/connecting-cities-with-minimum-cost/", difficulty: Medium}  # LeetCode-premium, restored Oct 4, 2026 under problem-link-order-oct04, practiced on progressiveoverflow, spec pending
+
+  # ── Backtracking ────────────────────────────────────────────────────────────
+  # Added for the /learn cheat-sheet contract (Sep 23, 2026) — backtracking.md carried no
+  # techniques.yml entry at all. Credits 78 (Subsets, active 🟡 row) and 22 (Generate
+  # Parentheses, active 🟢 row) — the two dsa_progress.md rows that exist among the classic
+  # backtracking set (46, 39, 40, 17, 22, 51, 90, 131, 79, 78; 1216 backtracking is
+  # phase-gated Blank, not solved, so it earns no credit). Below its computed coverage
+  # floor (cse.config.yml's coverage_threshold) until more of that set is solved; the
+  # coverage report correctly flags it thin rather than not-started.
+  - name: Backtracking
+    family: backtracking
+    builds_on: ["Recursion"]
+    tier: core
+    doc: backtracking
+    problems:
+      - {number: 78, title: Subsets, url: "https://leetcode.com/problems/subsets/", difficulty: Medium}
+      - {number: 22, title: Generate Parentheses, url: "https://leetcode.com/problems/generate-parentheses/", difficulty: Medium}
+      - {number: 39, title: Combination Sum, url: "https://leetcode.com/problems/combination-sum/", difficulty: Medium}
+      - {number: 46, title: Permutations, url: "https://leetcode.com/problems/permutations/", difficulty: Medium}
+      - {number: 40, title: Combination Sum II, url: "https://leetcode.com/problems/combination-sum-ii/", difficulty: Medium}   # duplicate values, sorted: take/skip skips every copy (Sep 28); pick-next loop skips a value already tried by `prev` (Sep 30, 2026)
+      - {number: 79, title: Word Search, url: "https://leetcode.com/problems/word-search/", difficulty: Medium}   # grid path search: visited is per-path, add before the 4 calls, remove after (Sep 29, 2026)
+      - {number: 131, title: Palindrome Partitioning, url: "https://leetcode.com/problems/palindrome-partitioning/", difficulty: Medium}  # partition a string: path = list of pieces, the loop picks where the next piece ends, palindrome check per piece (Sep 30, 2026)
+      - {number: 90, title: Subsets II, url: "https://leetcode.com/problems/subsets-ii/", difficulty: Medium}   # subsets with duplicate values: take/skip, sort, the exclude branch jumps past every copy; one shared path with append/pop (Oct 1, 2026)
+      - {number: 17, title: Letter Combinations of a Phone Number, url: "https://leetcode.com/problems/letter-combinations-of-a-phone-number/", difficulty: Medium}   # one letter per digit: the loop runs over digits[len(path)]'s letters, so depth picks the digit; empty input returns [] (Oct 7, 2026)
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) —
+      # roadmap.yml. 212 is ALSO declared under Trie above (dual credit).
+      - {number: 51, title: N-Queens, url: "https://leetcode.com/problems/n-queens/", difficulty: Hard}
+      - {number: 212, title: Word Search II, url: "https://leetcode.com/problems/word-search-ii/", difficulty: Hard}
+
+  # ── Recursion ───────────────────────────────────────────────────────────────
+  # Added for the /learn cheat-sheet contract (Sep 23, 2026) — recursion.md carried no
+  # techniques.yml entry at all. Credits every dsa_progress.md row whose title parenthetical
+  # names Recursion: 21 (Merge Two Sorted Lists), 19 (Remove Nth Node From End, Postorder
+  # Recursion), 206 (Reverse Linked List). Each is already credited elsewhere too (Linked
+  # List Merge, Remove Nth From End, Linked List Reversal) — crediting one number to more
+  # than one entry is this file's normal model (200 credits both DFS and BFS the same way),
+  # not double-counting. 19's Preorder Recursion row was parked OUT of the review table on
+  # Jul 9 (three variants were rotating; iterative + postorder stayed active, preorder did
+  # not) and Remove Nth From End above already declares it a `queued` variant rather than a
+  # credited problem — this entry follows that same call and does not credit it either.
+  - name: Recursion
+    family: recursion
+    tier: core
+    doc: recursion
+    problems:
+      - {number: 21, method: Recursion, title: Merge Two Sorted Lists, url: "https://leetcode.com/problems/merge-two-sorted-lists/", difficulty: Easy}
+      - {number: 19, method: Postorder Recursion, title: Remove Nth Node From End of List, url: "https://leetcode.com/problems/remove-nth-node-from-end-of-list/", difficulty: Medium}
+      - {number: 206, method: Recursion, title: Reverse Linked List, url: "https://leetcode.com/problems/reverse-linked-list/", difficulty: Easy}
+
+  # ── Sorting & divide and conquer ────────────────────────────────────────────
+  # Bar raised to the file default of 3 on Aug 16, 2026 (tier A/B of the
+  # coverage review: a LeetCode topic tag exists that can actually source it).
+  - name: Divide & Conquer / Sorting
+    family: sorting
+    builds_on: ["Recursion"]
+    variants:
+      - {name: Merge Sort}
+      - {name: Quick Sort}
+      - {name: Radix Sort}
+      - {name: Counting Sort}
+      - {name: Timsort}
+      - {name: "D&C on 53"}
+    problems:
+      - {number: 912, method: Merge Sort, title: Sort an Array, url: "https://leetcode.com/problems/sort-an-array/", difficulty: Medium}
+
+  # ══════════════════════════════════════════════════════════════════════════════
+  # NOT-STARTED CURRICULUM (Sep 21, 2026) — the honest denominator.
+  #
+  # Every entry below has NO `problems` key on purpose: `is_started` (technique_coverage.py)
+  # is `bool(self.rows)`, so a technique with nothing solved is `is_started: False` and is
+  # excluded from every gap check (no-green / thin / variant) and from the Action List — it
+  # only adds to the total in the header line and gets one row in the Coverage table with
+  # Gaps = `*not started*`. Enumerated FAITHFULLY from docs/foundations/dsa/study_guide.md
+  # (the Framework-lenses bullet + the Tier 1/2/3 Knowledge Expansion Queue lists — nothing
+  # here is invented) — plus, since Sep 26, 2026, the four demand-sourced core families
+  # (strings, math_sim, design, bit_manipulation; decision `company-demand-families-sep26`).
+  # Promote an entry to "started" the normal way: add its first
+  # `problems:` row once a rep is actually seated (see study_guide.md's promotion note).
+  # ══════════════════════════════════════════════════════════════════════════════
+
+  # ── Strings (tier: core) ──
+  # Company-demand pull, Sep 26, 2026 (decision `company-demand-families-sep26`): String
+  # tags land in 22/100 big-tech top-100 problems — the single largest untracked demand
+  # slice. Two not-started core techniques for pure string manipulation, distinct from
+  # the existing arrays_and_hash string reps.
+  - name: String Parsing / Manipulation
+    family: strings
+    tier: core
+    builds_on: ["Array/String Fundamentals"]
+    problems:
+      - {number: 6, title: Zigzag Conversion, url: "https://leetcode.com/problems/zigzag-conversion/", difficulty: Medium}
+
+  - name: String Building & Encoding
+    family: strings
+    tier: core
+    builds_on: ["Length-Prefix Encoding"]
+
+  # ── Math & Simulation (tier: core) ──
+  # Company-demand pull, Sep 26, 2026 (decision `company-demand-families-sep26`): Math
+  # 13/100 + Simulation 3/100 in the big-tech top-100. Also the existing NC150 Dec 7–28
+  # phase (Math & Simulation), not yet started.
+  - name: Math / Number Manipulation
+    family: math_sim
+    tier: core
+    builds_on: ["Array/String Fundamentals"]
+    # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+    problems:
+      - {number: 7, title: Reverse Integer, url: "https://leetcode.com/problems/reverse-integer/", difficulty: Medium}
+      - {number: 50, title: "Pow(x, n)", url: "https://leetcode.com/problems/powx-n/", difficulty: Medium}
+      - {number: 43, title: Multiply Strings, url: "https://leetcode.com/problems/multiply-strings/", difficulty: Medium}
+
+  - name: Simulation / Matrix Walk
+    family: math_sim
+    tier: core
+    builds_on: ["Array/String Fundamentals"]
+    # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+    problems:
+      - {number: 48, title: Rotate Image, url: "https://leetcode.com/problems/rotate-image/", difficulty: Medium}
+      - {number: 54, title: Spiral Matrix, url: "https://leetcode.com/problems/spiral-matrix/", difficulty: Medium}
+      - {number: 73, title: Set Matrix Zeroes, url: "https://leetcode.com/problems/set-matrix-zeroes/", difficulty: Medium}
+
+  # ── Design — composed data structures (tier: core) ──
+  # Company-demand pull, Sep 26, 2026 (decision `company-demand-families-sep26`): Design
+  # 7/100 big-tech (12/40 data-platform, 13/100 supplementary). 146 LRU Cache stays
+  # credited under linked_list (HashMap + Doubly Linked List) — this family is for
+  # hit counter / time-based KV / LFU-style composition, not the LRU rep itself.
+  # Oct 10, 2026: resolved by declaring a third problem (380) instead of an override — the
+  # computed floor for 3 declared is 2 (decision `coverage-recalibration-oct10`).
+  - name: Design (composed data structures)
+    family: design
+    tier: core
+    builds_on: ["Hash Map Lookup", "HashMap + Doubly Linked List (LRU)"]
+    problems:
+      - {number: 981, title: Time Based Key-Value Store, url: "https://leetcode.com/problems/time-based-key-value-store/", difficulty: Medium}
+      # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+      - {number: 2013, title: Detect Squares, url: "https://leetcode.com/problems/detect-squares/", difficulty: Medium}
+      # Already a KEQ Core-Fill row; declared here for the honest planned count (bigtech top-100 #12, freq 81.7 in company_demand.md).
+      - {number: 380, title: "Insert Delete GetRandom O(1)", url: "https://leetcode.com/problems/insert-delete-getrandom-o1/", difficulty: Medium}
+
+  # ── Bit Manipulation (tier: core) ──
+  # Company-demand pull, Sep 26, 2026 (decision `company-demand-families-sep26`): Bit
+  # Manipulation 2/100 big-tech (4/100 fintech, 7/100 supplementary). Also the existing
+  # NC150 Dec 7–28 phase (Bit Manipulation), not yet started.
+  # min_problems raised 2 -> 3 on Sep 27, 2026 (learner's call): six problems are planned
+  # here, so the full bar applies — 2 was set from big-tech demand alone. Later the same
+  # day the explicit override was removed for the coverage-threshold formula's rollout
+  # (decision `coverage-threshold-formula-sep27`) — its computed floor for 6 declared
+  # problems is also 3, so this technique's bar is unchanged.
+  - name: Bit Manipulation
+    family: bit_manipulation
+    tier: core
+    builds_on: ["Array/String Fundamentals"]
+    # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+    problems:
+      - {number: 136, title: Single Number, url: "https://leetcode.com/problems/single-number/", difficulty: Easy}
+      - {number: 191, title: Number of 1 Bits, url: "https://leetcode.com/problems/number-of-1-bits/", difficulty: Easy}
+      - {number: 338, title: Counting Bits, url: "https://leetcode.com/problems/counting-bits/", difficulty: Easy}
+      - {number: 190, title: Reverse Bits, url: "https://leetcode.com/problems/reverse-bits/", difficulty: Easy}
+      - {number: 268, title: Missing Number, url: "https://leetcode.com/problems/missing-number/", difficulty: Easy}
+      - {number: 371, title: Sum of Two Integers, url: "https://leetcode.com/problems/sum-of-two-integers/", difficulty: Medium}
+
+  # ── DP framework lenses + the two core roadmap phases (tier: dp) ────────────────
+  # study_guide.md line 17 ("Framework lenses — knapsack / interval / LIS / space-
+  # compression") + line 269 (2D DP phase names LCS) + the 1D/2D DP roadmap phases
+  # themselves (lines 298/456/461), which are not yet started.
+  # Added for the /learn cheat-sheet contract (Sep 23, 2026) — memoization.md carried no
+  # techniques.yml entry (the plan's guess was "dynamic_programming / dp", confirmed here:
+  # the doc's own seed family/tier are exactly that). problems: [] because its one seed key
+  # problem (680, Valid Palindrome II) is already credited to "Two Pointers (converging)"
+  # above with no memoization-specific tag in dsa_progress.md — and, like every entry in
+  # this not-started block, nothing is credited yet. Accurate, not a gap to fill.
+  # Oct 14, 2026 — memoization.md folded into dynamic_programming.md; the doc key now sits on 1D Dynamic Programming.
+  - name: Memoization
+    family: dynamic_programming
+    builds_on: ["Recursion", "Backtracking"]
+    tier: dp
+    problems: []
+
+  - name: Knapsack
+    family: dynamic_programming
+    builds_on: ["1D Dynamic Programming"]
+    tier: dp
+    # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) —
+    # roadmap.yml. Split across the two DP phases per the roadmap row each problem
+    # actually falls in: 416/322 are 1D-DP-phase Knapsack forms, 518/494 are 2D-DP-phase.
+    problems:
+      - {number: 416, title: Partition Equal Subset Sum, url: "https://leetcode.com/problems/partition-equal-subset-sum/", difficulty: Medium}
+      - {number: 322, title: Coin Change, url: "https://leetcode.com/problems/coin-change/", difficulty: Medium}
+      - {number: 518, title: Coin Change II, url: "https://leetcode.com/problems/coin-change-ii/", difficulty: Medium}
+      - {number: 494, title: Target Sum, url: "https://leetcode.com/problems/target-sum/", difficulty: Medium}
+
+  - name: Interval DP
+    family: dynamic_programming
+    builds_on: ["2D Dynamic Programming"]
+    tier: dp
+    # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+    problems:
+      - {number: 312, title: Burst Balloons, url: "https://leetcode.com/problems/burst-balloons/", difficulty: Hard}
+
+  - name: Longest Increasing Subsequence
+    family: dynamic_programming
+    builds_on: ["1D Dynamic Programming", "Binary Search (min boundary)"]
+    tier: dp
+    # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) —
+    # roadmap.yml (300) plus two Waiting Room new-problem rows (354, 646), each keeping
+    # its existing Waiting Room trigger verbatim.
+    problems:
+      - {number: 300, title: Longest Increasing Subsequence, url: "https://leetcode.com/problems/longest-increasing-subsequence/", difficulty: Medium}
+      - {number: 354, title: Russian Doll Envelopes, url: "https://leetcode.com/problems/russian-doll-envelopes/", difficulty: Hard}
+      - {number: 646, title: Maximum Length of Pair Chain, url: "https://leetcode.com/problems/maximum-length-of-pair-chain/", difficulty: Medium}
+
+  - name: Longest Common Subsequence
+    family: dynamic_programming
+    builds_on: ["2D Dynamic Programming"]
+    tier: dp
+    # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+    problems:
+      - {number: 1143, title: Longest Common Subsequence, url: "https://leetcode.com/problems/longest-common-subsequence/", difficulty: Medium}
+
+  - name: Space Compression
+    family: dynamic_programming
+    builds_on: ["2D Dynamic Programming"]
+    tier: dp
+
+  - name: 1D Dynamic Programming
+    family: dynamic_programming
+    builds_on: ["Memoization"]
+    tier: dp
+    doc: dynamic_programming
+    # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+    problems:
+      - {number: 70, title: Climbing Stairs, url: "https://leetcode.com/problems/climbing-stairs/", difficulty: Easy}   # fixed jumps: ways(i) = ways(i+1) + ways(i+2), land on n → 1, past n → 0; top-down memo (Oct 14, 2026)
+      - {number: 746, title: Min Cost Climbing Stairs, url: "https://leetcode.com/problems/min-cost-climbing-stairs/", difficulty: Easy}
+      - {number: 198, title: House Robber, url: "https://leetcode.com/problems/house-robber/", difficulty: Medium}
+      - {number: 213, title: House Robber II, url: "https://leetcode.com/problems/house-robber-ii/", difficulty: Medium}
+      - {number: 5, title: Longest Palindromic Substring, url: "https://leetcode.com/problems/longest-palindromic-substring/", difficulty: Medium}
+      - {number: 647, title: Palindromic Substrings, url: "https://leetcode.com/problems/palindromic-substrings/", difficulty: Medium}
+      - {number: 91, title: Decode Ways, url: "https://leetcode.com/problems/decode-ways/", difficulty: Medium}
+      - {number: 152, title: Maximum Product Subarray, url: "https://leetcode.com/problems/maximum-product-subarray/", difficulty: Medium}
+      - {number: 139, title: Word Break, url: "https://leetcode.com/problems/word-break/", difficulty: Medium}
+
+  - name: 2D Dynamic Programming
+    family: dynamic_programming
+    builds_on: ["1D Dynamic Programming"]
+    tier: dp
+    # Declared Sep 26, 2026 (decision `mastery-ratio-done-over-planned-sep26`) — roadmap.yml.
+    problems:
+      - {number: 62, title: Unique Paths, url: "https://leetcode.com/problems/unique-paths/", difficulty: Medium}
+      - {number: 309, title: Best Time to Buy and Sell Stock with Cooldown, url: "https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-cooldown/", difficulty: Medium}
+      - {number: 97, title: Interleaving String, url: "https://leetcode.com/problems/interleaving-string/", difficulty: Medium}
+      - {number: 329, title: Longest Increasing Path in a Matrix, url: "https://leetcode.com/problems/longest-increasing-path-in-a-matrix/", difficulty: Hard}
+      - {number: 115, title: Distinct Subsequences, url: "https://leetcode.com/problems/distinct-subsequences/", difficulty: Hard}
+      - {number: 72, title: Edit Distance, url: "https://leetcode.com/problems/edit-distance/", difficulty: Medium}
+      - {number: 10, title: Regular Expression Matching, url: "https://leetcode.com/problems/regular-expression-matching/", difficulty: Hard}
+
+  # ── Tier 1 — Knowledge Expansion Queue, ABOVE the interview-ROI line (tier: tier1) ──
+  # study_guide.md line 17: "Tier 1 advanced ... segment tree, Fenwick, KMP, XOR trie,
+  # Manacher's, matrix expo, Tarjan's, meet-in-the-middle, reservoir sampling, difference
+  # array, number theory. Advanced, but still shows up in *hard* interviews."
+  - name: Segment Tree
+    family: expansion
+    builds_on: ["Tree DFS (recursive)", "Prefix Sum"]
+    tier: tier1
+
+  - name: Fenwick Tree (BIT)
+    family: expansion
+    builds_on: ["Prefix Sum"]
+    tier: tier1
+
+  - name: KMP
+    family: expansion
+    builds_on: ["Array/String Fundamentals"]
+    tier: tier1
+
+  - name: XOR Trie
+    family: expansion
+    builds_on: ["Trie"]
+    tier: tier1
+
+  - name: Manacher's Algorithm
+    family: expansion
+    builds_on: ["Two Pointers (converging)"]
+    tier: tier1
+
+  - name: Matrix Exponentiation
+    family: expansion
+    builds_on: ["2D Dynamic Programming"]
+    tier: tier1
+
+  - name: Tarjan's SCC
+    family: expansion
+    builds_on: ["Graph Cycle Detection (DFS)"]
+    tier: tier1
+
+  - name: Meet-in-the-Middle
+    family: expansion
+    builds_on: ["Backtracking", "Binary Search (exact match)"]
+    tier: tier1
+
+  - name: Reservoir Sampling
+    family: expansion
+    builds_on: ["Array/String Fundamentals"]
+    tier: tier1
+
+  - name: Difference Array
+    family: expansion
+    builds_on: ["Prefix Sum"]
+    tier: tier1
+
+  - name: Number Theory
+    family: expansion
+    tier: tier1
+
+  # ══════════ INTERVIEW-ROI LINE — everything above still pays interview dividends; ══════════
+  # ══════════ everything below is competitive-programming depth only.            ══════════
+
+  # ── Tier 2 — "further horizon", BELOW the line (tier: tier2) ────────────────────
+  # study_guide.md line 20: "sweep line, max-flow, LCA, advanced shortest-path
+  # (bidirectional search / Johnson's), Mo's algorithm, SOS DP, suffix automaton,
+  # Aho-Corasick, persistent structures."
+  - name: Sweep Line
+    family: expansion
+    builds_on: ["Sweep Line / Max Concurrent", "Heap / Priority Queue"]
+    tier: tier2
+
+  - name: Max-Flow
+    family: expansion
+    builds_on: ["Grid BFS"]
+    tier: tier2
+
+  - name: LCA
+    family: expansion
+    builds_on: ["Tree DFS (recursive)"]
+    tier: tier2
+
+  - name: Bidirectional Search / Johnson's
+    family: expansion
+    builds_on: ["Dijkstra", "Bellman-Ford"]
+    tier: tier2
+
+  - name: Mo's Algorithm
+    family: expansion
+    builds_on: ["Prefix Sum", "Divide & Conquer / Sorting"]
+    tier: tier2
+
+  - name: SOS DP
+    family: expansion
+    builds_on: ["Knapsack"]
+    tier: tier2
+
+  - name: Suffix Automaton
+    family: expansion
+    builds_on: ["Trie"]
+    tier: tier2
+
+  - name: Aho-Corasick
+    family: expansion
+    builds_on: ["Trie", "KMP"]
+    tier: tier2
+
+  - name: Persistent Structures
+    family: expansion
+    builds_on: ["Segment Tree"]
+    tier: tier2
+
+  # ── Tier 3 — "competitive / research horizon", BELOW the line (tier: tier3) ─────
+  # study_guide.md line 20: "HLD, centroid decomposition, link-cut trees, suffix
+  # automaton/Eertree, FFT/NTT, MCMF & min-cut modeling, D&C DP / Aliens trick, segment
+  # tree beats, 2-SAT, advanced geometry, Sprague-Grundy." (Suffix Automaton is already
+  # declared once, under Tier 2 above — not duplicated here.)
+  - name: Heavy-Light Decomposition
+    family: expansion
+    builds_on: ["Segment Tree", "LCA"]
+    tier: tier3
+
+  - name: Centroid Decomposition
+    family: expansion
+    builds_on: ["Tree DFS with Postorder Return"]
+    tier: tier3
+
+  - name: Link-Cut Trees
+    family: expansion
+    builds_on: ["Heavy-Light Decomposition"]
+    tier: tier3
+
+  - name: Eertree
+    family: expansion
+    builds_on: ["Manacher's Algorithm", "Trie"]
+    tier: tier3
+
+  - name: FFT/NTT
+    family: expansion
+    builds_on: ["Number Theory", "Divide & Conquer / Sorting"]
+    tier: tier3
+
+  - name: MCMF / Min-Cut Modeling
+    family: expansion
+    builds_on: ["Max-Flow", "Bellman-Ford"]
+    tier: tier3
+
+  - name: D&C DP (Aliens Trick)
+    family: expansion
+    builds_on: ["2D Dynamic Programming", "Divide & Conquer / Sorting"]
+    tier: tier3
+
+  - name: Segment Tree Beats
+    family: expansion
+    builds_on: ["Segment Tree"]
+    tier: tier3
+
+  - name: 2-SAT
+    family: expansion
+    builds_on: ["Tarjan's SCC"]
+    tier: tier3
+
+  - name: Advanced Geometry
+    family: expansion
+    builds_on: ["Sweep Line"]
+    tier: tier3
+
+  - name: Sprague-Grundy
+    family: expansion
+    builds_on: ["Memoization"]
+    tier: tier3

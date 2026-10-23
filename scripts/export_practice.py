@@ -44,6 +44,7 @@ from pathlib import Path
 import _console
 import contract_schema
 import dashboard_indexes
+import effort_budget as eb
 import new_problem
 
 _console.force_utf8()
@@ -128,6 +129,7 @@ EDGE_SOURCE_KEYS = ("edgesArg", "matrixArg", "adjArg")  # exactly one per graph 
 FIGURE_HIGHLIGHT = "expected"
 FIGURE_EDGES_EXPECTED = "expected"
 REQUIRED_SPEC_KEYS = ("number", "title", "url", "entry", "compare", "cases")
+DIFFICULTIES = ("Easy", "Medium", "Hard")
 
 _FILENAME_NUMBER = re.compile(r"^(\d+)_")
 
@@ -525,6 +527,9 @@ def validate_spec(spec: object, filename: str) -> None:
         raise PracticeError(
             f"{filename}: number {spec['number']!r} does not match the filename's "
             f"leading number")
+    if "difficulty" in spec and spec["difficulty"] not in DIFFICULTIES:
+        raise PracticeError(
+            f"{filename}: difficulty {spec['difficulty']!r} is not one of {list(DIFFICULTIES)}")
     if spec.get("statement") is not None:
         _validate_statement_lines(spec["statement"], filename)
     _validate_entry(spec["entry"], filename)
@@ -612,9 +617,17 @@ def build_case(case: dict) -> dict:
     return built
 
 
-def build_problem(spec: dict) -> dict:
+def _difficulty_by_num() -> dict[int, str]:
+    """num -> Easy/Medium/Hard from the tracker; empty when the tracker is unreadable."""
+    try:
+        return {int(r["num"]): r["diff"] for r in eb.parse_rows()}
+    except OSError:
+        return {}
+
+
+def build_problem(spec: dict, difficulty: str | None = None) -> dict:
     """One `problems` entry from a validated spec. Optional fields are left out, never
-    emitted as null, when the spec does not set them."""
+    emitted as null, when the spec does not set them. `difficulty` is always emitted."""
     entry = spec["entry"]
     kind = entry_kind(entry)
     statement = spec.get("statement")
@@ -623,6 +636,7 @@ def build_problem(spec: dict) -> dict:
         "number": spec["number"],
         "title": spec["title"],
         "url": spec["url"],
+        "difficulty": difficulty,
         "statement": None if statement is None else str(statement).rstrip("\n"),
         "stub": render_stub(
             entry["class"], entry.get("encode", entry.get("method", "")),
@@ -643,9 +657,13 @@ def build_problem(spec: dict) -> dict:
     return problem
 
 
-def build_payload(named_specs: list[tuple[str, object]], today: dt.date) -> dict:
+def build_payload(named_specs: list[tuple[str, object]], today: dt.date,
+                  difficulty_by_num: dict[int, str] | None = None) -> dict:
     """The practice.json payload from `(filename, spec)` pairs. Validates every spec and
-    refuses a number two specs share."""
+    refuses a number two specs share. A spec's own `difficulty` wins; `difficulty_by_num`
+    (default: the tracker's) is the fallback."""
+    if difficulty_by_num is None:
+        difficulty_by_num = _difficulty_by_num()
     seen: dict[int, str] = {}
     problems = []
     for filename, spec in named_specs:
@@ -655,7 +673,8 @@ def build_payload(named_specs: list[tuple[str, object]], today: dt.date) -> dict
             raise PracticeError(
                 f"{filename}: number {number} is already used by {seen[number]}")
         seen[number] = filename
-        problems.append(build_problem(spec))
+        problems.append(build_problem(
+            spec, spec.get("difficulty") or difficulty_by_num.get(number)))
     return {
         "schemaVersion": SCHEMA_VERSION,
         "generatedAt": today.isoformat(),

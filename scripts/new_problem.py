@@ -83,7 +83,7 @@ SYNTHETIC_ID_MIN = 9001
 SYNTHETIC_ID_MAX = 9999
 HELLOINTERVIEW_HOST = "https://www.hellointerview.com"
 HELLOINTERVIEW_MAP_PATH = Path("docs/foundations/dsa/mastery/hellointerview.yml")
-NEETCODE_MAP_PATH = Path("docs/foundations/dsa/mastery/neetcode.yml")
+NEETCODE_MAP_PATH = Path("curriculum/dsa/neetcode.yml")
 
 # The caveat appended to the NeetCode mirror URL's NOTE when NeetCode's own list cannot
 # confirm the slug (an unread/unreadable neetcode.yml, and the slug isn't even a known

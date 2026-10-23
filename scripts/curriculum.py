@@ -23,6 +23,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MILESTONE = REPO_ROOT / "curriculum" / "dsa" / "milestone.yml"
+TECHNIQUES_CATALOGUE = REPO_ROOT / "curriculum" / "dsa" / "techniques.yml"
 
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
 
@@ -78,3 +79,53 @@ def catalog_entry(number: int, path: Path = DEFAULT_MILESTONE) -> dict | None:
         return None
     entry = dict(items)
     return {key: entry[key] for key in ("title", "difficulty", "folder")}
+
+
+def _read_techniques(path: Path) -> list[dict]:
+    """A techniques file's entries; an absent or empty file has none."""
+    if not path.is_file():
+        return []
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    entries = data.get("techniques")
+    if entries is None:
+        return []
+    if not isinstance(entries, list):
+        raise ValueError(f"{path}: `techniques:` must be a list")
+    return entries
+
+
+def _problem_key(spec: dict) -> tuple:
+    return (spec.get("number"), spec.get("method"))
+
+
+def _variant_key(spec: dict) -> tuple:
+    return (spec.get("name"),)
+
+
+def _merge_specs(base: list[dict], extra: list[dict], key) -> list[dict]:
+    """`base` specs with each matching `extra` spec merged in; unmatched extras go last."""
+    extra_by_key = {key(spec): spec for spec in extra}
+    merged = [{**spec, **extra_by_key.get(key(spec), {})} for spec in base]
+    base_keys = {key(spec) for spec in base}
+    return merged + [dict(spec) for spec in extra if key(spec) not in base_keys]
+
+
+def _merge_entry(base: dict, overlay: dict) -> dict:
+    """A catalogue entry with the overlay's `problems` and `variants` merged in."""
+    merged = dict(base)
+    for field, key in (("problems", _problem_key), ("variants", _variant_key)):
+        if overlay.get(field):
+            merged[field] = _merge_specs(base.get(field) or [], overlay[field], key)
+    return merged
+
+
+def load_techniques(catalogue: Path, overlay: Path) -> dict:
+    """{"techniques": [...]} — the catalogue's entries in file order with the learner overlay merged in."""
+    base = _read_techniques(catalogue)
+    overlay_by_name = {entry.get("name"): entry for entry in _read_techniques(overlay)}
+    base_names = {entry.get("name") for entry in base}
+    merged = [_merge_entry(entry, overlay_by_name[entry.get("name")])
+              if entry.get("name") in overlay_by_name else dict(entry)
+              for entry in base]
+    local = [dict(entry) for name, entry in overlay_by_name.items() if name not in base_names]
+    return {"techniques": merged + local}

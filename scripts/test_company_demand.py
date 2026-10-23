@@ -30,6 +30,7 @@ import technique_coverage as tc  # noqa: E402
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "company_demand_sample.csv"
 SHIPPED_TECHNIQUES_YML = tc.TECHNIQUES_YML
+SHIPPED_CATALOGUE_YML = tc.CATALOGUE_YML
 REPORT_DATE = date(2027, 1, 4)
 
 # Rows in the fixture whose classification the tests check by slug.
@@ -100,6 +101,7 @@ def setUpModule() -> None:
     for patch in (
         mock.patch.object(tc, "TRACKER_MD", tracker),
         mock.patch.object(tc, "TECHNIQUES_YML", techniques),
+        mock.patch.object(tc, "CATALOGUE_YML", root / "no_catalogue.yml"),
         mock.patch.object(pi, "ROOT", root),
         mock.patch.object(pi, "PLANNING_DOCS", [study_guide, tracker]),
     ):
@@ -121,7 +123,7 @@ class LiveVocabularyTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        config = tc._load_yaml().safe_load(SHIPPED_TECHNIQUES_YML.read_text(encoding="utf-8"))
+        config = tc.curriculum.load_techniques(SHIPPED_CATALOGUE_YML, SHIPPED_TECHNIQUES_YML)
         cls.live_families = {entry["family"] for entry in config["techniques"]}
 
     def test_topic_to_family_values_are_live_families(self):

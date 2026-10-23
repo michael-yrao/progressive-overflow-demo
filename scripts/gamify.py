@@ -81,6 +81,7 @@ REPO = Path(__file__).resolve().parent.parent
 TRACKER = REPO / "docs/foundations/dsa/mastery/dsa_progress.md"
 COVERAGE = REPO / "docs/foundations/dsa/mastery/technique_coverage.md"
 TECHNIQUES_YML = REPO / "docs/foundations/dsa/mastery/techniques.yml"
+CATALOGUE_YML = REPO / "curriculum/dsa/techniques.yml"
 ROADMAP_YML = REPO / "docs/foundations/dsa/mastery/roadmap.yml"
 PROBES_README = REPO / "dsa/probes/README.md"
 LEETCODE = REPO / "dsa/leetcode"
@@ -579,25 +580,42 @@ def _schedule_item_outcome(end_cell: str | None, next_cell: str | None) -> dict:
 
 
 _CLEAN_GLYPH = "🟢"
-_WEAK_START_GLYPHS = ("🔴", "🟡")
+_RED_GLYPH = "🔴"
+_YELLOW_GLYPH = "🟡"
 _STREAK_AFTER_NOTE = {"s0": "s1", "prov": "s1", "s1": "s2", "s2": "s2"}
+_MAX_END_STREAK = 2
 
 
 def derive_end_note(start_comfort, start_note, end_comfort, end_note):
     """The explicit E-cell note wins. When the E cell is a bare 🟢, derive the streak note from the
-    start: a clean after 🔴/🟡 is a provisional s0; a clean after 🟢 s0/prov is s1; after 🟢 s1/s2 is
-    s2; a 🟢 start with no note, or any other end glyph, derives nothing."""
+    start: a clean after 🔴 is the provisional s0; a clean after 🟡 is s1; a clean after 🟢 s0/prov
+    is s1; after 🟢 s1/s2 is s2; a 🟢 start with no note, or any other end glyph, derives nothing."""
     if end_note is not None or end_comfort != _CLEAN_GLYPH:
         return end_note
-    if start_comfort in _WEAK_START_GLYPHS:
+    if start_comfort == _RED_GLYPH:
         return "s0"
+    if start_comfort == _YELLOW_GLYPH:
+        return "s1"
     if start_comfort == _CLEAN_GLYPH:
         return _STREAK_AFTER_NOTE.get(start_note)
     return None
 
 
+def end_note_from_tracker(lc_number, day_iso, end_comfort, end_note, streak_by_num):
+    """The tracker's streak is authoritative for a bare 🟢 end when the row's day is the problem's
+    latest rep: the note is `s<streak>` capped at s2. An explicit/derived note, a non-🟢 end, an
+    unknown number, or a day that is not the latest rep leaves `end_note` untouched."""
+    if end_note is not None or end_comfort != _CLEAN_GLYPH or lc_number not in streak_by_num:
+        return end_note
+    streak, last_rep = streak_by_num[lc_number]
+    if last_rep != day_iso:
+        return end_note
+    return f"s{min(streak, _MAX_END_STREAK)}"
+
+
 def _parse_schedule_day_full(
-    path: Path, day: dt.date, difficulty_by_num: dict[int, str], urls: dict[int, str],
+    path: Path, day: dt.date, difficulty_by_num: dict[int, str],
+    streak_by_num: dict[int, tuple[int, str]], urls: dict[int, str],
     files: dict[int, list[Path]] | None = None,
 ) -> tuple[list[dict], str | None, float | None]:
     """Like eb.parse_schedule_day, but keeps the day's label and each item's technique,
@@ -659,6 +677,8 @@ def _parse_schedule_day_full(
         outcome = _schedule_item_outcome(m["c3"], m["c4"])
         outcome = {**outcome, "endNote": derive_end_note(
             start_comfort, start_note, outcome["endComfort"], outcome["endNote"])}
+        outcome = {**outcome, "endNote": end_note_from_tracker(
+            lc_number, day.isoformat(), outcome["endComfort"], outcome["endNote"], streak_by_num)}
         items.append({
             # lcNumber is honestly null only when NEITHER eb.SCHED_NUM nor the bare-number
             # fallback finds one (see _schedule_item_lc_number) — the dashboard then omits
@@ -707,7 +727,7 @@ def _credit_pulled_earlier(days: list[dict]) -> list[dict]:
 
 
 def _parse_week(path: Path, week_start: dt.date, difficulty_by_num: dict[int, str],
-                urls: dict[int, str],
+                streak_by_num: dict[int, tuple[int, str]], urls: dict[int, str],
                 files: dict[int, list[Path]] | None) -> dict:
     """One week's `## Daily Schedule` table -> {weekOf, days:[...]} — the per-week body
     shared by `parse_current_week_schedule` (one week, resolved from `today`) and
@@ -718,7 +738,7 @@ def _parse_week(path: Path, week_start: dt.date, difficulty_by_num: dict[int, st
     for offset in range(7):
         day_date = week_start + dt.timedelta(days=offset)
         items, label, units = _parse_schedule_day_full(path, day_date, difficulty_by_num,
-                                                       urls, files)
+                                                       streak_by_num, urls, files)
         days.append({
             "date": day_date.isoformat(),
             "weekday": day_date.strftime("%A"),
@@ -741,6 +761,26 @@ def _difficulty_by_num() -> dict[int, str]:
         return {}
 
 
+def _streak_by_num() -> dict[int, tuple[int, str]]:
+    """num -> (streak, last rep date ISO), from the tracker rows. A number with several rows
+    (method variants) takes the row whose last rep is latest; a row with no rep date is skipped.
+    Read next to _difficulty_by_num so the board's end notes agree with the tracker."""
+    try:
+        rows = eb.parse_rows()
+    except OSError:
+        return {}
+    latest: dict[int, tuple[int, str]] = {}
+    for r in rows:
+        dates = eb._DATE.findall(r.get("reps") or "")
+        if not dates:
+            continue
+        num = int(r["num"])
+        last = max(dates)
+        if num not in latest or last >= latest[num][1]:
+            latest[num] = (int(r["streak"]), last)
+    return latest
+
+
 def parse_current_week_schedule(today: dt.date, urls: dict[int, str],
                                 files: dict[int, list[Path]] | None = None) -> dict | None:
     """The CURRENT week's `## Daily Schedule` table -> {weekOf, days:[...]} — the compact
@@ -760,7 +800,7 @@ def parse_current_week_schedule(today: dt.date, urls: dict[int, str],
         week_start = dt.date(int(path.name[:4]), int(path.name[4:6]), int(path.name[6:8]))
     except (ValueError, IndexError):
         return None
-    return _parse_week(path, week_start, _difficulty_by_num(), urls, files)
+    return _parse_week(path, week_start, _difficulty_by_num(), _streak_by_num(), urls, files)
 
 
 def parse_schedule_history(urls: dict[int, str],
@@ -780,11 +820,12 @@ def parse_schedule_history(urls: dict[int, str],
     the same stamp.
     """
     difficulty_by_num = _difficulty_by_num()
+    streak_by_num = _streak_by_num()
     weeks_by_start: dict[dt.date, dict] = {}
     for week_start, path in _schedule_weeks():
         if week_start in weeks_by_start:
             continue
-        week = _parse_week(path, week_start, difficulty_by_num, urls, files)
+        week = _parse_week(path, week_start, difficulty_by_num, streak_by_num, urls, files)
         if any(day["items"] for day in week["days"]):
             weeks_by_start[week_start] = week
     return sorted(weeks_by_start.values(), key=lambda w: w["weekOf"])
@@ -1047,8 +1088,8 @@ def load_technique_entries(warnings: list[str]) -> list[dict]:
     same style as load_config(): a missing file or missing PyYAML degrades gracefully
     rather than raising out of the hook."""
     try:
-        import yaml  # noqa: PLC0415
-        config = yaml.safe_load(TECHNIQUES_YML.read_text(encoding="utf-8")) or {}
+        import curriculum  # noqa: PLC0415
+        config = curriculum.load_techniques(CATALOGUE_YML, TECHNIQUES_YML)
     except Exception:  # noqa: BLE001 — a missing/unparsable file is a normal fail-soft state
         warnings.append(
             "techniques.yml not readable — buildsOn omitted for every technique.")
@@ -1131,17 +1172,25 @@ def _comfort_by_number(problems: list[dict], retired: list[dict]) -> dict[int, s
 UNRESOLVED_PREVIEW_COUNT = 3  # numbers named in the aggregated unresolved-planned warning
 
 
-def _planned_source(number: int, waiting_room: dict[int, dict],
+def _spec_source(specs: list[dict]) -> dict | None:
+    """{title, url, difficulty} from the first of one number's specs carrying a `title`."""
+    for spec in specs:
+        if spec.get("title"):
+            return {"title": spec["title"], "url": spec.get("url"),
+                    "difficulty": spec.get("difficulty")}
+    return None
+
+
+def _planned_source(number: int, specs: list[dict], waiting_room: dict[int, dict],
                     catalog: dict[int, dict]) -> dict | None:
-    return waiting_room.get(number) or catalog.get(number)
+    return waiting_room.get(number) or catalog.get(number) or _spec_source(specs)
 
 
-def _unresolved_warning(planned: list[dict], waiting_room: dict[int, dict],
-                        catalog: dict[int, dict]) -> list[str]:
-    """One warning line for every distinct planned number with no Waiting Room row and no
-    catalog entry (naming the first few), or [] when all resolve."""
-    numbers = list(dict.fromkeys(p["lcNumber"] for p in planned
-                                 if _planned_source(p["lcNumber"], waiting_room, catalog) is None))
+def _unresolved_warning(planned: list[dict]) -> list[str]:
+    """One warning line for every distinct planned number whose entry came out untitled
+    (no Waiting Room row, no roadmap entry, no titled spec — naming the first few), or []
+    when all resolve."""
+    numbers = list(dict.fromkeys(p["lcNumber"] for p in planned if p["title"] is None))
     if not numbers:
         return []
     first = ", ".join(str(n) for n in numbers[:UNRESOLVED_PREVIEW_COUNT])
@@ -1149,12 +1198,14 @@ def _unresolved_warning(planned: list[dict], waiting_room: dict[int, dict],
             f"roadmap.yml entry — planned entries emitted with nulls (first: {first})."]
 
 
-def _planned_entry(number: int, trigger: str | None, waiting_room: dict[int, dict],
+def _planned_entry(number: int, specs: list[dict], waiting_room: dict[int, dict],
                    catalog: dict[int, dict]) -> dict:
     """One `planned[]` row: title/url/difficulty resolve from `waiting_room` first, then
-    `catalog` (roadmap.yml), and honestly null when neither has it — never guessed
-    (enrich_techniques aggregates the nulls into one warning)."""
-    source = _planned_source(number, waiting_room, catalog)
+    `catalog` (roadmap.yml), then the first spec of that number carrying a `title`, and
+    honestly null when none has it — never guessed (enrich_techniques aggregates the nulls
+    into one warning)."""
+    trigger = _first_trigger(specs)
+    source = _planned_source(number, specs, waiting_room, catalog)
     if source is None:
         return {"lcNumber": number, "title": None, "url": None, "difficulty": None,
                 "trigger": trigger}
@@ -1206,8 +1257,9 @@ def planned_for(entry: dict | None, tracked_numbers: set[int],
     `planned: false` before the number is excluded.
 
     Title/url/difficulty resolve via `_planned_entry` — the Waiting Room table first, then
-    `catalog` (roadmap.yml's declared-problem catalog), and honestly null when neither source
-    has it (enrich_techniques reports those as one warning).
+    `catalog` (roadmap.yml's declared-problem catalog), then the first of that number's
+    specs carrying a `title`, and honestly null when none has it (enrich_techniques reports
+    those as one warning).
     """
     if not entry:
         return []
@@ -1217,7 +1269,7 @@ def planned_for(entry: dict | None, tracked_numbers: set[int],
         if number is None or number in tracked_numbers:
             continue
         specs_by_number.setdefault(number, []).append(spec)
-    return [_planned_entry(number, _first_trigger(specs), waiting_room, catalog)
+    return [_planned_entry(number, specs, waiting_room, catalog)
             for number, specs in specs_by_number.items()
             if not _all_opted_out(specs)]
 
@@ -1259,13 +1311,16 @@ def _credited_rows(row: dict, entry: dict | None,
 
 
 def _enrich_row(row: dict, builds_on: list[str], graduated: int, planned: list[dict],
-                credited: list[dict]) -> dict:
+                credited: list[dict], order: int | None = None) -> dict:
     """One enriched technique row: `row` (parse_techniques()'s output) plus `buildsOn`/
     `graduatedCount`/`rows`/`planned`/`plannedTotal`/`untriedVariations` — never `row`'s own
     internal `_variantsCell` (dropped here; see parse_techniques()'s docstring for why it
-    exists at all). `rows` names the tracker rows the technique credits."""
+    exists at all). `rows` names the tracker rows the technique credits. `order` is the
+    entry's index in techniques.yml (its deliberate study order); absent for a row with no
+    entry."""
     public_row = {k: v for k, v in row.items() if k != "_variantsCell"}
     return {**public_row,
+            **({} if order is None else {"order": order}),
             "buildsOn": builds_on,
             "graduatedCount": graduated,
             "rows": [{"lcNumber": p["lcNumber"], "title": p["title"]} for p in credited],
@@ -1322,6 +1377,7 @@ def enrich_techniques(rows: list[dict], yaml_entries: list[dict],
     raw_by_name = {e["name"]: e.get("builds_on") or []
                    for e in yaml_entries if e.get("name")}
     entry_by_name = {e["name"]: e for e in yaml_entries if e.get("name")}
+    order_by_name = {e["name"]: i for i, e in enumerate(yaml_entries) if e.get("name")}
     graph = {name: _resolve_builds_on(name, raw_by_name, known_names, warnings)
              for name in order}
     graph = _break_cycles(graph, order, warnings)
@@ -1341,9 +1397,9 @@ def enrich_techniques(rows: list[dict], yaml_entries: list[dict],
         planned = planned_for(entry, tracked_numbers, waiting_room, catalog)
         all_planned.extend(planned)
         enriched.append(_enrich_row(row, graph.get(row["name"], []), graduated, planned,
-                                    credited))
+                                    credited, order_by_name.get(row["name"])))
     if has_tracker_rows:
-        warnings.extend(_unresolved_warning(all_planned, waiting_room, catalog))
+        warnings.extend(_unresolved_warning(all_planned))
     return enriched
 
 
@@ -1709,7 +1765,6 @@ def build_payload(today: dt.date | None = None) -> tuple[dict, list[str]]:
         "generatedAt": today.isoformat(),
         "totals": {
             "problems": len({p["lcNumber"] for p in problems}),
-            "solutions": len(problems),
             "reps": sum(len(p["repDates"]) for p in problems),
         },
         "pipeline": pipeline(rows, retired),

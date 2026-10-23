@@ -244,7 +244,7 @@ Read the **goal verb**, then pick the sort key:
 | **Scheduling / max-fit** (§2) | end | 435 Non-overlapping Intervals · (Min Arrows to Burst Balloons — same greedy) |
 | **Sweep line / concurrency** (§3) | start + heap | Meeting Rooms I & II · Car Pooling · My Calendar |
 
-*(Uncategorized interval problems get mapped in [techniques.yml](../../mastery/techniques.yml) as
+*(Uncategorized interval problems get mapped in [techniques.yml](../../../../../curriculum/dsa/techniques.yml) as
 they're solved — same rule as any new problem.)*
 
 ## Practice

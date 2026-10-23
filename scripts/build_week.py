@@ -67,6 +67,7 @@ CONFIG_NAME = "cse.config.yml"
 LIVE_DIR = Path("docs/foundations/schedules")
 ARCHIVE_DIR = LIVE_DIR / "archive"
 TECHNIQUES_PATH = Path("docs/foundations/dsa/mastery/techniques.yml")
+CATALOGUE_PATH = Path("curriculum/dsa/techniques.yml")
 SCHEDULE_NAME = "{monday:%Y%m%d}_schedule.md"
 SCHEDULE_SUFFIX = "_schedule.md"
 BUILT_BY_MARKER = "<!-- built-by: build_week.py -->"
@@ -283,11 +284,9 @@ def intake_candidates(catalog: tuple[dict, ...], rows: tuple[dict, ...] | list[d
 
 # ---------------------------------------------------------------- steps 6-7
 
-def load_techniques(path: Path) -> dict[tuple[str, str | None], str]:
-    """(number, method) -> technique name from techniques.yml; (number, None) is the first."""
-    if not path.is_file():
-        return {}
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+def load_techniques(catalogue: Path, overlay: Path) -> dict[tuple[str, str | None], str]:
+    """(number, method) -> technique name from the merged catalogue + overlay; (number, None) is the first."""
+    data = curriculum.load_techniques(catalogue, overlay)
     found: dict[tuple[str, str | None], str] = {}
     for technique in data.get("techniques") or []:
         for problem in technique.get("problems") or []:
@@ -574,7 +573,7 @@ def top_up(args: argparse.Namespace, now: dt.datetime, repo: Path, root_cfg: dic
         return SKIP_NOTHING_TO_TOP_UP
     inputs = BuildInputs(monday, eb.load_config(), rows,
                          fetch_site_numbers(automation.index_url, opener),
-                         load_techniques(repo / TECHNIQUES_PATH), days[0])
+                         load_techniques(repo / CATALOGUE_PATH, repo / TECHNIQUES_PATH), days[0])
     plan = top_up_plan(inputs, missing, week, days, all_rows)
     if seated_count(plan) == 0:
         return SKIP_NOTHING_TO_TOP_UP
@@ -642,8 +641,8 @@ def assemble(monday: dt.date, root_cfg: dict, automation: Automation,
     site_numbers = fetch_site_numbers(automation.index_url, opener)
     start = read_start_date(root_cfg)
     first_day = max(monday, start) if start else monday
-    inputs = BuildInputs(monday, cfg, rows, site_numbers, load_techniques(repo / TECHNIQUES_PATH),
-                         first_day)
+    inputs = BuildInputs(monday, cfg, rows, site_numbers,
+                         load_techniques(repo / CATALOGUE_PATH, repo / TECHNIQUES_PATH), first_day)
     _, is_paused = eb.unproven_overdue(all_rows, cfg, monday)
     preferred = site_numbers if automation.prefers_spec else None
     entries = intake_candidates(curriculum.intake_order(), all_rows, preferred,

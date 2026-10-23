@@ -69,6 +69,7 @@ def _fixture_repo(files: dict[str, str] | None = None):
             mock.patch.object(gamify, "TRACKER", mastery / "dsa_progress.md"),
             mock.patch.object(gamify, "COVERAGE", mastery / "technique_coverage.md"),
             mock.patch.object(gamify, "TECHNIQUES_YML", mastery / "techniques.yml"),
+            mock.patch.object(gamify, "CATALOGUE_YML", root / "curriculum/dsa/techniques.yml"),
             mock.patch.object(gamify, "ROADMAP_YML", mastery / "roadmap.yml"),
             mock.patch.object(gamify, "PROBES_README", root / PROBES_FILE),
             mock.patch.object(gamify, "LEETCODE", root / "dsa/leetcode"),
@@ -537,6 +538,13 @@ class EnrichTechniquesTests(unittest.TestCase):
         out = gamify.enrich_techniques(rows, entries, {}, {}, [])
         self.assertEqual(out[0]["buildsOn"], ["A"])
 
+    def test_order_is_the_yaml_index_and_absent_without_an_entry(self):
+        rows = [_tech_row("B"), _tech_row("A"), _tech_row("NoEntry")]
+        entries = [_yaml_entry("A"), _yaml_entry("B")]
+        out = {r["name"]: r for r in gamify.enrich_techniques(rows, entries, {}, {}, [])}
+        self.assertEqual((out["A"]["order"], out["B"]["order"]), (0, 1))
+        self.assertNotIn("order", out["NoEntry"])
+
     def test_builds_on_defaults_to_empty_list(self):
         rows = [_tech_row("Root")]
         entries = [_yaml_entry("Root")]
@@ -642,6 +650,17 @@ class EnrichTechniquesTests(unittest.TestCase):
         self.assertEqual(out[0]["planned"], [
             {"lcNumber": 9001, "title": "Cracking the Safe", "url": "https://x",
              "difficulty": "Hard", "trigger": "surplus>=1"}])
+
+    def test_untracked_spec_titles_fill_planned_when_no_waiting_room_or_roadmap_row(self):
+        rows = [_tech_row("T")]
+        entries = [_yaml_entry("T", problems=[
+            {"number": 394, "title": "Decode String", "url": "https://x", "difficulty": "Medium"}])]
+        warnings: list[str] = []
+        out = gamify.enrich_techniques(rows, entries, {}, {}, warnings)
+        self.assertEqual(out[0]["planned"], [
+            {"lcNumber": 394, "title": "Decode String", "url": "https://x",
+             "difficulty": "Medium", "trigger": None}])
+        self.assertEqual(warnings, [])
 
     def test_queued_but_already_tracked_problem_is_absent_from_planned(self):
         rows = [_tech_row("T")]
@@ -2007,7 +2026,7 @@ class DeriveEndNoteTests(unittest.TestCase):
         cases = [
             ("🟢", "s0", "🟢", "prov", "prov"),   # explicit note wins
             ("🔴", None, "🟢", None, "s0"),
-            ("🟡", None, "🟢", None, "s0"),
+            ("🟡", None, "🟢", None, "s1"),
             ("🟢", "s0", "🟢", None, "s1"),
             ("🟢", "prov", "🟢", None, "s1"),
             ("🟢", "s1", "🟢", None, "s2"),
@@ -2020,6 +2039,25 @@ class DeriveEndNoteTests(unittest.TestCase):
             with self.subTest(start=start, start_note=start_note, end=end, end_note=end_note):
                 self.assertEqual(
                     gamify.derive_end_note(start, start_note, end, end_note), expected)
+
+
+class EndNoteFromTrackerTests(unittest.TestCase):
+    """end_note_from_tracker(lc_number, day_iso, end_comfort, end_note, streak_by_num) — pure."""
+
+    def test_rows(self):
+        tracker = {648: (1, "2026-10-20"), 17: (3, "2026-10-20")}
+        cases = [
+            (648, "2026-10-20", "🟢", None, "s1"),
+            (17, "2026-10-20", "🟢", None, "s2"),        # streak 3 caps at s2
+            (648, "2026-10-19", "🟢", None, None),        # not the latest rep
+            (648, "2026-10-20", "🟢", "prov", "prov"),    # explicit note wins
+            (648, "2026-10-20", "🎓", None, None),        # non-clean end
+            (999, "2026-10-20", "🟢", None, None),        # number not in the tracker
+        ]
+        for num, day, end, note, expected in cases:
+            with self.subTest(num=num, day=day, end=end, note=note):
+                self.assertEqual(
+                    gamify.end_note_from_tracker(num, day, end, note, tracker), expected)
 
 
 class CellNoteTests(unittest.TestCase):
@@ -2239,7 +2277,7 @@ class SummaryOfTests(unittest.TestCase):
         return {
             "schemaVersion": 1,
             "generatedAt": "2026-09-20",
-            "totals": {"problems": 1, "solutions": 1, "reps": 2},
+            "totals": {"problems": 1, "reps": 2},
             "pipeline": {"blank": 0, "shaky": 0,
                          "clean": {"s0": 0, "s1": 0, "s2plus": 0, "total": 0},
                          "graduated": 1, "retired": 1},

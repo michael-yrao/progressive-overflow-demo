@@ -417,6 +417,18 @@ class OptionalFieldTests(unittest.TestCase):
         self.assertNotIn("ops", problem["cases"][0])
 
 
+class DifficultyTests(unittest.TestCase):
+    def test_difficulty_joins_by_number_and_is_none_when_unmapped(self):
+        cases = [
+            ("number in the map", {90: "Medium"}, "Medium"),
+            ("number not in the map", {1: "Easy"}, None),
+        ]
+        for label, mapping, expected in cases:
+            with self.subTest(label):
+                payload = ep.build_payload([(FILENAME, _spec())], TODAY, mapping)
+                self.assertEqual(payload["problems"][0]["difficulty"], expected)
+
+
 class StaleReasonsTests(unittest.TestCase):
     def setUp(self):
         self.payload = ep.build_payload([(FILENAME, _spec())], TODAY)
@@ -464,7 +476,8 @@ class FigureSchemaTests(unittest.TestCase):
     """The figure oneOf mirrors the site guard: one edge source, `directed` required."""
 
     def _validate_figure(self, figure: dict) -> list[str]:
-        problem = {"number": 1, "title": "T", "url": "u", "statement": None, "stub": "s",
+        problem = {"number": 1, "title": "T", "url": "u", "difficulty": None,
+                   "statement": None, "stub": "s",
                    "entry": {"className": "Solution", "method": "m"}, "compare": "exact",
                    "figure": figure,
                    "cases": [{"args": [], "expected": 0, "example": True}]}

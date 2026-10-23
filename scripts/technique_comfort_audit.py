@@ -173,7 +173,7 @@ def render(resolved: list[tc.Resolved], whys: dict[str, str], future: str) -> st
 
 
 def build() -> tuple[str, list[str]]:
-    config = tc.yaml.safe_load(tc.TECHNIQUES_YML.read_text(encoding="utf-8"))
+    config = tc.curriculum.load_techniques(tc.CATALOGUE_YML, tc.TECHNIQUES_YML)
     rows = tc.parse_tracker(tc.TRACKER_MD)
     resolved, _claimed = tc.resolve(config, rows, tc.load_coverage_threshold_config())
     existing = AUDIT_MD.read_text(encoding="utf-8") if AUDIT_MD.exists() else ""

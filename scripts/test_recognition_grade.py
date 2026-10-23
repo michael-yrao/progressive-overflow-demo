@@ -44,7 +44,7 @@ class RecognitionGradeTests(unittest.TestCase):
         self.addCleanup(tmp.cleanup)
         path = Path(tmp.name) / "techniques.yml"
         path.write_text(TECHNIQUES, encoding="utf-8")
-        self.decls, self.families = rg.load_declarations(path)
+        self.decls, self.families = rg.load_declarations(Path(tmp.name) / "no_catalogue.yml", path)
 
     def test_grade_pick(self):
         miss_tech = rg.PickGrade(rg.RESULT_MISS, rg.BASIS_TECHNIQUE, "Hash Map Lookup")

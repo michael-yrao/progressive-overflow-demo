@@ -3,6 +3,7 @@
     python scripts/update_coach.py --check     # is there anything new? (cheap, no clone)
     python scripts/update_coach.py --dry-run   # what would change?
     python scripts/update_coach.py             # apply it
+    python scripts/update_coach.py --only GLOB # limit to matching paths (repeatable; VERSION untouched)
 
 A repo made with "Use this template" shares no history with cse-coach, so git
 cannot merge them. This does the merge git can't - see `coach_sync.py` for the
@@ -40,6 +41,7 @@ from coach_sync import (  # noqa: E402
     hash_file,
     is_newer,
     iter_tracked,
+    matches,
     parse_version,
     plan,
 )
@@ -271,7 +273,22 @@ def cmd_check(root: Path, upstream: str, ref: str) -> int:
     return 1
 
 
-def cmd_sync(root: Path, upstream: str, ref: str, *, dry_run: bool) -> int:
+def scoped_manifest(prior: dict, upstream: dict, only: tuple[str, ...]) -> dict:
+    """The prior manifest with only the `--only` paths re-baselined to upstream's hashes."""
+    kept = {rel: h for rel, h in prior.get("files", {}).items() if not matches(rel, only)}
+    taken = {rel: h for rel, h in upstream["files"].items() if matches(rel, only)}
+    return {
+        **upstream,
+        "upstream": prior.get("upstream", upstream["upstream"]),
+        "upstream_sha": prior.get("upstream_sha", upstream["upstream_sha"]),
+        "version": prior.get("version", upstream["version"]),
+        "files": {**kept, **taken},
+    }
+
+
+def cmd_sync(
+    root: Path, upstream: str, ref: str, *, dry_run: bool, only: tuple[str, ...] = ()
+) -> int:
     manifest = read_manifest(root)
     baseline = manifest.get("files", {})
     if not baseline:
@@ -290,6 +307,8 @@ def cmd_sync(root: Path, upstream: str, ref: str, *, dry_run: bool) -> int:
         print(f"  upstream v{upstream_version} ({sha[:7]}); you are on v{read_version(root)}\n")
 
         verdicts = plan(root, upstream_root, baseline)
+        if only:
+            verdicts = [v for v in verdicts if matches(v.path, only)]
         report(verdicts, dry_run=dry_run)
 
         conflicts = [v for v in verdicts if v.decision is Decision.CONFLICT]
@@ -304,11 +323,12 @@ def cmd_sync(root: Path, upstream: str, ref: str, *, dry_run: bool) -> int:
         # The baseline is what upstream shipped, not what the learner now holds: hashing the
         # learner's tree would record a conflict-protected file's local hash, and the next
         # sync would read it as untouched and overwrite it.
-        write_manifest(
-            root,
-            build_manifest(upstream_root, upstream, sha, upstream_version),
-        )
-        write_version(root, upstream_version)
+        upstream_manifest = build_manifest(upstream_root, upstream, sha, upstream_version)
+        if only:
+            write_manifest(root, scoped_manifest(manifest, upstream_manifest, only))
+        else:
+            write_manifest(root, upstream_manifest)
+            write_version(root, upstream_version)
 
     print(f"\nDone: {summarize(verdicts)}.")
     if conflicts:
@@ -342,6 +362,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--upstream", default=DEFAULT_UPSTREAM, help="canonical repo URL")
     parser.add_argument("--ref", default=DEFAULT_REF, help="branch or tag to sync from")
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="repo to update")
+    parser.add_argument(
+        "--only",
+        action="append",
+        default=[],
+        metavar="GLOB",
+        help="sync only paths matching this glob (repeatable); VERSION is not rewritten",
+    )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--check", action="store_true", help="report whether an update exists")
     mode.add_argument("--dry-run", action="store_true", help="show changes without writing")
@@ -358,7 +385,9 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_emit_manifest(root, args.upstream)
         if args.check:
             return cmd_check(root, args.upstream, args.ref)
-        return cmd_sync(root, args.upstream, args.ref, dry_run=args.dry_run)
+        return cmd_sync(
+            root, args.upstream, args.ref, dry_run=args.dry_run, only=tuple(args.only)
+        )
     except SyncError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

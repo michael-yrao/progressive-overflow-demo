@@ -60,6 +60,7 @@ REPO = Path(__file__).resolve().parent.parent
 TECHNIQUES_DIR = REPO / "docs/foundations/dsa/patterns/techniques"
 INTUITION_DOC = REPO / "docs/foundations/dsa/patterns/intuition_cheatsheet.md"
 TECHNIQUES_YAML = REPO / "docs/foundations/dsa/mastery/techniques.yml"
+CATALOGUE_YAML = REPO / "curriculum/dsa/techniques.yml"
 FIXTURES = REPO / "scripts/fixtures"
 SCHEMA_FIXTURE = FIXTURES / "cheat-sheets.schema.json"
 DASHBOARD = REPO / "dashboard"
@@ -451,10 +452,9 @@ def parse_technique_fields(sections: list[tuple[str, list[str]]]) -> dict:
 
 
 def load_techniques_yaml() -> list[dict]:
-    import yaml  # noqa: PLC0415
+    import curriculum  # noqa: PLC0415
 
-    data = yaml.safe_load(read_text(TECHNIQUES_YAML)) or {}
-    return data.get("techniques") or []
+    return curriculum.load_techniques(CATALOGUE_YAML, TECHNIQUES_YAML)["techniques"]
 
 
 def family_tier_for(doc_stem: str, entries: list[dict]) -> tuple[str, str]:

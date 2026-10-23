@@ -566,7 +566,8 @@ def fold_file(repo: Path, attempt_path: Path, reference_url: str = "", *, is_coa
         picked = header.recognition["picked"]
         pick_grade = recognition_grade.grade_pick(
             picked, number, solution.parent.name,
-            *recognition_grade.load_declarations(repo / MASTERY_DIR / "techniques.yml"))
+            *recognition_grade.load_declarations(repo / "curriculum/dsa/techniques.yml",
+                                                 repo / MASTERY_DIR / "techniques.yml"))
         lines.append(f"recognition: pick {pick_grade.result} ({pick_grade.basis})")
     if not recognized:
         lines.append("recognition: missing")

@@ -11,10 +11,9 @@
     "generatedAt": { "type": "string", "format": "date" },
     "totals": {
       "type": "object",
-      "required": ["problems", "solutions", "reps"],
+      "required": ["problems", "reps"],
       "properties": {
         "problems": { "type": "integer", "minimum": 0 },
-        "solutions": { "type": "integer", "minimum": 0 },
         "reps": { "type": "integer", "minimum": 0 }
       }
     },
@@ -237,6 +236,7 @@
         "thin": { "type": "boolean", "description": "problemCount below minProblems, the technique's computed coverage bar." },
         "hasVariantGap": { "type": "boolean", "description": "A declared method variant has never once been exercised." },
         "buildsOn": { "type": "array", "items": { "type": "string" }, "description": "Technique names this one presupposes (techniques.yml's `builds_on`), validated against that file's own declared names (an unknown name, a self-edge, or the edge that closes a cycle is dropped). Empty for a root of the technique graph. Feeds the site's skill tree." },
+        "order": { "type": "integer", "minimum": 0, "description": "The technique's index in techniques.yml's `techniques` list — that file's deliberate study order. Absent for a coverage row with no techniques.yml entry. The site lists families and techniques in this order." },
         "graduatedCount": { "type": "integer", "minimum": 0, "description": "How many of this row's credited tracker rows (`rows`) have reached 🎓 or better, plus retired numbers." },
         "rows": {
           "type": "array",
@@ -333,7 +333,7 @@
         "kind": { "type": "string", "enum": ["rep", "new", "probe", "mock", "complexity", "primer"], "description": "complexity when the Technique cell is 'Complexity' (checked before any tag, since a complexity re-ask row is also 🎯-tagged); else mock/new/primer/probe from the row's tags; else rep." },
         "done": { "type": "boolean", "description": "True when the row is struck through (`~~...~~`) in the source table." },
         "endComfort": { "type": ["string", "null"], "enum": ["🔴", "🟡", "🟢", "🎓", null], "description": "The comfort glyph as written at the END of the rep (col E) — the E cell is usually blank until the row is done, so this is usually null until then, but it is read off the cell's own content and never falls back to startComfort: a done row whose E cell carries no glyph still reads null, so the board shows only what was actually earned." },
-        "endNote": { "type": ["string", "null"], "maxLength": 16, "description": "The E cell's free-form note after its glyph, stripped/collapsed/lowercased — vocabulary seen in real weeks: s0, s1, s2, prov, dropped. Only ever set when endComfort is non-null; null otherwise, even if the raw cell had trailing text. When the E cell carries only a 🟢 glyph, the note is derived from the start (🔴/🟡 → s0; 🟢 s0/prov → s1; 🟢 s1/s2 → s2)." },
+        "endNote": { "type": ["string", "null"], "maxLength": 16, "description": "The E cell's free-form note after its glyph, stripped/collapsed/lowercased — vocabulary seen in real weeks: s0, s1, s2, prov, dropped. Only ever set when endComfort is non-null; null otherwise, even if the raw cell had trailing text. When the E cell carries only a 🟢 glyph, the note is derived from the tracker's streak when the row is the problem's latest rep, else from the start (🔴 → s0; 🟡 → s1; 🟢 s0/prov → s1; 🟢 s1/s2 → s2)." },
         "nextReview": { "type": ["string", "null"], "format": "date", "description": "The row's Next-review date (col Next) iff that cell is, once stripped, nothing but an ISO date; null for a free-form or blank Next cell." },
         "file": { "type": ["string", "null"], "description": "Repo-relative POSIX path of the learner's own solution file for this number (links.solution_files(), keyed by lcNumber; a twin takes the first sorted path); null when no file exists under the configured source roots. A PATH, never code — progress.json stays code-free; the site turns it into a blob/<branch>/<path> link. Null when the row has no lcNumber." },
         "deferredTo": { "type": ["string", "null"], "format": "date", "description": "ISO date the row was moved to when it was not done on its planned day: the Next cell of a row that is not struck. null otherwise." },

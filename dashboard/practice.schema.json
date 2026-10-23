@@ -18,8 +18,9 @@
   "definitions": {
     "problem": {
       "type": "object",
-      "required": ["number", "title", "url", "statement", "stub", "entry", "compare", "cases"],
+      "required": ["number", "title", "url", "difficulty", "statement", "stub", "entry", "compare", "cases"],
       "properties": {
+        "difficulty": { "type": ["string", "null"], "enum": ["Easy", "Medium", "Hard", null], "description": "From the spec's `difficulty` field, else joined from the tracker by problem number; null when neither has it." },
         "number": { "type": "integer", "minimum": 1, "description": "The problem number, unique across the file and equal to the spec filename's leading number." },
         "title": { "type": "string" },
         "url": { "type": "string", "description": "The judge's problem page." },

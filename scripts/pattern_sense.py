@@ -50,6 +50,7 @@ REPO = Path(__file__).resolve().parent.parent
 MASTERY = REPO / "docs" / "foundations" / "dsa" / "mastery"
 COMPANY_DEMAND = MASTERY / "company_demand.md"
 TECHNIQUES_YML = MASTERY / "techniques.yml"
+CATALOGUE_YML = REPO / "curriculum" / "dsa" / "techniques.yml"
 PROBES_README = REPO / "dsa" / "probes" / "README.md"
 MOCKS_README = REPO / "docs" / "foundations" / "dsa" / "mocks" / "README.md"
 SOLUTION_DIRS = (REPO / "dsa" / "leetcode", REPO / "dsa" / "probes")
@@ -193,9 +194,8 @@ def vocab_hash(families: list[dict]) -> str:
 
 
 def load_technique_entries() -> list[dict]:
-    import yaml  # noqa: PLC0415
-    config = yaml.safe_load(TECHNIQUES_YML.read_text(encoding="utf-8")) or {}
-    return config.get("techniques") or []
+    import curriculum  # noqa: PLC0415
+    return curriculum.load_techniques(CATALOGUE_YML, TECHNIQUES_YML)["techniques"]
 
 
 def started_techniques() -> frozenset[str]:

@@ -10,6 +10,7 @@ on:
     paths:
       - 'docs/foundations/dsa/mastery/dsa_progress.md'
       - 'docs/foundations/dsa/mastery/techniques.yml'
+      - 'curriculum/dsa/techniques.yml'
       - 'docs/foundations/dsa/mastery/complexity_gotchas.md'
       - 'docs/foundations/dsa/mastery/holds.yml'
       - 'docs/foundations/system_design/mastery/design_progress.md'

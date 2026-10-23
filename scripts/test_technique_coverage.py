@@ -59,13 +59,16 @@ class QueuedProblemTests(unittest.TestCase):
 
         self._orig_techniques_yml = tc.TECHNIQUES_YML
         self._orig_tracker_md = tc.TRACKER_MD
+        self._orig_catalogue_yml = tc.CATALOGUE_YML
         tc.TECHNIQUES_YML = self._techniques_path
+        tc.CATALOGUE_YML = tmp / "no_catalogue.yml"
         tc.TRACKER_MD = self._tracker_path
 
         self._orig_gamify_coverage = gamify.COVERAGE
 
     def tearDown(self):
         tc.TECHNIQUES_YML = self._orig_techniques_yml
+        tc.CATALOGUE_YML = self._orig_catalogue_yml
         tc.TRACKER_MD = self._orig_tracker_md
         gamify.COVERAGE = self._orig_gamify_coverage
         self._tmpdir.cleanup()
