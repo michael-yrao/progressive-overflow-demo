@@ -9,7 +9,6 @@ import unittest
 from unittest import mock
 
 import fold_record
-import recognition_grade
 import update_review_dates as urd
 from fold_schedule import RepFacts
 
@@ -81,9 +80,9 @@ class FoldRecordTests(unittest.TestCase):
         for label, rating, tracker, comfort, due in cases:
             with self.subTest(label), mock.patch.dict(urd.CONFIG, CONFIG), \
                     mock.patch.object(fold_record, "reprice_days", side_effect=lambda text, *_: text):
-                inputs = fold_record.RecordInputs(tracker, schedule(mon=ROW_79), WEEK_START, "", "",
+                inputs = fold_record.RecordInputs(tracker, schedule(mon=ROW_79), WEEK_START, "",
                                                   f"{LINK_79}", {}, CONFIG, {})
-                rep = fold_record.RepInput("79", "Word Search", ISO, rating, comfort, True, (),
+                rep = fold_record.RepInput("79", "Word Search", ISO, rating, (),
                                            "Medium", url)
                 out = fold_record.record_rep(inputs, rep)
                 rows = [ln for ln in out.tracker.split("\n") if "79. Word Search" in ln]
@@ -92,34 +91,6 @@ class FoldRecordTests(unittest.TestCase):
                     "streak": 0, "next_review": due, "latest_attempt_date": ISO, "attempts": ISO})])
                 self.assertEqual(out.next_iso, due)
                 self.assertIn(f"| ~~{LINK_79}~~ | 🟡 | {comfort} | {due} | Backtracking |", out.schedule)
-
-    def test_record_rep_recognition_lines(self):
-        url = "https://lc/79"
-        pick = recognition_grade.PickGrade("hit", "technique", "Backtracking")
-        ledger = "existing ledger"
-        picked_line = recognition_grade.pick_line(ISO, "79", "Word Search", "🟢", "Backtracking", pick)
-        miss_line = fold_record.RECOGNITION_MISS.format(
-            iso=ISO, number="79", title="Word Search", glyph="🟢", technique=" (Backtracking)")
-        cases = [
-            ("pick given", True, pick, f"{picked_line}\n{ledger}", ["recognition: pick hit logged"], None),
-            ("no pick, no comment", False, None, f"{miss_line}\n{ledger}", ["recognition: miss logged"], None),
-            ("no pick, with comment", True, None, ledger, [], "recognition:"),
-        ]
-        for label, has_recognition, grade, expected, wanted_lines, absent_prefix in cases:
-            with self.subTest(label), mock.patch.dict(urd.CONFIG, CONFIG), \
-                    mock.patch.object(fold_record, "reprice_days", side_effect=lambda text, *_: text):
-                inputs = fold_record.RecordInputs(TRACKER_HEAD, schedule(mon=ROW_79), WEEK_START, "", ledger,
-                                                  LINK_79, {}, CONFIG, {})
-                rep = fold_record.RepInput("79", "Word Search", ISO, "clean", "🟢", has_recognition, (),
-                                           "Medium", url, "Backtracking" if grade else "", grade)
-                out = fold_record.record_rep(inputs, rep)
-                self.assertEqual(out.recognition, expected)
-                for line in wanted_lines:
-                    self.assertIn(line, out.lines)
-                if absent_prefix:
-                    self.assertFalse([ln for ln in out.lines if ln.startswith(absent_prefix)])
-                if grade:
-                    self.assertNotIn("miss logged", " ".join(out.lines))
 
     def test_choose_tracker_row(self):
         heavy = lambda latest, due: tracker_row(TITLE_HEAVY, "🟡", 0, due, latest, latest)  # noqa: E731
@@ -196,15 +167,6 @@ class FoldRecordTests(unittest.TestCase):
         row = "| 332 Reconstruct Itinerary | **time** | 2026-10-19 | |"
         result = fold_record.queue_complexity(text, row)
         self.assertEqual(result, text.replace("| a | b | c | d |\n", f"| a | b | c | d |\n{row}\n"))
-
-    def test_log_recognition_miss(self):
-        text = "- **2026-10-18 · 261 Graph Valid Tree (DFS)** (🟡) — ✅ hit.\n"
-        result = fold_record.log_recognition_miss(text, ISO, "332", "Reconstruct Itinerary",
-                                                  "Hierholzer", "🟡")
-        self.assertEqual(result, (
-            "- **2026-10-19 · 332 Reconstruct Itinerary (Hierholzer)** (🟡 site rep) — ❌ **miss: no "
-            "top-of-method call.** Site-completed rep; the method opens with code, not the "
-            f"recognition comment.\n{text}"))
 
 
 if __name__ == "__main__":

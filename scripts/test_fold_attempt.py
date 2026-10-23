@@ -18,7 +18,6 @@ import effort_budget
 import fold_attempt
 import fold_record
 import links
-import recognition_grade
 import restore_history
 import update_review_dates
 
@@ -32,7 +31,6 @@ STUB = f"{BANNER}\n    def demo_{DATE}(self, n: int) -> int:\n        pass\n"
 POINTER = f"{fold_attempt.new_problem.POINTER_PREFIX} in x — restored at session end"
 ATTEMPT_BODY = "        # one number in, one out\n        return n + 1\n"
 COMPLEXITY = {"time": "O(n)", "space": "O(1)", "whyTime": "one pass", "whySpace": "no extra storage"}
-PICK = {"picked": "Two Pointers", "at": "2026-10-18T08:59:00Z"}
 BIGO_YML = "schemaVersion: 1\nentries:\n  - lc: 7\n    time: O(n)\n    space: O(1)\n"
 
 
@@ -83,17 +81,13 @@ class FoldAttemptTests(unittest.TestCase):
              r"complexity\.time .* not a known"),
             ("coached, failing tests", attempt_text(tests="4/5"), True, None),
             ("coached, no complexity", attempt_text(tests="4/5", complexity=None), True, "needs exactly"),
-            ("valid recognition", attempt_text(recognition=PICK), False, None),
-            ("recognition wrong type", attempt_text(recognition="Two Pointers"), False, "needs exactly"),
-            ("recognition picked too long",
-             attempt_text(recognition={**PICK, "picked": "x" * 201}), False, r"recognition\.picked is over"),
+            ("legacy recognition key is ignored",
+             attempt_text(recognition={"picked": "X", "at": "2026-10-20T00:00:00Z"}), False, None),
         ]
         for label, text, is_coached, refusal in cases:
             with self.subTest(label):
                 if refusal is None:
-                    parsed = fold_attempt.parse_header(text, is_coached=is_coached)
-                    if label == "valid recognition":
-                        self.assertEqual(parsed.recognition, PICK)
+                    fold_attempt.parse_header(text, is_coached=is_coached)
                     continue
                 with self.assertRaisesRegex(fold_attempt.AttemptError, refusal):
                     fold_attempt.parse_header(text, is_coached=is_coached)
@@ -211,30 +205,6 @@ class FoldAttemptTests(unittest.TestCase):
             self.assertTrue(path.exists())
             self.assertEqual(self.repo.solution.read_text(encoding="utf-8"), old_in_file)
 
-    def test_has_recognition(self):
-        with_pick = fold_attempt.parse_header(attempt_text(recognition=PICK), is_coached=False)
-        no_pick = fold_attempt.parse_header(attempt_text(), is_coached=False)
-        code, comment = ("        return n",), ("        # shape first", "        return n")
-        cases = [
-            ("header pick, body opens with code", with_pick, code, True),
-            ("no pick, body opens with a comment", no_pick, comment, True),
-            ("neither", no_pick, code, False),
-        ]
-        for label, parsed, body, expected in cases:
-            with self.subTest(label):
-                self.assertEqual(fold_attempt.has_recognition(parsed, body), expected)
-
-    def test_fold_grades_pick(self):
-        declared = "techniques:\n  - name: Demo Technique\n    problems:\n      - number: 7\n"
-        self.repo.write(self.repo.root / fold_attempt.MASTERY_DIR / "techniques.yml", declared)
-        self.repo.write(self.repo.solution, f"{HEAD}\n\nclass Solution:\n\n{OLD_METHOD}")
-        path = self.repo.inbox(DATE, attempt_text(
-            recognition={"picked": "Demo Technique", "at": "2026-10-18T08:59:00Z"}))
-        report = fold_attempt.fold_file(self.repo.root, path)
-        self.assertEqual(report.pick_grade, recognition_grade.PickGrade("hit", "technique", "Demo Technique"))
-        self.assertEqual(report.picked, "Demo Technique")
-        self.assertIn("recognition: pick hit (technique)", report.lines)
-
     def test_apply_writes_tracker_and_schedule(self):
         root = self.repo.root
         row_in = "| Easy | [7. Demo Problem](https://leetcode.com/problems/demo/) | 🟡 | 0 | 2026-10-18 | 2026-10-10 | 2026-10-10 |"
@@ -248,7 +218,6 @@ class FoldAttemptTests(unittest.TestCase):
             schedules / "20261012_schedule.md",
             f"| ▸ **Sun Oct 18** · ~1.0 units — x |  |  |  |  |\n| {link} | 🟡 |  |  | Demo |\n")
         self.repo.write(mastery / "complexity_gotchas.md", "")
-        self.repo.write(mastery / "recognition_gotchas.md", "")
         self.repo.write(root / "cse.config.yml", "effort_budget: {}\n")
         self.repo.write(self.repo.solution, f"{HEAD}\n\nclass Solution:\n\n{OLD_METHOD}")
         path = self.repo.inbox(DATE, attempt_text())

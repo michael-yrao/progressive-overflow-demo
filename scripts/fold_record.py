@@ -13,7 +13,6 @@ import re
 from dataclasses import dataclass
 
 import effort_budget as eb
-import recognition_grade
 import update_review_dates as urd
 from fold_schedule import (Placement, RepFacts, apply_schedule, find_live_row,  # noqa: F401
                            replace_at, reprice_days, seat_next_review, strike_schedule_row)
@@ -23,9 +22,6 @@ VARIANT = re.compile(r"\(([^()]*)\)\s*$")
 FIRST_BRACKET_CLOSE = re.compile(r"\]")
 SCHEDULE_LINK_PREFIX = "../../../"
 QUEUE_HEADER = "## ⏳ End-of-week complexity cleanup queue"
-RECOGNITION_MISS = ("- **{iso} · {number} {title}{technique}** ({glyph} site rep) — ❌ **miss: no "
-                    "top-of-method call.** Site-completed rep; the method opens with code, not the "
-                    "recognition comment.")
 GRADUATED_COMFORTS = (urd.COMFORT_GRADUATED, urd.COMFORT_RETIRED)
 UNSTREAKED_START = {urd.COMFORT_SHAKY, urd.COMFORT_BLANK, urd.COMFORT_GRADUATED}
 UNSEEN_COMFORT = urd.COMFORT_BLANK
@@ -54,13 +50,9 @@ class RepInput:
     title: str
     iso: str
     rating: str
-    glyph: str
-    has_recognition: bool
     queue_rows: tuple[str, ...]
     difficulty: str = DEFAULT_DIFFICULTY
     url: str = ""
-    picked: str = ""
-    pick: recognition_grade.PickGrade | None = None
 
 
 @dataclass(frozen=True)
@@ -69,7 +61,6 @@ class RecordInputs:
     schedule: str | None
     week_start: dt.date | None
     complexity: str
-    recognition: str
     base_cell: str
     holds: dict
     config: dict
@@ -81,7 +72,6 @@ class RecordOutput:
     tracker: str
     schedule: str | None
     complexity: str
-    recognition: str
     lines: tuple[str, ...]
     next_iso: str = ""
     next_cell: str = ""
@@ -229,20 +219,6 @@ def queue_complexity(text: str, row_line: str) -> str:
     return "\n".join([*lines[:end], row_line, *lines[end:]])
 
 
-def log_recognition_miss(text: str, iso: str, number: str, title: str, technique: str | None,
-                         glyph: str) -> str:
-    """The recognition ledger with a missing-top-comment entry prepended (newest first)."""
-    entry = RECOGNITION_MISS.format(iso=iso, number=number, title=title, glyph=glyph,
-                                    technique=f" ({technique})" if technique else "")
-    return f"{entry}\n{text}"
-
-
-def log_recognition_pick(text: str, iso: str, number: str, title: str, glyph: str, picked: str,
-                         grade: recognition_grade.PickGrade) -> str:
-    """The recognition ledger with a graded-pick entry prepended (newest first)."""
-    return f"{recognition_grade.pick_line(iso, number, title, glyph, picked, grade)}\n{text}"
-
-
 def add_variant(cell: str, variant: str | None) -> str:
     return FIRST_BRACKET_CLOSE.sub(f" ({variant})]", cell, count=1) if variant else cell
 
@@ -340,22 +316,14 @@ def seat_forward(text: str, week_start: dt.date, out: RecordOutput, number: str,
 
 
 def record_rep(inputs: RecordInputs, rep: RepInput) -> RecordOutput:
-    """Apply one completed rep to the tracker, the schedule and the two gotchas ledgers."""
+    """Apply one completed rep to the tracker, the schedule and the complexity ledger."""
     step = record_tracker_and_schedule(inputs, rep)
     lines = list(step.lines)
-    complexity, recognition = inputs.complexity, inputs.recognition
+    complexity = inputs.complexity
     for queue_row in rep.queue_rows:
         complexity = queue_complexity(complexity, queue_row)
         lines.append("complexity queue: row added")
-    if rep.pick is not None:
-        recognition = log_recognition_pick(recognition, rep.iso, rep.number, rep.title, rep.glyph,
-                                           rep.picked, rep.pick)
-        lines.append(f"recognition: pick {rep.pick.result} logged")
-    elif not rep.has_recognition:
-        recognition = log_recognition_miss(recognition, rep.iso, rep.number, rep.title, step.technique,
-                                           rep.glyph)
-        lines.append("recognition: miss logged")
-    return RecordOutput(step.tracker, step.schedule, complexity, recognition, tuple(lines),
+    return RecordOutput(step.tracker, step.schedule, complexity, tuple(lines),
                         step.next_iso, step.next_cell, step.next_start, step.technique or "")
 
 

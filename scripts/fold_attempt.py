@@ -47,7 +47,6 @@ import curriculum
 import export_bigo
 import links
 import new_problem
-import recognition_grade
 import restore_history
 
 _console.force_utf8()
@@ -77,16 +76,12 @@ Opener = Callable[[str, float], bytes]
 MASTERY_DIR = Path("docs/foundations/dsa/mastery")
 TRACKER_FILE = MASTERY_DIR / "dsa_progress.md"
 COMPLEXITY_FILE = MASTERY_DIR / "complexity_gotchas.md"
-RECOGNITION_FILE = MASTERY_DIR / "recognition_gotchas.md"
 APPLIED_PREFIX = "applied: "
 COMPLEXITY_KEYS = ("time", "space", "whyTime", "whySpace")
 LABEL_MAX_CHARS = 200
 WHY_MAX_CHARS = 500
 COMPLEXITY_MAX_CHARS = {"time": LABEL_MAX_CHARS, "space": LABEL_MAX_CHARS,
                         "whyTime": WHY_MAX_CHARS, "whySpace": WHY_MAX_CHARS}
-RECOGNITION_KEYS = ("picked", "at")
-PICKED_MAX_CHARS = LABEL_MAX_CHARS
-ISO_UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$")
 
 
 class AttemptError(Exception):
@@ -100,7 +95,6 @@ class AttemptHeader:
     tests: str | None
     saved_at: str
     complexity: dict[str, str] | None = None
-    recognition: dict[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -137,9 +131,7 @@ def parse_header(text: str, *, is_coached: bool = False) -> AttemptHeader:
     if tests is not None and not (isinstance(tests, str) and TESTS_FIELD.match(tests)):
         raise AttemptError(f"tests {tests!r} is not '<passed>/<total>'")
     complexity = parse_complexity(raw.get("complexity"), raw["complete"])
-    recognition = parse_recognition(raw.get("recognition"))
-    header = AttemptHeader(raw["complete"], rating, tests, str(raw.get("savedAt") or ""), complexity,
-                           recognition=recognition)
+    header = AttemptHeader(raw["complete"], rating, tests, str(raw.get("savedAt") or ""), complexity)
     if header.complete:
         require_complete_fields(header, is_coached=is_coached)
     return header
@@ -162,27 +154,6 @@ def parse_complexity(raw: object, is_complete: bool) -> dict[str, str] | None:
         if raw[key] not in export_bigo.COMPLEXITY_POOL:
             raise AttemptError(f"complexity.{key} {raw[key]!r} is not a known complexity label")
     return {key: raw[key] for key in COMPLEXITY_KEYS}
-
-
-def parse_recognition(raw: object) -> dict[str, str] | None:
-    """The validated `recognition` pick of any header; None when the key is absent.
-    Raises AttemptError naming the offending field."""
-    if raw is None:
-        return None
-    if not isinstance(raw, dict) or set(raw) != set(RECOGNITION_KEYS):
-        raise AttemptError(f"`recognition` needs exactly {list(RECOGNITION_KEYS)}")
-    picked, at = raw["picked"], raw["at"]
-    if not isinstance(picked, str) or not picked.strip():
-        raise AttemptError("recognition.picked must be a non-empty string")
-    if len(picked) > PICKED_MAX_CHARS:
-        raise AttemptError(f"recognition.picked is over {PICKED_MAX_CHARS} characters")
-    if not isinstance(at, str) or not ISO_UTC.match(at):
-        raise AttemptError("recognition.at must be an ISO UTC timestamp ending in Z")
-    try:
-        datetime.fromisoformat(at.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise AttemptError(f"recognition.at {at!r} is not a real timestamp") from exc
-    return {"picked": picked, "at": at}
 
 
 def require_complete_fields(header: AttemptHeader, *, is_coached: bool = False) -> None:
@@ -278,17 +249,6 @@ def extract_method(code: str) -> Method:
     while body and not body[-1].strip():
         body.pop()
     return Method(node.name, tuple(lines[node.lineno - 1:colon_row]), tuple(body))
-
-
-def has_top_comment(body_lines: tuple[str, ...]) -> bool:
-    """True when the first non-blank line of the method body is a comment (the recognition call)."""
-    first = next((ln for ln in body_lines if ln.strip()), "")
-    return first.lstrip().startswith("#")
-
-
-def has_recognition(header: AttemptHeader, body_lines: tuple[str, ...]) -> bool:
-    """True when the attempt carries a recognition call: a header pick or a top-of-body comment."""
-    return header.recognition is not None or has_top_comment(body_lines)
 
 
 def dated_head(head_lines: tuple[str, ...], name: str, stamp: str) -> list[str]:
@@ -457,11 +417,8 @@ class FoldReport:
     title: str = ""
     rating: str = ""
     iso: str = ""
-    has_recognition: bool = True
     queue_rows: tuple[str, ...] = ()
     scaffold_note: str = ""
-    picked: str = ""
-    pick_grade: recognition_grade.PickGrade | None = None
 
 
 def humanized(name: str) -> str:
@@ -560,21 +517,9 @@ def fold_file(repo: Path, attempt_path: Path, reference_url: str = "", *, is_coa
         removed = remove_problem_files(inbox, number, date)
         solution = src.resolve()
     lines = [tracker_line(number, header.rating or "", iso), *verdict]
-    recognized = has_recognition(header, method.body_lines)
-    picked, pick_grade = "", None
-    if header.recognition is not None:
-        picked = header.recognition["picked"]
-        pick_grade = recognition_grade.grade_pick(
-            picked, number, solution.parent.name,
-            *recognition_grade.load_declarations(repo / "curriculum/dsa/techniques.yml",
-                                                 repo / MASTERY_DIR / "techniques.yml"))
-        lines.append(f"recognition: pick {pick_grade.result} ({pick_grade.basis})")
-    if not recognized:
-        lines.append("recognition: missing")
     queue_rows = tuple(ln[len(QUEUE_PREFIX):] for ln in verdict if ln.startswith(QUEUE_PREFIX))
     return FoldReport(solution, removed, tuple(lines), tuple(warnings + renames), number, title,
-                      header.rating or "", iso, recognized, queue_rows, scaffold_note,
-                      picked=picked, pick_grade=pick_grade)
+                      header.rating or "", iso, queue_rows, scaffold_note)
 
 
 @contextlib.contextmanager
@@ -630,8 +575,7 @@ def apply_record(repo: Path, report: FoldReport) -> list[str]:
         import fold_record
         import update_review_dates
         day = datetime.strptime(report.iso, "%Y-%m-%d").date()
-        tracker, complexity, recognition = (read_doc(repo / rel) for rel in
-                                            (TRACKER_FILE, COMPLEXITY_FILE, RECOGNITION_FILE))
+        tracker, complexity = (read_doc(repo / rel) for rel in (TRACKER_FILE, COMPLEXITY_FILE))
         schedule_path = effort_budget.find_schedule(day)
         schedule = read_doc(schedule_path) if schedule_path else None
         week_start = datetime.strptime(schedule_path.name[:8], "%Y%m%d").date() if schedule else None
@@ -639,13 +583,12 @@ def apply_record(repo: Path, report: FoldReport) -> list[str]:
         pricing_config = effort_budget.load_config()
         inputs = fold_record.RecordInputs(
             tracker.text, schedule.text if schedule else None, week_start, complexity.text,
-            recognition.text, fold_record.schedule_cell(link_line, report.title),
+            fold_record.schedule_cell(link_line, report.title),
             update_review_dates.load_holds(), update_review_dates.CONFIG, pricing_config)
         out = fold_record.record_rep(inputs, rep_input(report))
         forward = forward_schedule(out, report.number, schedule_path, pricing_config)
     write_doc(tracker, out.tracker)
     write_doc(complexity, out.complexity)
-    write_doc(recognition, out.recognition)
     if schedule is not None:
         write_doc(schedule, out.schedule)
     if forward is not None:
@@ -663,9 +606,8 @@ def rep_input(report: FoldReport):
     url = (update_review_dates.extract_url_from_source(report.solution)
            or links.SITE_PRACTICE_URL_TEMPLATE.format(number=report.number))
     return fold_record.RepInput(report.number, report.title[len(report.number) + 1:], report.iso,
-                                report.rating, RATING_EMOJI[report.rating], report.has_recognition,
-                                report.queue_rows, difficulty, url,
-                                picked=report.picked, pick=report.pick_grade)
+                                report.rating,
+                                report.queue_rows, difficulty, url)
 
 
 def fold_item_errors() -> tuple[type[Exception], ...]:
@@ -692,7 +634,7 @@ def item_paths(repo: Path, item: InboxFile, listing: tuple[InboxFile, ...]) -> t
         stash = repo / new_problem.history_dir() / f"{solution.stem}.txt"
         inbox = [f.path for f in listing if f.number == item.number and f.date <= item.date]
         schedules = {effort_budget.find_schedule(day), *effort_budget.SCHEDULES.glob("*_schedule.md")}
-        ledgers = [repo / rel for rel in (TRACKER_FILE, COMPLEXITY_FILE, RECOGNITION_FILE)]
+        ledgers = [repo / rel for rel in (TRACKER_FILE, COMPLEXITY_FILE)]
         week_files = sorted((p for p in schedules if p is not None), key=str)
         return tuple(dict.fromkeys((*inbox, solution, stash, *ledgers, *week_files)))
 
