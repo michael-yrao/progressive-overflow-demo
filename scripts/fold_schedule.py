@@ -23,6 +23,9 @@ ARROW_PREFIX = re.compile(r"^\s*([←→])?\s*")
 UNITS_WORD = "units"
 PLANNED_PIN = " · planned {figure:.1f} units"
 NO_BLOCK = "schedule: no block for {iso}"
+PROVISIONAL_GLYPH = "❔"
+END_CELL_INDEX = 2
+NEXT_CELL_INDEX = 3
 
 
 @dataclass(frozen=True)
@@ -118,6 +121,27 @@ def find_live_row(text: str, week_start: dt.date, number: str, today: dt.date) -
     live = [r for r in rows_for(lines, day_headers(lines, week_start), number) if r.is_live]
     live.sort(key=lambda r: (r.day != today, abs((r.day - today).days)))
     return live[0] if live else None
+
+
+def find_provisional_row(text: str, week_start: dt.date, number: str, day: dt.date) -> Row | None:
+    """The struck row of `number` on `day` whose End cell is the provisional glyph, else None."""
+    lines = text.split("\n")
+    headers = day_headers(lines, week_start)
+    if day not in headers:
+        return None
+    return next((r for r in rows_for(lines, {day: headers[day]}, number)
+                 if r.is_struck and r.cells[END_CELL_INDEX].strip() == PROVISIONAL_GLYPH), None)
+
+
+def settle_schedule(text: str, week_start: dt.date, today: dt.date, facts: RepFacts) -> Placement:
+    """Swap the provisional End glyph of `today`'s struck row for `facts.end_glyph`; set Next."""
+    row = find_provisional_row(text, week_start, facts.number, today)
+    if row is None:
+        return Placement(text, (), f"schedule: no {PROVISIONAL_GLYPH} row for {facts.number} on {today.isoformat()}")
+    cells = list(row.cells)
+    cells[END_CELL_INDEX], cells[NEXT_CELL_INDEX] = f" {facts.end_glyph} ", f" {facts.next_iso} "
+    lines = replace_at(text.split("\n"), row.index, row_line(tuple(cells)))
+    return Placement("\n".join(lines), (today,), f"schedule: settled {facts.number} on {today.isoformat()}")
 
 
 def cell_content(cell: str) -> str:

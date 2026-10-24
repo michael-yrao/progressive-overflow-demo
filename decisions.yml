@@ -1710,3 +1710,19 @@ decisions:
       --check`, then `gamify.py --date` and a `git diff --exit-code` over the starter outputs.
       `totals.solutions` is dropped from gamify and the schema. No `cse.config.yml` value changed.
     affects: [techniques, curriculum, sync, dashboard, demo, ci]
+
+  - id: site-recognition-removed-oct23
+    date: 2026-10-23
+    summary: >-
+      SUPERSEDES the clause of `practice-site-reps-oct18` that logs a missing top-of-method
+      comment as a recognition miss, the "recognition-miss entry" of
+      `practice-site-fold-action-oct19`, and the site technique picker with its graded pick
+      (site `2d5fc84`, cse-progress `93d0a29`). The practice editor no longer locks. The attempt
+      header has no `recognition` field: the Worker rejects one and the fold ignores a legacy
+      one. The fold writes nothing to `recognition_gotchas.md`, which the coach keeps by hand.
+      `recognition_grade.py` is deleted. Recognition is measured by probes, Pattern Sense and the
+      coached in-chat gate. Learner, Oct 23: "I personally like to type out my thoughts as I
+      write" and "we don't need a hit or a miss for recognition ledger, it doesn't feel valuable
+      and it is not genuine". Same reason as `recognition-block-removed-from-scaffold` (Aug 22).
+      No `cse.config.yml` value changed.
+    affects: [recognition, practice, review-workflow]

@@ -32,6 +32,7 @@ POINTER = f"{fold_attempt.new_problem.POINTER_PREFIX} in x — restored at sessi
 ATTEMPT_BODY = "        # one number in, one out\n        return n + 1\n"
 COMPLEXITY = {"time": "O(n)", "space": "O(1)", "whyTime": "one pass", "whySpace": "no extra storage"}
 BIGO_YML = "schemaVersion: 1\nentries:\n  - lc: 7\n    time: O(n)\n    space: O(1)\n"
+SCHEDULE_LINK = "[7 Demo Problem](../../../dsa/leetcode/demo/7_demo_problem.py)"
 
 
 def header(**fields) -> str:
@@ -79,6 +80,9 @@ class FoldAttemptTests(unittest.TestCase):
             ("complete, no complexity", attempt_text(complexity=None), False, "needs exactly"),
             ("complete, unknown label", attempt_text(complexity={**COMPLEXITY, "time": "O(banana)"}), False,
              r"complexity\.time .* not a known"),
+            ("provisional", attempt_text(rating=None, complexity=None), False, None),
+            ("provisional, failing tests", attempt_text(rating=None, complexity=None, tests="4/5"), False,
+             "not all passing"),
             ("coached, failing tests", attempt_text(tests="4/5"), True, None),
             ("coached, no complexity", attempt_text(tests="4/5", complexity=None), True, "needs exactly"),
             ("legacy recognition key is ignored",
@@ -205,35 +209,162 @@ class FoldAttemptTests(unittest.TestCase):
             self.assertTrue(path.exists())
             self.assertEqual(self.repo.solution.read_text(encoding="utf-8"), old_in_file)
 
-    def test_apply_writes_tracker_and_schedule(self):
+    def seed_world(self, *, reps: str = "2026-10-10", on_schedule: bool = True,
+                   solution: str | None = None) -> None:
+        """Tracker (CRLF) with row 7 due today, a week file, ledgers, config and a solution file."""
         root = self.repo.root
-        row_in = "| Easy | [7. Demo Problem](https://leetcode.com/problems/demo/) | 🟡 | 0 | 2026-10-18 | 2026-10-10 | 2026-10-10 |"
-        row_out = "| Easy | [7. Demo Problem](https://leetcode.com/problems/demo/) | 🟢 | 1 | 2026-11-17 | 2026-10-18 | 2026-10-10, 2026-10-18 |"
-        link = "[7 Demo Problem](../../../dsa/leetcode/demo/7_demo_problem.py)"
-        mastery = root / fold_attempt.MASTERY_DIR
-        schedules = root / "docs/foundations/schedules"
-        tracker = self.repo.write(root / fold_attempt.TRACKER_FILE, "")
-        tracker.write_bytes(f"| Difficulty |\r\n{row_in}\r\n".encode("utf-8"))
-        schedule = self.repo.write(
-            schedules / "20261012_schedule.md",
-            f"| ▸ **Sun Oct 18** · ~1.0 units — x |  |  |  |  |\n| {link} | 🟡 |  |  | Demo |\n")
-        self.repo.write(mastery / "complexity_gotchas.md", "")
+        row = (f"| Easy | [7. Demo Problem](https://leetcode.com/problems/demo/) | 🟡 | 0 | {ISO} | "
+               f"2026-10-10 | {reps} |")
+        self.tracker = self.repo.write(root / fold_attempt.TRACKER_FILE, "")
+        self.tracker.write_bytes(f"| Difficulty |\r\n{row}\r\n".encode("utf-8"))
+        self.schedules = root / "docs/foundations/schedules"
+        row_7 = f"| {SCHEDULE_LINK} | 🟡 |  |  | Demo |\n" if on_schedule else ""
+        self.schedule = self.repo.write(
+            self.schedules / "20261012_schedule.md",
+            f"| ▸ **Sun Oct 18** · ~1.0 units — x |  |  |  |  |\n{row_7}")
+        self.repo.write(root / fold_attempt.MASTERY_DIR / "complexity_gotchas.md", "")
         self.repo.write(root / "cse.config.yml", "effort_budget: {}\n")
-        self.repo.write(self.repo.solution, f"{HEAD}\n\nclass Solution:\n\n{OLD_METHOD}")
-        path = self.repo.inbox(DATE, attempt_text())
-        config = {"clean_streak1": 30, "graduate_at_streak": 3}
+        self.repo.write(self.repo.solution, solution or f"{HEAD}\n\nclass Solution:\n\n{OLD_METHOD}")
+
+    def run_in_world(self, *argv: str) -> tuple[int, str, str]:
+        """`fold_attempt.main(argv)` (or `fold_all` when no argv) against the seeded world."""
+        root = self.repo.root
+        out, err = io.StringIO(), io.StringIO()
         with (mock.patch.object(fold_attempt, "REPO", root),
-              mock.patch.object(effort_budget, "SCHEDULES", schedules),
+              mock.patch.object(effort_budget, "SCHEDULES", self.schedules),
               mock.patch.object(effort_budget, "CONFIG", root / "cse.config.yml"),
               mock.patch.object(links, "schedule_link_line", return_value=None),
-              mock.patch.dict(update_review_dates.CONFIG, config),
-              contextlib.redirect_stdout(io.StringIO()) as out):
-            self.assertEqual(fold_attempt.main(["--apply", str(path)]), 0)
-        self.assertIn(f"applied: schedule: struck 7 on {ISO}", out.getvalue())
-        tracker_lines = tracker.read_bytes().decode("utf-8").split("\r\n")
-        self.assertEqual(tracker_lines, ["| Difficulty |", row_out, ""])
-        struck = f"| ~~{link}~~ | 🟡 | 🟢 | 2026-11-17 | Demo |"
-        self.assertEqual(schedule.read_text(encoding="utf-8").split("\n")[1], struck)
+              mock.patch.dict(update_review_dates.CONFIG, {"clean_streak1": 30, "graduate_at_streak": 3}),
+              contextlib.redirect_stdout(out), contextlib.redirect_stderr(err)):
+            code = fold_attempt.main(list(argv)) if argv else fold_attempt.fold_all()
+        return code, out.getvalue(), err.getvalue()
+
+    def world_lines(self) -> tuple[str, str, str]:
+        """(tracker row 7, schedule row 7, solution text) as they stand."""
+        tracker = self.tracker.read_bytes().decode("utf-8").split("\r\n")[1]
+        rows = [ln for ln in self.schedule.read_text(encoding="utf-8").split("\n") if "7 Demo Problem" in ln]
+        return tracker, rows[0] if rows else "", self.repo.solution.read_text(encoding="utf-8")
+
+    def test_site_rep_scenarios(self):
+        provisional = attempt_text(rating=None, complexity=None).replace("return n + 1", "return n + 2")
+        malformed = attempt_text().replace("class Solution:", "def helper():\n    pass\n\nclass Solution:")
+        settle_args = ("--settle", "7", ISO, "--rating", "clean", "--complexity", json.dumps(COMPLEXITY))
+        struck = f"| ~~{SCHEDULE_LINK}~~ | 🟡 | {{end}} | {{next}} | Demo |"
+        logged = f" 🟡 | 0 | {ISO} | {ISO} | 2026-10-10, {ISO} |"
+        rated = f" 🟢 | 1 | 2026-11-17 | {ISO} | 2026-10-10, {ISO} |"
+        coached_source = f"{HEAD}\n\nclass Solution:\n\n{BANNER}\n    def demo_{DATE}(self, n):\n{ATTEMPT_BODY}\n{OLD_METHOD}"
+
+        def refused_path() -> Path:
+            return self.repo.root / fold_attempt.INBOX / DATE / fold_attempt.REFUSED_FILE
+
+        def s1():
+            self.repo.inbox(DATE, attempt_text())
+            _, out, _ = self.run_in_world()
+            row, sched, _ = self.world_lines()
+            self.assertIn(f"folded: 7 🟢 {ISO}", out)
+            self.assertTrue(row.endswith(rated))
+            self.assertEqual(sched, struck.format(end="🟢", next="2026-11-17"))
+            self.assertIn(b"\r\n", self.tracker.read_bytes())
+
+        def s2():
+            self.repo.inbox(DATE, provisional)
+            _, out, _ = self.run_in_world()
+            row, sched, _ = self.world_lines()
+            self.assertIn(f"folded: 7 ❔ {ISO}", out)
+            self.assertTrue(row.endswith(logged))
+            self.assertEqual(sched, struck.format(end="❔", next=""))
+
+        def provisional_then_rated():
+            self.repo.inbox(DATE, provisional)
+            self.run_in_world()
+            self.repo.inbox(DATE, attempt_text())
+            _, out, _ = self.run_in_world()
+            row, sched, solution = self.world_lines()
+            self.assertIn(f"folded: 7 🟢 {ISO}", out)
+            self.assertTrue(row.endswith(rated))
+            self.assertEqual(sched, struck.format(end="🟢", next="2026-11-17"))
+            self.assertEqual(solution.count(f"def demo_{DATE}("), 1)
+            self.assertIn("return n + 1", solution)
+            self.assertNotIn("return n + 2", solution)
+
+        def settle_cli():
+            self.repo.inbox(DATE, provisional)
+            self.run_in_world()
+            code, _, _ = self.run_in_world(*settle_args)
+            row, sched, solution = self.world_lines()
+            self.assertEqual(code, 0)
+            self.assertTrue(row.endswith(rated))
+            self.assertEqual(sched, struck.format(end="🟢", next="2026-11-17"))
+            self.assertIn("return n + 2", solution)
+
+        def settle_without_provisional():
+            code, _, err = self.run_in_world(*settle_args)
+            self.assertEqual(code, 1)
+            self.assertIn(f"no ❔ rep for 7 on {ISO}", err)
+
+        def newer_in_progress_does_not_shadow():
+            self.repo.inbox(DATE, attempt_text())
+            newer = self.repo.inbox("20261019", attempt_text(complete=False, rating=None, tests=None))
+            _, out, _ = self.run_in_world()
+            self.assertIn(f"folded: 7 🟢 {ISO}", out)
+            self.assertTrue(newer.exists())
+
+        def duplicate_of_coach_logged_rep():
+            self.seed_world(reps=f"2026-10-10, {ISO}", solution=coached_source)
+            inbox = self.repo.inbox(DATE, attempt_text())
+            before = self.world_lines()
+            _, out, err = self.run_in_world()
+            self.assertIn(f"duplicate: 7 {ISO}", out)
+            self.assertNotIn("refused", err)
+            self.assertFalse(inbox.exists())
+            self.assertFalse(refused_path().exists())
+            self.assertEqual(self.world_lines(), before)
+
+        def duplicate_of_provisional_rep():
+            self.repo.inbox(DATE, provisional)
+            self.run_in_world()
+            inbox = self.repo.inbox(DATE, provisional)
+            before = self.world_lines()
+            _, out, err = self.run_in_world()
+            self.assertIn(f"duplicate: 7 {ISO}", out)
+            self.assertNotIn("refused", err)
+            self.assertFalse(inbox.exists())
+            self.assertEqual(self.world_lines(), before)
+
+        def refusal_reaches_refused_json():
+            bad = self.repo.inbox(DATE, malformed)
+            _, _, err = self.run_in_world()
+            entries = json.loads(refused_path().read_text(encoding="utf-8"))
+            self.assertEqual([e["number"] for e in entries], [7])
+            self.assertIn(entries[0]["reason"], err)
+            self.repo.inbox(DATE, attempt_text())
+            self.run_in_world()
+            self.assertFalse(bad.exists())
+            self.assertFalse(refused_path().exists())
+
+        def not_on_schedule_is_appended():
+            self.seed_world(on_schedule=False)
+            self.repo.inbox(DATE, attempt_text())
+            _, _, err = self.run_in_world()
+            row, sched, _ = self.world_lines()
+            self.assertIn(f"schedule: appended 7 to {ISO}", err)
+            self.assertTrue(row.endswith(rated))
+            self.assertIn("🟢", sched)
+
+        cases = [("S1 complete", s1), ("S2 provisional", s2),
+                 ("provisional then rated settles", provisional_then_rated),
+                 ("--settle CLI settles a provisional rep", settle_cli),
+                 ("--settle CLI refuses without one", settle_without_provisional),
+                 ("S3/S4 newer in-progress does not shadow", newer_in_progress_does_not_shadow),
+                 ("S5 duplicate of a coach-logged rep", duplicate_of_coach_logged_rep),
+                 ("S6 duplicate of a provisional rep", duplicate_of_provisional_rep),
+                 ("S7 refusal reaches refused.json, success clears it", refusal_reaches_refused_json),
+                 ("S12 not on the schedule is appended", not_on_schedule_is_appended)]
+        for label, scenario in cases:
+            with self.subTest(label):
+                self.setUp()
+                self.seed_world()
+                scenario()
 
     def test_scaffold_text(self):
         root = Path("solutions")

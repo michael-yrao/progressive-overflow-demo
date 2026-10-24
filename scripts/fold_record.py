@@ -14,8 +14,9 @@ from dataclasses import dataclass
 
 import effort_budget as eb
 import update_review_dates as urd
-from fold_schedule import (Placement, RepFacts, apply_schedule, find_live_row,  # noqa: F401
-                           replace_at, reprice_days, seat_next_review, strike_schedule_row)
+from fold_schedule import (PROVISIONAL_GLYPH, Placement, RepFacts, apply_schedule,  # noqa: F401
+                           find_live_row, find_provisional_row, replace_at, reprice_days,
+                           seat_next_review, settle_schedule, strike_schedule_row)
 
 ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 VARIANT = re.compile(r"\(([^()]*)\)\s*$")
@@ -28,6 +29,7 @@ UNSEEN_COMFORT = urd.COMFORT_BLANK
 UNSEEN_STREAK = 0
 DEFAULT_DIFFICULTY = "Medium"
 TABLE_SEPARATOR_PREFIX = "|---"
+UNRATED_NEEDS_ROW = "marked complete but carries no rating"
 
 
 class RecordError(Exception):
@@ -53,6 +55,8 @@ class RepInput:
     queue_rows: tuple[str, ...]
     difficulty: str = DEFAULT_DIFFICULTY
     url: str = ""
+    is_provisional: bool = False  # rating "": the date is logged, comfort/streak/next stay as they are
+    is_settle: bool = False  # rates a rep whose date is already logged (End glyph PROVISIONAL_GLYPH)
 
 
 @dataclass(frozen=True)
@@ -141,10 +145,12 @@ def held_next(title: str, next_iso: str, holds: dict) -> str:
                            {title: holds[title]})[0]["next_review"]
 
 
-def row_outcome(match: re.Match, rating: str, iso: str, config: dict, holds: dict) -> Outcome:
-    """The row's state after the rep; an already-recorded `iso` leaves the row as it is."""
+def row_outcome(match: re.Match, rating: str, iso: str, config: dict, holds: dict,
+                is_settle: bool = False) -> Outcome:
+    """The row's state after the rep; an already-recorded `iso` leaves the row as it is, unless
+    the rep settles that very date (its rating is what is still owed)."""
     comfort, streak = match["comfort"], int(match["streak"])
-    if iso in ISO_DATE.findall(match["attempts"]):
+    if not is_settle and iso in ISO_DATE.findall(match["attempts"]):
         return Outcome(comfort, streak, match["next"].strip(), comfort, True, False)
     new_comfort, new_streak = next_state(comfort, streak, rating, config["graduate_at_streak"])
     next_iso = held_next(match["problem"].strip(), ladder_due(new_comfort, new_streak, iso), holds)
@@ -182,19 +188,41 @@ def insert_tracker_row(text: str, row_line: str) -> str:
 
 
 def apply_tracker_row(text: str, row_index: int, rating: str, iso: str, config: dict,
-                      holds: dict | None = None) -> str:
-    """The tracker with row `row_index` advanced one rep; the same text when `iso` is already in it."""
+                      holds: dict | None = None, is_settle: bool = False) -> str:
+    """The tracker with row `row_index` advanced one rep; the same text when `iso` is already in it.
+    A settling rep advances the ladder but leaves Reps and Latest Rep Date as the logged rep set them."""
     lines = text.split("\n")
     match = urd.ROW_RE.match(lines[row_index])
     if match is None:
         raise RecordError(f"tracker line {row_index + 1} is not a review row")
-    outcome = row_outcome(match, rating, iso, config, holds or {})
+    outcome = row_outcome(match, rating, iso, config, holds or {}, is_settle)
     if outcome.is_duplicate:
+        return text
+    if is_settle:
+        attempts, latest = match["attempts"].strip(), match["latest"].strip()
+    else:
+        attempts = f"{match['attempts']}, {iso}" if match["attempts"].strip() else iso
+        latest = iso
+    row = urd.build_row({
+        "difficulty": match["difficulty"], "problem": match["problem"], "url": match["url"],
+        "comfort": outcome.comfort, "streak": outcome.streak, "next_review": outcome.next_iso,
+        "latest_attempt_date": latest, "attempts": attempts})
+    return "\n".join(replace_at(lines, row_index, row))
+
+
+def log_unrated_row(text: str, row_index: int, iso: str) -> str:
+    """The tracker with `iso` added to row `row_index`'s Reps and Latest Rep Date; comfort, streak
+    and next review untouched. The same text when `iso` is already in it."""
+    lines = text.split("\n")
+    match = urd.ROW_RE.match(lines[row_index])
+    if match is None:
+        raise RecordError(f"tracker line {row_index + 1} is not a review row")
+    if iso in ISO_DATE.findall(match["attempts"]):
         return text
     attempts = f"{match['attempts']}, {iso}" if match["attempts"].strip() else iso
     row = urd.build_row({
         "difficulty": match["difficulty"], "problem": match["problem"], "url": match["url"],
-        "comfort": outcome.comfort, "streak": outcome.streak, "next_review": outcome.next_iso,
+        "comfort": match["comfort"], "streak": int(match["streak"]), "next_review": match["next"].strip(),
         "latest_attempt_date": iso, "attempts": attempts})
     return "\n".join(replace_at(lines, row_index, row))
 
@@ -240,10 +268,13 @@ def record_schedule(inputs: RecordInputs, rep: RepInput, outcome: Outcome, start
     if inputs.schedule is None or inputs.week_start is None:
         return inputs.schedule, [f"schedule: no block for {rep.iso}"]
     cell = add_variant(inputs.base_cell, variant)
-    facts = RepFacts(rep.number, outcome.comfort, outcome.next_iso, cell, start_before, technique)
-    placed = apply_schedule(inputs.schedule, inputs.week_start, dt.date.fromisoformat(rep.iso), facts)
-    seated = seat_next_review(placed.text, inputs.week_start, outcome.next_iso, rep.number, cell,
-                              start_cell(outcome.comfort, outcome.streak), technique)
+    end_glyph = PROVISIONAL_GLYPH if rep.is_provisional else outcome.comfort
+    facts = RepFacts(rep.number, end_glyph, outcome.next_iso, cell, start_before, technique)
+    place = settle_schedule if rep.is_settle else apply_schedule
+    placed = place(inputs.schedule, inputs.week_start, dt.date.fromisoformat(rep.iso), facts)
+    seated = (seat_next_review(placed.text, inputs.week_start, outcome.next_iso, rep.number, cell,
+                               start_cell(outcome.comfort, outcome.streak), technique)
+              if outcome.next_iso else placed.text)
     notes, touched = [placed.note], placed.touched
     if seated != placed.text:
         notes.append(f"schedule: seated {rep.number} on {outcome.next_iso}")
@@ -269,10 +300,13 @@ class RepStep:
 def record_tracker_and_schedule(inputs: RecordInputs, rep: RepInput) -> RepStep:
     """The tracker and schedule texts after the rep, with the report lines."""
     day = dt.date.fromisoformat(rep.iso)
-    live = (find_live_row(inputs.schedule, inputs.week_start, rep.number, day)
+    find_row = find_provisional_row if rep.is_settle else find_live_row
+    live = (find_row(inputs.schedule, inputs.week_start, rep.number, day)
             if inputs.schedule is not None and inputs.week_start is not None else None)
     found_technique = live.cells[4].strip() if live else None
     index = choose_tracker_row(inputs.tracker, rep.number, live.cells[0] if live else None, rep.iso)
+    if index is None and rep.is_provisional:
+        raise RecordError(UNRATED_NEEDS_ROW)
     edit = mint_row(inputs, rep) if index is None else advance_row(inputs, rep, index)
     technique = found_technique or edit.variant
     schedule, notes = record_schedule(
@@ -285,13 +319,27 @@ def record_tracker_and_schedule(inputs: RecordInputs, rep: RepInput) -> RepStep:
 def advance_row(inputs: RecordInputs, rep: RepInput, index: int) -> TrackerEdit:
     """The tracker with its existing row `index` advanced one rep."""
     match = urd.ROW_RE.match(inputs.tracker.split("\n")[index])
-    outcome = row_outcome(match, rep.rating, rep.iso, inputs.config, inputs.holds)
-    tracker = apply_tracker_row(inputs.tracker, index, rep.rating, rep.iso, inputs.config, inputs.holds)
+    if rep.is_provisional:
+        return unrated_edit(inputs, rep, index, match)
+    outcome = row_outcome(match, rep.rating, rep.iso, inputs.config, inputs.holds, rep.is_settle)
+    tracker = apply_tracker_row(inputs.tracker, index, rep.rating, rep.iso, inputs.config,
+                                inputs.holds, rep.is_settle)
     lines = [tracker_note(rep, outcome)]
     if outcome.is_retirement_candidate:
         lines.append(f"retirement candidate {rep.number} (manual)")
     return TrackerEdit(tracker, outcome, row_variant(match["problem"]),
                        start_cell(match["comfort"], int(match["streak"])), tuple(lines))
+
+
+def unrated_edit(inputs: RecordInputs, rep: RepInput, index: int, match: re.Match) -> TrackerEdit:
+    """The tracker with the unrated rep's date logged on row `index`; comfort, streak and next stay.
+    Its Outcome carries no next review, so nothing is seated."""
+    comfort, streak = match["comfort"], int(match["streak"])
+    outcome = Outcome(comfort, streak, "", comfort, False, False)
+    note = (f"tracker {rep.number}: rep {rep.iso} logged unrated; {comfort} streak {streak} "
+            f"and next review unchanged")
+    return TrackerEdit(log_unrated_row(inputs.tracker, index, rep.iso), outcome,
+                       row_variant(match["problem"]), start_cell(comfort, streak), (note,))
 
 
 def mint_row(inputs: RecordInputs, rep: RepInput) -> TrackerEdit:

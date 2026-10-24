@@ -55,7 +55,7 @@ Every declared technique gets a row, started or not — a not-started row's Gaps
 | Binary Search (exact match) | binary_search | core | 2 (1+1) | 2 (33, 704) | 🟢 | ✅ | — | — |
 | Binary Search (max boundary) | binary_search | core | 2 (2+0) | 1 (74) | 🟢 | ✅ | — | thin (1/2) |
 | Binary Search (min boundary) | binary_search | core | 4 (4+0) | 3 (153, 875, 1011) | 🎓 | ✅ | — | thin (3/4) |
-| Binary Search on Answer | binary_search | core | 2 (2+0) | 2 (875, 1011) | 🟢 | ✅ | — | — |
+| Binary Search on Answer | binary_search | core | 2 (2+0) | 2 (875, 1011) | 🎓 | ✅ | — | — |
 | Bit Manipulation | bit_manipulation | core | 3 (3+0) | 0 (—) | — | ❌ | — | *not started* |
 | Design (composed data structures) | design | core | 2 (2+0) | 0 (—) | — | ❌ | — | *not started* |
 | 1D Dynamic Programming | dynamic_programming | dp | 5 (5+0) | 0 (—) | — | ❌ | — | *not started* |
@@ -142,7 +142,7 @@ Every declared technique gets a row, started or not — a not-started row's Gaps
 | Tree DFS with Postorder Return | trees | core | 1 (1+0) | 1 (124) | 🟢 | ✅ | — | — |
 | Trie | tries | core | 3 (3+0) | 1 (648) | 🎓 | ✅ | — | thin (1/3) |
 | Dutch National Flag | two_pointers | core | 1 (1+0) | 0 (—) | — | ❌ | — | *not started* |
-| Fast/Slow In-Place Write | two_pointers | core | 2 (2+0) | 1 (283) | 🟢 | ✅ | — | thin (1/2) |
+| Fast/Slow In-Place Write | two_pointers | core | 2 (2+0) | 1 (283) | 🎓 | ✅ | — | thin (1/2) |
 | Prefix/Suffix Max | two_pointers | core | 1 (1+0) | 0 (—) | — | ❌ | **Array ×0** · **Two Pointer ×0** | *not started* |
 | Two Pointers (converging) | two_pointers | core | 5 (4+1) | 2 (125, 167) | 🟢 | ✅ | — | thin (2/5) |
 

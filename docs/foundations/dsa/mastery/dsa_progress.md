@@ -36,19 +36,16 @@ Notes for the coach / future agents:
 - Replace the example row below with your own once you log your first problem.
 -->
 
-> **56+3** problems &nbsp;·&nbsp; **216+3** reps
+> **56+3** problems &nbsp;·&nbsp; **219+3** reps
 
 | | 🏆 Retired | 🎓 Graduated | 🟢 Clean | 🟡 Shaky | 🔴 Blank |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| **Solutions** | 2 | 12 | 38 | 6 | 0 |
+| **Solutions** | 2 | 14 | 36 | 6 | 0 |
 
 | Difficulty | Problem | Comfort | Streak | Next Review Date | Latest Rep Date | Rep Dates |
 |---|---|---|---|---|---|---|
-| Easy | [283. Move Zeroes](https://leetcode.com/problems/move-zeroes/) | 🟢 | 2 | 2026-10-19 | 2026-08-20 | 2026-06-27, 2026-07-08, 2026-07-21, 2026-08-20 |
 | Medium | [19. Remove Nth Node From End of List](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) | 🟡 | 0 | 2026-10-20 | 2026-10-10 | 2026-10-10 |
 | Medium | [33. Search in Rotated Sorted Array](https://leetcode.com/problems/search-in-rotated-sorted-array/) | 🟡 | 0 | 2026-10-20 | 2026-10-10 | 2026-08-18, 2026-08-29, 2026-09-10, 2026-10-10 |
-| Easy | [104. Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) | 🟡 | 0 | 2026-10-23 | 2026-10-13 | 2026-10-13 |
-| Medium | [875. Koko Eating Bananas](https://leetcode.com/problems/koko-eating-bananas/) | 🟢 | 2 | 2026-10-23 | 2026-08-24 | 2026-06-23, 2026-06-30, 2026-07-10, 2026-07-25, 2026-08-24 |
 | Medium | [167. Two Sum II](https://leetcode.com/problems/two-sum-ii/) | 🟢 | 1 | 2026-10-24 | 2026-09-24 | 2026-06-16, 2026-07-19, 2026-08-01, 2026-09-01, 2026-09-16, 2026-09-24 |
 | Medium | [994. Rotting Oranges](https://leetcode.com/problems/rotting-oranges/) | 🟢 | 1 | 2026-10-24 | 2026-09-24 | 2026-06-28, 2026-07-30, 2026-08-09, 2026-09-12, 2026-09-24 |
 | Medium | [155. Min Stack](https://leetcode.com/problems/min-stack/) | 🟢 | 1 | 2026-10-25 | 2026-09-25 | 2026-06-11, 2026-07-11, 2026-09-09, 2026-09-25 |
@@ -60,6 +57,7 @@ Notes for the coach / future agents:
 | Hard | [42. Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) | 🟡 | 0 | 2026-10-30 | 2026-10-20 | 2026-10-14, 2026-10-20 |
 | Easy | [125. Valid Palindrome](https://leetcode.com/problems/valid-palindrome/) | 🟡 | 0 | 2026-10-30 | 2026-10-20 | 2026-07-22, 2026-08-21, 2026-08-31, 2026-09-10, 2026-09-26, 2026-10-06, 2026-10-18, 2026-10-20 |
 | Easy | [704. Binary Search](https://leetcode.com/problems/binary-search/) | 🟢 | 1 | 2026-10-30 | 2026-09-30 | 2026-06-14, 2026-07-15, 2026-09-20, 2026-09-30 |
+| Easy | [104. Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) | 🟡 | 0 | 2026-11-02 | 2026-10-23 | 2026-10-13, 2026-10-23 |
 | Easy | [21. Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) | 🟢 | 2 | 2026-11-04 | 2026-09-05 | 2026-08-06, 2026-09-05 |
 | Medium | [75. Sort Colors](https://leetcode.com/problems/sort-colors/) | 🟢 | 2 | 2026-11-06 | 2026-09-07 | 2026-08-08, 2026-09-07 |
 | Medium | [739. Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) | 🟢 | 1 | 2026-11-06 | 2026-10-07 | 2026-06-22, 2026-07-22, 2026-09-27, 2026-10-07 |
@@ -100,6 +98,8 @@ Notes for the coach / future agents:
 | Medium | [134. Gas Station](https://leetcode.com/problems/gas-station/) | 🎓 | 3 | 2027-03-30 | 2026-10-01 | 2026-06-29, 2026-07-31, 2026-10-01 |
 | Medium | [417. Pacific Atlantic Water Flow](https://leetcode.com/problems/pacific-atlantic-water-flow/) | 🎓 | 3 | 2027-03-30 | 2026-10-01 | 2026-06-20, 2026-07-03, 2026-08-02, 2026-10-01 |
 | Medium | [648. Replace Words](https://leetcode.com/problems/replace-words/) | 🎓 | 3 | 2027-04-15 | 2026-10-17 | 2026-06-26, 2026-07-07, 2026-07-17, 2026-08-16, 2026-10-17 |
+| Easy | [283. Move Zeroes](https://leetcode.com/problems/move-zeroes/) | 🎓 | 3 | 2027-04-21 | 2026-10-23 | 2026-06-27, 2026-07-08, 2026-07-21, 2026-08-20, 2026-10-23 |
+| Medium | [875. Koko Eating Bananas](https://leetcode.com/problems/koko-eating-bananas/) | 🎓 | 3 | 2027-04-21 | 2026-10-23 | 2026-06-23, 2026-06-30, 2026-07-10, 2026-07-25, 2026-08-24, 2026-10-23 |
 
 ## Knowledge Expansion Queue
 
@@ -107,5 +107,5 @@ Problems for algorithmic depth — not part of the spaced-repetition stats. Thes
 
 ## 🏆 Retired
 
-- 56. Merge Intervals — retired 2026-04-19
-- 347. Top K Frequent Elements — retired 2026-05-23
+- 56. Merge Intervals — retired 2026-04-20
+- 347. Top K Frequent Elements — retired 2026-05-24

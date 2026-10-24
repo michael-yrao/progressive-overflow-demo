@@ -9,6 +9,7 @@ prints what the coach still applies by hand. See decisions.yml `practice-site-re
     python scripts/fold_attempt.py dsa/attempts/20261018/261_graph_valid_tree.py
     python scripts/fold_attempt.py --apply dsa/attempts/20261018/261_graph_valid_tree.py
     python scripts/fold_attempt.py --apply --all                      # every complete inbox entry
+    python scripts/fold_attempt.py --settle 7 2026-10-18 --rating clean --complexity '{"time": ...}'
 
 `--apply` also writes what the coach otherwise applies by hand (tracker row, schedule row, the
 gotchas ledgers; see fold_record.py) and prints each change prefixed `applied: `.
@@ -16,8 +17,18 @@ gotchas ledgers; see fold_record.py) and prints each change prefixed `applied: `
 File contract: line 1 is `# po-attempt: {"complete": bool, "rating": null|"clean"|"shaky"|"blank",
 "tests": "<p>/<t>"|null, "complexity": null|{"time", "space", "whyTime", "whySpace"}, "savedAt": ISO};
 a complete header carries all four complexity strings (time/space from export_bigo's COMPLEXITY_POOL).
+Three forms are valid: in progress (`complete` false, rating and complexity null); complete (a
+rating, every test passing, the full complexity); provisional (`complete` true, rating and
+complexity both null, tests "<t>/<t>" with t >= 1). Any other mix is refused.
 The rest is a `class Solution:` holding one method. The fold judges the stated bounds against
 `dashboard/bigo.yml` and prints the verdict (see decisions.yml `practice-site-complexity-oct19`).
+
+A provisional rep logs its date in the tracker (comfort, streak and next review stay) and strikes
+its schedule row with End `❔`. A later rated fold of the same date, or `--settle`, rates it: the
+ladder runs, `❔` becomes the rating glyph and the next review is seated. A rep whose date is
+already logged and whose dated method is already in the solution file is a duplicate: the inbox
+file is deleted and `duplicate: <n> <iso>` printed. `--apply --all` rewrites
+`dsa/attempts/<YYYYMMDD>/refused.json` ([{number, reason}]) each run from that run's refusals.
 
 The fold puts the method in as `<method>_<YYYYMMDD>` (the inbox folder's date) under the attempt
 banner, newest on top. When the problem has a `.history` stash the result is exactly what
@@ -37,7 +48,7 @@ import sys
 import tokenize
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import yaml
@@ -82,6 +93,11 @@ LABEL_MAX_CHARS = 200
 WHY_MAX_CHARS = 500
 COMPLEXITY_MAX_CHARS = {"time": LABEL_MAX_CHARS, "space": LABEL_MAX_CHARS,
                         "whyTime": WHY_MAX_CHARS, "whySpace": WHY_MAX_CHARS}
+REFUSED_FILE = "refused.json"
+REP_NEW = "new"
+REP_RECORDED = "recorded"
+REP_PROVISIONAL = "provisional"
+NO_PROVISIONAL_REP = "no {glyph} rep for {number} on {iso}"
 
 
 class AttemptError(Exception):
@@ -95,6 +111,11 @@ class AttemptHeader:
     tests: str | None
     saved_at: str
     complexity: dict[str, str] | None = None
+
+    @property
+    def is_provisional(self) -> bool:
+        """Complete but unrated: the rep is logged, its rating and complexity still owed."""
+        return self.complete and self.rating is None and self.complexity is None
 
 
 @dataclass(frozen=True)
@@ -115,7 +136,8 @@ class InboxFile:
 def parse_header(text: str, *, is_coached: bool = False) -> AttemptHeader:
     """The validated header of an attempt file. Raises AttemptError on anything the
     contract forbids. An in-progress header is returned as it is; a complete one must carry
-    a rating and every test passing (a coached one, only a tests count)."""
+    a rating, the full complexity and every test passing (a coached one, only a tests count); a
+    provisional one (rating and complexity both null) must have every test passing, coached or not."""
     first = text.split("\n", 1)[0]
     if not first.startswith(ATTEMPT_PREFIX):
         raise AttemptError(f"first line is not a `{ATTEMPT_PREFIX.strip()}` header")
@@ -130,7 +152,8 @@ def parse_header(text: str, *, is_coached: bool = False) -> AttemptHeader:
         raise AttemptError(f"unknown rating {rating!r}")
     if tests is not None and not (isinstance(tests, str) and TESTS_FIELD.match(tests)):
         raise AttemptError(f"tests {tests!r} is not '<passed>/<total>'")
-    complexity = parse_complexity(raw.get("complexity"), raw["complete"])
+    is_provisional = raw["complete"] and rating is None and raw.get("complexity") is None
+    complexity = None if is_provisional else parse_complexity(raw.get("complexity"), raw["complete"])
     header = AttemptHeader(raw["complete"], rating, tests, str(raw.get("savedAt") or ""), complexity)
     if header.complete:
         require_complete_fields(header, is_coached=is_coached)
@@ -157,13 +180,14 @@ def parse_complexity(raw: object, is_complete: bool) -> dict[str, str] | None:
 
 
 def require_complete_fields(header: AttemptHeader, *, is_coached: bool = False) -> None:
-    """A coached rep already passed the in-chat gates, so only its `passed == total` check is skipped."""
-    if header.rating is None:
+    """A coached rep already passed the in-chat gates, so only its `passed == total` check is skipped
+    (never for a provisional rep: nothing else vouches for it)."""
+    if header.rating is None and not header.is_provisional:
         raise AttemptError("marked complete but carries no rating")
     match = TESTS_FIELD.match(header.tests or "")
     if not match or int(match.group(2)) == 0:
         raise AttemptError(f"marked complete but tests are {header.tests!r}, not all passing")
-    if not is_coached and match.group(1) != match.group(2):
+    if (header.is_provisional or not is_coached) and match.group(1) != match.group(2):
         raise AttemptError(f"marked complete but tests are {header.tests!r}, not all passing")
 
 
@@ -188,6 +212,16 @@ def newest_per_problem(files: list[InboxFile]) -> list[InboxFile]:
     newest: dict[str, InboxFile] = {}
     for item in sorted(files, key=lambda f: f.date):
         newest[item.number] = item
+    return sorted(newest.values(), key=lambda f: int(f.number))
+
+
+def foldable_per_problem(files: list[InboxFile]) -> list[InboxFile]:
+    """The newest file of each problem number that is not in progress (a malformed one counts, so
+    it is refused and reported), ordered by number. A newer in-progress save never shadows it."""
+    newest: dict[str, InboxFile] = {}
+    for item in sorted(files, key=lambda f: f.date):
+        if attempt_status(item.path.read_text(encoding="utf-8")) != STATUS_IN_PROGRESS:
+            newest[item.number] = item
     return sorted(newest.values(), key=lambda f: int(f.number))
 
 
@@ -299,13 +333,20 @@ def fill_stub(lines: list[str], at: int, method: Method) -> list[str]:
     return lines[:stub_head_end(lines, at)] + list(method.body_lines) + lines[end:]
 
 
-def fold_into_source(source: str, attempt: Method, stamp: str, iso: str) -> str:
-    """The solution file text with today's attempt in: a filled empty stub, else a new method."""
+def holds_dated_body(source: str, stamp: str) -> bool:
+    lines = source.split("\n")
+    return find_dated_def(lines, stamp) is not None and restore_history.attempt_has_body(lines, stamp)
+
+
+def fold_into_source(source: str, attempt: Method, stamp: str, iso: str, *,
+                     is_settle: bool = False) -> str:
+    """The solution file text with today's attempt in: a filled empty stub, else a new method.
+    A settling attempt replaces the body of the dated method the provisional rep put in."""
     lines = source.split("\n")
     at = find_dated_def(lines, stamp)
     if at is None:
         merged = insert_method(lines, attempt, stamp, iso)
-    elif restore_history.attempt_has_body(lines, stamp):
+    elif restore_history.attempt_has_body(lines, stamp) and not is_settle:
         raise AttemptError(f"solution file already holds an attempt dated {iso}")
     else:
         merged = fill_stub(lines, at, attempt)
@@ -419,6 +460,9 @@ class FoldReport:
     iso: str = ""
     queue_rows: tuple[str, ...] = ()
     scaffold_note: str = ""
+    is_provisional: bool = False
+    is_settle: bool = False
+    is_duplicate: bool = False
 
 
 def humanized(name: str) -> str:
@@ -505,21 +549,92 @@ def fold_file(repo: Path, attempt_path: Path, reference_url: str = "", *, is_coa
         raise AttemptError("attempt is in progress; it stays in the inbox")
     method = extract_method(text)
     with working_dir(repo):
-        src, scaffold_note = find_solution(number), ""
+        state = rep_state(repo, number, iso)
+        is_settle = state == REP_PROVISIONAL and not header.is_provisional
+        existing = find_solution(number)
+        if (state != REP_NEW and not is_settle and existing is not None
+                and holds_dated_body(existing.read_text(encoding="utf-8"), date)):
+            removed = remove_problem_files(inbox, number, date)
+            return FoldReport(existing.resolve(), removed, (), (), number, "", "", iso, is_duplicate=True)
+        src, scaffold_note = existing, ""
         if src is None:
             src, scaffold_note = create_scaffold(number, name)
         source = src.read_text(encoding="utf-8")
         title = solution_title(source, number, src.resolve().stem)
-        verdict = complexity_lines(title, number, header.complexity, iso, repo / BIGO_MANIFEST,
-                                   url=reference_url)
-        folded = fold_into_source(source, method, date, iso)
+        verdict = [] if header.is_provisional else complexity_lines(
+            title, number, header.complexity, iso, repo / BIGO_MANIFEST, url=reference_url)
+        folded = fold_into_source(source, method, date, iso, is_settle=is_settle)
         warnings, renames = write_merged(src, folded, date)
         removed = remove_problem_files(inbox, number, date)
         solution = src.resolve()
-    lines = [tracker_line(number, header.rating or "", iso), *verdict]
-    queue_rows = tuple(ln[len(QUEUE_PREFIX):] for ln in verdict if ln.startswith(QUEUE_PREFIX))
+    lines = [rep_line(number, header, iso), *verdict]
     return FoldReport(solution, removed, tuple(lines), tuple(warnings + renames), number, title,
-                      header.rating or "", iso, queue_rows, scaffold_note)
+                      header.rating or "", iso, queue_rows_of(verdict), scaffold_note,
+                      header.is_provisional, is_settle)
+
+
+def queue_rows_of(verdict: list[str]) -> tuple[str, ...]:
+    return tuple(ln[len(QUEUE_PREFIX):] for ln in verdict if ln.startswith(QUEUE_PREFIX))
+
+
+def rep_line(number: str, header: AttemptHeader, iso: str) -> str:
+    if header.is_provisional:
+        return (f"tracker row {number}: add {iso} to Rep Dates; Comfort, Streak and Next Review "
+                f"unchanged (rating pending)")
+    return tracker_line(number, header.rating or "", iso)
+
+
+def rep_state(repo: Path, number: str, iso: str) -> str:
+    """Whether rep date `iso` of `number` is already logged: REP_NEW (not in the tracker's Reps),
+    REP_PROVISIONAL (logged, and the schedule row for that day carries the provisional End glyph) or
+    REP_RECORDED. Cwd = the repo; a repo with no tracker holds no reps."""
+    tracker_path = repo / TRACKER_FILE
+    if not tracker_path.is_file():
+        return REP_NEW
+    import effort_budget  # noqa: PLC0415 -- see apply_record
+    import fold_record  # noqa: PLC0415
+    matches = fold_record.tracker_matches(read_doc(tracker_path).text, number)
+    if not any(iso in fold_record.ISO_DATE.findall(m["attempts"]) for _, m in matches):
+        return REP_NEW
+    day = datetime.strptime(iso, "%Y-%m-%d").date()
+    schedule_path = effort_budget.find_schedule(day)
+    if schedule_path is None:
+        return REP_RECORDED
+    week_start = datetime.strptime(schedule_path.name[:8], "%Y%m%d").date()
+    row = fold_record.find_provisional_row(read_doc(schedule_path).text, week_start, number, day)
+    return REP_RECORDED if row is None else REP_PROVISIONAL
+
+
+def settle_rep(repo: Path, number: str, iso: str, rating: str, complexity_json: str,
+               reference_url: str = "") -> FoldReport:
+    """Rate the provisional rep of `number` on `iso` (no inbox file): the report apply_record turns
+    into the ladder step, End glyph swap and next review. Raises AttemptError without such a rep."""
+    try:
+        day = datetime.strptime(iso, "%Y-%m-%d")
+        raw = json.loads(complexity_json)
+    except ValueError as exc:
+        raise AttemptError(f"--settle needs a YYYY-MM-DD date and a JSON complexity ({exc})") from exc
+    complexity, iso = parse_complexity(raw, True), day.strftime("%Y-%m-%d")
+    with working_dir(repo):
+        import fold_record  # noqa: PLC0415 -- see apply_record
+        if rep_state(repo, number, iso) != REP_PROVISIONAL:
+            raise AttemptError(NO_PROVISIONAL_REP.format(
+                glyph=fold_record.PROVISIONAL_GLYPH, number=number, iso=iso))
+        src = find_solution(number)
+        if src is None:
+            raise AttemptError(f"no solution file for {number}")
+        title = solution_title(src.read_text(encoding="utf-8"), number, src.resolve().stem)
+        verdict = complexity_lines(title, number, complexity, iso, repo / BIGO_MANIFEST,
+                                   url=reference_url)
+        solution = src.resolve()
+    return FoldReport(solution, (), (tracker_line(number, rating, iso), *verdict), (), number, title,
+                      rating, iso, queue_rows_of(verdict), is_settle=True)
+
+
+def folded_glyph(report: FoldReport) -> str:
+    """The glyph of a `folded:` line: the rating emoji, or the provisional glyph of an unrated rep."""
+    import fold_record  # noqa: PLC0415 -- see apply_record
+    return fold_record.PROVISIONAL_GLYPH if report.is_provisional else RATING_EMOJI[report.rating]
 
 
 @contextlib.contextmanager
@@ -606,8 +721,8 @@ def rep_input(report: FoldReport):
     url = (update_review_dates.extract_url_from_source(report.solution)
            or links.SITE_PRACTICE_URL_TEMPLATE.format(number=report.number))
     return fold_record.RepInput(report.number, report.title[len(report.number) + 1:], report.iso,
-                                report.rating,
-                                report.queue_rows, difficulty, url)
+                                report.rating, report.queue_rows, difficulty, url,
+                                report.is_provisional, report.is_settle)
 
 
 def fold_item_errors() -> tuple[type[Exception], ...]:
@@ -627,16 +742,23 @@ def item_paths(repo: Path, item: InboxFile, listing: tuple[InboxFile, ...]) -> t
     """Every file folding `item` may write or delete: its inbox files, its solution file (or the
     scaffold it would create) and `.history` stash, the tracker and gotchas ledgers, and the
     schedule files (the rep's week and every live week a next review may be seated in)."""
+    day = datetime.strptime(item.date, "%Y%m%d").date()
     with working_dir(repo):
-        import effort_budget
-        day = datetime.strptime(item.date, "%Y%m%d").date()
         solution = repo / solution_target(item.number, item.name)
         stash = repo / new_problem.history_dir() / f"{solution.stem}.txt"
-        inbox = [f.path for f in listing if f.number == item.number and f.date <= item.date]
+    inbox = [f.path for f in listing if f.number == item.number and f.date <= item.date]
+    return tuple(dict.fromkeys((*inbox, solution, stash, *ledger_and_schedule_paths(repo, day))))
+
+
+def ledger_and_schedule_paths(repo: Path, day: date) -> tuple[Path, ...]:
+    """The tracker and gotchas ledgers, then the schedule files: `day`'s week and every live week
+    a next review may be seated in."""
+    with working_dir(repo):
+        import effort_budget
         schedules = {effort_budget.find_schedule(day), *effort_budget.SCHEDULES.glob("*_schedule.md")}
-        ledgers = [repo / rel for rel in (TRACKER_FILE, COMPLEXITY_FILE)]
-        week_files = sorted((p for p in schedules if p is not None), key=str)
-        return tuple(dict.fromkeys((*inbox, solution, stash, *ledgers, *week_files)))
+    ledgers = [repo / rel for rel in (TRACKER_FILE, COMPLEXITY_FILE)]
+    week_files = sorted((p for p in schedules if p is not None), key=str)
+    return (*ledgers, *week_files)
 
 
 def snapshot(paths: tuple[Path, ...]) -> Snapshot:
@@ -656,20 +778,31 @@ def restore(saved: Snapshot) -> None:
 
 def fold_one(repo: Path, item: InboxFile, reference_url: str = "") -> tuple[FoldReport, list[str]]:
     report = fold_file(repo, item.path, reference_url)
-    return report, apply_record(repo, report)
+    return report, ([] if report.is_duplicate else apply_record(repo, report))
 
 
-def fold_all() -> int:
-    """Fold every newest-per-problem inbox entry that is not in progress; one `folded:` line each.
-    One attempt is one transaction: on a refusal its files are put back and the next one folds."""
-    listing = tuple(list_inbox(REPO / INBOX))
-    candidates = [item for item in newest_per_problem(list(listing))
-                  if attempt_status(item.path.read_text(encoding="utf-8")) != STATUS_IN_PROGRESS]
-    if not candidates:
-        print("nothing to fold")
-        return 0
+def write_refusals(inbox: Path, refused: dict[str, list[dict]]) -> None:
+    """Rewrite `<date>/refused.json` in every date folder from this run's refusals (folder name ->
+    entries): sorted by number, no timestamps, so an unchanged refusal makes no diff. A folder with
+    none loses its file (and the folder, once empty)."""
+    for folder in sorted(p for p in inbox.glob("*") if p.is_dir()) if inbox.is_dir() else []:
+        entries = sorted(refused.get(folder.name, []), key=lambda e: e["number"])
+        target = folder / REFUSED_FILE
+        if not entries:
+            target.unlink(missing_ok=True)
+            if not any(folder.iterdir()):
+                folder.rmdir()
+            continue
+        text = json.dumps(entries, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        if not target.is_file() or target.read_text(encoding="utf-8") != text:
+            target.write_text(text, encoding="utf-8", newline="\n")
+
+
+def fold_candidates(candidates: list[InboxFile], listing: tuple[InboxFile, ...]) -> dict[str, list[dict]]:
+    """Fold each candidate as its own transaction; the refusals by date folder."""
     item_errors = fold_item_errors()
     reference_url = read_reference_url(REPO)
+    refused: dict[str, list[dict]] = {}
     for item in candidates:
         saved = snapshot(item_paths(REPO, item, listing))
         try:
@@ -677,10 +810,48 @@ def fold_all() -> int:
         except item_errors as exc:
             restore(saved)
             print(f"refused: {item.path}: {exc}", file=sys.stderr)
+            entry = {"number": int(item.number), "reason": str(exc)}
+            refused[item.date] = [*refused.get(item.date, []), entry]
             continue
-        print(f"folded: {report.number} {RATING_EMOJI[report.rating]} {report.iso}")
+        if report.is_duplicate:
+            print(f"duplicate: {report.number} {report.iso}")
+            continue
+        print(f"folded: {report.number} {folded_glyph(report)} {report.iso}")
         for line in applied:
             print(line, file=sys.stderr)
+    return refused
+
+
+def fold_all() -> int:
+    """Fold every newest-per-problem inbox entry that is not in progress; one `folded:` line each.
+    One attempt is one transaction: on a refusal its files are put back and the next one folds.
+    Every run rewrites the date folders' `refused.json` (see write_refusals)."""
+    listing = tuple(list_inbox(REPO / INBOX))
+    candidates = foldable_per_problem(list(listing))
+    refused = fold_candidates(candidates, listing) if candidates else {}
+    if not candidates:
+        print("nothing to fold")
+    write_refusals(REPO / INBOX, refused)
+    return 0
+
+
+def settle_main(args: argparse.Namespace) -> int:
+    """Settle one provisional rep as one transaction: any refusal puts the ledgers and schedules back."""
+    number, iso = args.settle
+    try:
+        day = datetime.strptime(iso, "%Y-%m-%d").date()
+        saved = snapshot(ledger_and_schedule_paths(REPO, day))
+        try:
+            report = settle_rep(REPO, number, iso, args.rating, args.complexity, read_reference_url(REPO))
+            applied = apply_record(REPO, report)
+        except BaseException:
+            restore(saved)
+            raise
+    except fold_item_errors() as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return 1
+    print(f"folded: {report.number} {folded_glyph(report)} {report.iso}")
+    print("\n".join([*report.lines, *applied]))
     return 0
 
 
@@ -693,7 +864,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--all", action="store_true", help="with --apply: fold every complete inbox entry")
     ap.add_argument("--coached", action="store_true",
                     help="a coach-confirmed rep: failing cases do not block the fold")
+    ap.add_argument("--settle", nargs=2, metavar=("NUMBER", "DATE"),
+                    help="rate the unrated (provisional) rep of NUMBER on DATE; needs --rating, --complexity")
+    ap.add_argument("--rating", choices=sorted(RATING_EMOJI), help="with --settle: the rep's rating")
+    ap.add_argument("--complexity", help="with --settle: JSON {time, space, whyTime, whySpace}")
     args = ap.parse_args(argv)
+    if args.settle:
+        if not (args.rating and args.complexity):
+            ap.error("--settle needs --rating and --complexity")
+        return settle_main(args)
     if args.all and not args.apply:
         ap.error("--all needs --apply")
     if args.all and args.coached:
@@ -712,6 +891,9 @@ def main(argv: list[str] | None = None) -> int:
     except AttemptError as exc:
         print(f"refused: {exc}", file=sys.stderr)
         return 1
+    if report.is_duplicate:
+        print(f"duplicate: {report.number} {report.iso}")
+        return 0
     print(f"Folded into {report.solution}")
     for removed in report.removed:
         print(f"Removed {removed}")
