@@ -16,6 +16,9 @@ was not struck in the previous week's file, on days from today on. It honours
 `automation.weekly_build` and never archives or moves a file. Exit 0 prints `topped-up: <n>
 rows into YYYY-MM-DD`, `skipped: nothing to top up` or `skipped: no live week to top up`.
 
+A built week carries a `<!-- status: draft -->` line and is a draft until the learner approves
+it on the site, which deletes that line.
+
 The steps, each a function returning frozen data:
   1 target_week          which Monday to build, or why to skip
   2 stale_live_files     live files older than the target, moved with `git mv` by archive()
@@ -71,6 +74,7 @@ CATALOGUE_PATH = Path("curriculum/dsa/techniques.yml")
 SCHEDULE_NAME = "{monday:%Y%m%d}_schedule.md"
 SCHEDULE_SUFFIX = "_schedule.md"
 BUILT_BY_MARKER = "<!-- built-by: build_week.py -->"
+DRAFT_MARKER = "<!-- status: draft -->"
 DAYS_PER_WEEK = 7
 SITE_INDEX_TIMEOUT_S = 10
 MAX_LEAD_HOURS = 10
@@ -428,7 +432,7 @@ def render_week(monday: dt.date, plan: WeekPlan, due_count: int) -> str:
     sunday = monday + dt.timedelta(days=DAYS_PER_WEEK - 1)
     built = " · ".join(f"{day_plan.day:%a} {day_plan.units:.1f}" for day_plan in plan.days)
     lines = [
-        week_title(monday), "", BUILT_BY_MARKER, "",
+        week_title(monday), "", BUILT_BY_MARKER, DRAFT_MARKER, "",
         f"**Goal:** {len(seated) - new_count} reviews and {new_count} new problems seated, "
         f"{len(plan.carried)} carried.", "", "---", "",
         "## ⚖️ Capacity", "", "```",

@@ -44,62 +44,62 @@ Notes for the coach / future agents:
 
 | Difficulty | Problem | Comfort | Streak | Next Review Date | Latest Rep Date | Rep Dates |
 |---|---|---|---|---|---|---|
-| Easy | [125. Valid Palindrome](https://leetcode.com/problems/valid-palindrome/) | 🔴 | 0 | 2026-10-27 | 2026-10-25 | 2026-07-29, 2026-08-28, 2026-09-07, 2026-09-17, 2026-10-03, 2026-10-13, 2026-10-25 |
-| Hard | [269. Alien Dictionary](https://leetcode.com/problems/alien-dictionary/) | 🟡 | 0 | 2026-11-04 | 2026-10-25 | 2026-08-12, 2026-08-22, 2026-09-01, 2026-10-02, 2026-10-15, 2026-10-25 |
-| Medium | [648. Replace Words](https://leetcode.com/problems/replace-words/) | 🎓 | 3 | 2027-04-22 | 2026-10-24 | 2026-07-03, 2026-07-14, 2026-07-24, 2026-08-23, 2026-10-24 |
-| Hard | [124. Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/) | 🔴 | 0 | 2026-10-25 | 2026-10-23 | 2026-06-30, 2026-07-12, 2026-07-24, 2026-08-23, 2026-10-23 |
-| Medium | [435. Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) | 🟢 | 1 | 2026-11-21 | 2026-10-22 | 2026-07-02, 2026-07-09, 2026-08-08, 2026-10-11, 2026-10-22 |
+| Medium | [323. Number of Connected Components in an Undirected Graph](https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/) | 🔴 | 0 | 2026-10-22 | 2026-10-20 | 2026-09-01, 2026-09-11, 2026-10-14, 2026-10-20 |
 | Hard | [42. Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) | 🔴 | 0 | 2026-10-23 | 2026-10-21 | 2026-10-21 |
 | Medium | [238. Product of Array Except Self](https://leetcode.com/problems/product-of-array-except-self/) | 🔴 | 0 | 2026-10-23 | 2026-10-21 | 2026-06-16, 2026-07-18, 2026-07-21, 2026-08-22, 2026-10-21 |
-| Medium | [323. Number of Connected Components in an Undirected Graph](https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/) | 🔴 | 0 | 2026-10-22 | 2026-10-20 | 2026-09-01, 2026-09-11, 2026-10-14, 2026-10-20 |
-| Easy | [104. Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) | 🟡 | 0 | 2026-10-30 | 2026-10-20 | 2026-10-20 |
-| Easy | [100. Same Tree](https://leetcode.com/problems/same-tree/) | 🟢 | 1 | 2026-11-18 | 2026-10-19 | 2026-07-08, 2026-08-07, 2026-10-07, 2026-10-12, 2026-10-19 |
-| Medium | [36. Valid Sudoku](https://leetcode.com/problems/valid-sudoku/) | 🟢 | 1 | 2026-11-17 | 2026-10-18 | 2026-09-08, 2026-09-22, 2026-10-03, 2026-10-18 |
-| Easy | [121. Best Time to Buy and Sell Stock](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/) | 🟢 | 2 | 2026-12-17 | 2026-10-18 | 2026-09-13, 2026-09-18, 2026-10-18 |
+| Hard | [124. Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/) | 🔴 | 0 | 2026-10-25 | 2026-10-23 | 2026-06-30, 2026-07-12, 2026-07-24, 2026-08-23, 2026-10-23 |
+| Easy | [283. Move Zeroes](https://leetcode.com/problems/move-zeroes/) | 🟢 | 2 | 2026-10-26 | 2026-08-27 | 2026-07-04, 2026-07-15, 2026-07-28, 2026-08-27 |
 | Medium | [19. Remove Nth Node From End of List](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) | 🟡 | 0 | 2026-10-27 | 2026-10-17 | 2026-10-17 |
 | Medium | [33. Search in Rotated Sorted Array](https://leetcode.com/problems/search-in-rotated-sorted-array/) | 🟡 | 0 | 2026-10-27 | 2026-10-17 | 2026-08-25, 2026-09-05, 2026-09-17, 2026-10-17 |
-| Medium | [143. Reorder List](https://leetcode.com/problems/reorder-list/) | 🟢 | 1 | 2026-11-16 | 2026-10-17 | 2026-10-17 |
-| Medium | [787. Cheapest Flights Within K Stops](https://leetcode.com/problems/cheapest-flights-within-k-stops/) | 🟢 | 2 | 2026-12-16 | 2026-10-17 | 2026-09-02, 2026-09-12, 2026-10-17 |
-| Medium | [49. Group Anagrams](https://leetcode.com/problems/group-anagrams/) | 🟢 | 1 | 2026-11-15 | 2026-10-16 | 2026-10-16 |
-| Easy | [703. Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/) | 🟢 | 1 | 2026-11-15 | 2026-10-16 | 2026-09-26, 2026-10-10, 2026-10-16 |
+| Easy | [125. Valid Palindrome](https://leetcode.com/problems/valid-palindrome/) | 🔴 | 0 | 2026-10-27 | 2026-10-25 | 2026-07-29, 2026-08-28, 2026-09-07, 2026-09-17, 2026-10-03, 2026-10-13, 2026-10-25 |
+| Easy | [104. Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) | 🟡 | 0 | 2026-10-30 | 2026-10-20 | 2026-10-20 |
+| Medium | [875. Koko Eating Bananas](https://leetcode.com/problems/koko-eating-bananas/) | 🟢 | 2 | 2026-10-30 | 2026-08-31 | 2026-06-30, 2026-07-07, 2026-07-17, 2026-08-01, 2026-08-31 |
+| Medium | [167. Two Sum II](https://leetcode.com/problems/two-sum-ii/) | 🟢 | 1 | 2026-10-31 | 2026-10-01 | 2026-06-23, 2026-07-26, 2026-08-08, 2026-09-08, 2026-09-23, 2026-10-01 |
+| Medium | [994. Rotting Oranges](https://leetcode.com/problems/rotting-oranges/) | 🟢 | 1 | 2026-10-31 | 2026-10-01 | 2026-07-05, 2026-08-06, 2026-08-16, 2026-09-19, 2026-10-01 |
+| Medium | [155. Min Stack](https://leetcode.com/problems/min-stack/) | 🟢 | 1 | 2026-11-01 | 2026-10-02 | 2026-06-18, 2026-07-18, 2026-09-16, 2026-10-02 |
+| Medium | [560. Subarray Sum Equals K](https://leetcode.com/problems/subarray-sum-equals-k/) | 🟢 | 2 | 2026-11-01 | 2026-09-02 | 2026-06-24, 2026-06-29, 2026-07-06, 2026-07-19, 2026-08-02, 2026-09-02 |
+| Medium | [743. Network Delay Time](https://leetcode.com/problems/network-delay-time/) | 🟢 | 2 | 2026-11-03 | 2026-09-04 | 2026-06-15, 2026-07-16, 2026-07-30, 2026-08-03, 2026-09-04 |
+| Medium | [128. Longest Consecutive Sequence](https://leetcode.com/problems/longest-consecutive-sequence/) | 🟢 | 1 | 2026-11-04 | 2026-10-05 | 2026-06-26, 2026-07-29, 2026-08-08, 2026-08-11, 2026-08-19, 2026-08-29, 2026-09-28, 2026-10-05 |
+| Hard | [269. Alien Dictionary](https://leetcode.com/problems/alien-dictionary/) | 🟡 | 0 | 2026-11-04 | 2026-10-25 | 2026-08-12, 2026-08-22, 2026-09-01, 2026-10-02, 2026-10-15, 2026-10-25 |
+| Medium | [973. K Closest Points to Origin](https://leetcode.com/problems/k-closest-points-to-origin/) | 🟢 | 1 | 2026-11-05 | 2026-10-06 | 2026-08-16, 2026-08-21, 2026-09-21, 2026-09-28, 2026-10-06 |
+| Easy | [704. Binary Search](https://leetcode.com/problems/binary-search/) | 🟢 | 1 | 2026-11-06 | 2026-10-07 | 2026-06-21, 2026-07-22, 2026-09-27, 2026-10-07 |
+| Easy | [21. Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) | 🟢 | 2 | 2026-11-11 | 2026-09-12 | 2026-08-13, 2026-09-12 |
+| Medium | [75. Sort Colors](https://leetcode.com/problems/sort-colors/) | 🟢 | 2 | 2026-11-13 | 2026-09-14 | 2026-08-15, 2026-09-14 |
 | Medium | [739. Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) | 🟢 | 1 | 2026-11-13 | 2026-10-14 | 2026-06-29, 2026-07-29, 2026-10-04, 2026-10-14 |
-| Easy | [1046. Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) | 🟢 | 2 | 2026-12-12 | 2026-10-13 | 2026-09-10, 2026-10-13 |
+| Medium | [49. Group Anagrams](https://leetcode.com/problems/group-anagrams/) | 🟢 | 1 | 2026-11-15 | 2026-10-16 | 2026-10-16 |
+| Medium | [53. Maximum Subarray](https://leetcode.com/problems/maximum-subarray/) | 🟢 | 2 | 2026-11-15 | 2026-09-16 | 2026-07-01, 2026-07-31, 2026-08-04, 2026-08-10, 2026-08-17, 2026-09-16 |
+| Easy | [703. Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/) | 🟢 | 1 | 2026-11-15 | 2026-10-16 | 2026-09-26, 2026-10-10, 2026-10-16 |
+| Medium | [143. Reorder List](https://leetcode.com/problems/reorder-list/) | 🟢 | 1 | 2026-11-16 | 2026-10-17 | 2026-10-17 |
+| Medium | [36. Valid Sudoku](https://leetcode.com/problems/valid-sudoku/) | 🟢 | 1 | 2026-11-17 | 2026-10-18 | 2026-09-08, 2026-09-22, 2026-10-03, 2026-10-18 |
+| Easy | [100. Same Tree](https://leetcode.com/problems/same-tree/) | 🟢 | 1 | 2026-11-18 | 2026-10-19 | 2026-07-08, 2026-08-07, 2026-10-07, 2026-10-12, 2026-10-19 |
+| Easy | [242. Valid Anagram](https://leetcode.com/problems/valid-anagram/) | 🟢 | 2 | 2026-11-20 | 2026-09-21 | 2026-08-10, 2026-08-18, 2026-09-21 |
+| Medium | [435. Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) | 🟢 | 1 | 2026-11-21 | 2026-10-22 | 2026-07-02, 2026-07-09, 2026-08-08, 2026-10-11, 2026-10-22 |
+| Medium | [133. Clone Graph](https://leetcode.com/problems/clone-graph/) | 🟢 | 2 | 2026-11-23 | 2026-09-24 | 2026-08-20, 2026-08-24, 2026-09-24 |
+| Medium | [146. LRU Cache](https://leetcode.com/problems/lru-cache/) | 🟢 | 2 | 2026-11-24 | 2026-09-25 | 2026-06-25, 2026-07-25, 2026-08-05, 2026-08-15, 2026-08-20, 2026-09-25 |
+| Medium | [74. Search a 2D Matrix](https://leetcode.com/problems/search-a-2d-matrix/) | 🟢 | 2 | 2026-11-25 | 2026-09-26 | 2026-08-21, 2026-09-26 |
+| Medium | [1011. Capacity To Ship Packages Within D Days](https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/) | 🟢 | 2 | 2026-11-25 | 2026-09-26 | 2026-08-24, 2026-09-26 |
+| Hard | [332. Reconstruct Itinerary](https://leetcode.com/problems/reconstruct-itinerary/) | 🟢 | 2 | 2026-11-28 | 2026-09-29 | 2026-08-14, 2026-08-25, 2026-09-29 |
+| Medium | [55. Jump Game](https://leetcode.com/problems/jump-game/) | 🟢 | 2 | 2026-11-29 | 2026-09-30 | 2026-08-26, 2026-09-30 |
+| Medium | [424. Longest Repeating Character Replacement](https://leetcode.com/problems/longest-repeating-character-replacement/) | 🟢 | 2 | 2026-11-29 | 2026-09-30 | 2026-08-30, 2026-09-30 |
+| Medium | [261. Graph Valid Tree](https://leetcode.com/problems/graph-valid-tree/) | 🟢 | 2 | 2026-12-03 | 2026-10-04 | 2026-06-28, 2026-07-11, 2026-08-12, 2026-08-23, 2026-09-03, 2026-10-04 |
 | Medium | [199. Binary Tree Right Side View](https://leetcode.com/problems/binary-tree-right-side-view/) | 🟢 | 2 | 2026-12-08 | 2026-10-09 | 2026-08-07, 2026-09-06, 2026-09-09, 2026-10-09 |
 | Medium | [200. Number of Islands](https://leetcode.com/problems/number-of-islands/) | 🟢 | 2 | 2026-12-08 | 2026-10-09 | 2026-07-07, 2026-07-13, 2026-07-23, 2026-07-27, 2026-08-26, 2026-09-06, 2026-10-09 |
 | Medium | [207. Course Schedule](https://leetcode.com/problems/course-schedule/) | 🟢 | 2 | 2026-12-08 | 2026-10-09 | 2026-09-09, 2026-10-09 |
+| Easy | [1046. Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) | 🟢 | 2 | 2026-12-12 | 2026-10-13 | 2026-09-10, 2026-10-13 |
+| Medium | [787. Cheapest Flights Within K Stops](https://leetcode.com/problems/cheapest-flights-within-k-stops/) | 🟢 | 2 | 2026-12-16 | 2026-10-17 | 2026-09-02, 2026-09-12, 2026-10-17 |
+| Easy | [121. Best Time to Buy and Sell Stock](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/) | 🟢 | 2 | 2026-12-17 | 2026-10-18 | 2026-09-13, 2026-09-18, 2026-10-18 |
+| Easy | [1. Two Sum](https://leetcode.com/problems/two-sum/) | 🎓 | 3 | 2027-03-14 | 2026-09-15 | 2026-06-17, 2026-07-17, 2026-09-15 |
+| Medium | [2. Add Two Numbers](https://leetcode.com/problems/add-two-numbers/) | 🎓 | 3 | 2027-03-15 | 2026-09-16 | 2026-06-16, 2026-07-17, 2026-09-16 |
+| Medium | [235. Lowest Common Ancestor of BST](https://leetcode.com/problems/lowest-common-ancestor-of-bst/) | 🎓 | 3 | 2027-03-16 | 2026-09-17 | 2026-06-19, 2026-07-19, 2026-09-17 |
+| Hard | [84. Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) | 🎓 | 3 | 2027-03-21 | 2026-09-22 | 2026-06-22, 2026-07-23, 2026-09-22 |
+| Medium | [853. Car Fleet](https://leetcode.com/problems/car-fleet/) | 🎓 | 3 | 2027-03-22 | 2026-09-23 | 2026-06-24, 2026-07-24, 2026-09-23 |
+| Easy | [206. Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/) | 🎓 | 3 | 2027-03-23 | 2026-09-24 | 2026-06-20, 2026-07-20, 2026-09-24 |
+| Medium | [153. Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/) | 🎓 | 3 | 2027-03-24 | 2026-09-25 | 2026-06-15, 2026-06-22, 2026-07-25, 2026-09-25 |
+| Medium | [98. Validate Binary Search Tree](https://leetcode.com/problems/validate-binary-search-tree/) | 🎓 | 3 | 2027-03-28 | 2026-09-29 | 2026-06-17, 2026-06-27, 2026-07-31, 2026-09-29 |
 | Medium | [22. Generate Parentheses](https://leetcode.com/problems/generate-parentheses/) | 🎓 | 3 | 2027-04-06 | 2026-10-08 | 2026-07-01, 2026-07-08, 2026-08-09, 2026-10-08 |
 | Medium | [134. Gas Station](https://leetcode.com/problems/gas-station/) | 🎓 | 3 | 2027-04-06 | 2026-10-08 | 2026-07-06, 2026-08-07, 2026-10-08 |
 | Medium | [417. Pacific Atlantic Water Flow](https://leetcode.com/problems/pacific-atlantic-water-flow/) | 🎓 | 3 | 2027-04-06 | 2026-10-08 | 2026-06-27, 2026-07-10, 2026-08-09, 2026-10-08 |
-| Easy | [704. Binary Search](https://leetcode.com/problems/binary-search/) | 🟢 | 1 | 2026-11-06 | 2026-10-07 | 2026-06-21, 2026-07-22, 2026-09-27, 2026-10-07 |
-| Medium | [973. K Closest Points to Origin](https://leetcode.com/problems/k-closest-points-to-origin/) | 🟢 | 1 | 2026-11-05 | 2026-10-06 | 2026-08-16, 2026-08-21, 2026-09-21, 2026-09-28, 2026-10-06 |
-| Medium | [128. Longest Consecutive Sequence](https://leetcode.com/problems/longest-consecutive-sequence/) | 🟢 | 1 | 2026-11-04 | 2026-10-05 | 2026-06-26, 2026-07-29, 2026-08-08, 2026-08-11, 2026-08-19, 2026-08-29, 2026-09-28, 2026-10-05 |
-| Medium | [261. Graph Valid Tree](https://leetcode.com/problems/graph-valid-tree/) | 🟢 | 2 | 2026-12-03 | 2026-10-04 | 2026-06-28, 2026-07-11, 2026-08-12, 2026-08-23, 2026-09-03, 2026-10-04 |
-| Medium | [155. Min Stack](https://leetcode.com/problems/min-stack/) | 🟢 | 1 | 2026-11-01 | 2026-10-02 | 2026-06-18, 2026-07-18, 2026-09-16, 2026-10-02 |
-| Medium | [167. Two Sum II](https://leetcode.com/problems/two-sum-ii/) | 🟢 | 1 | 2026-10-31 | 2026-10-01 | 2026-06-23, 2026-07-26, 2026-08-08, 2026-09-08, 2026-09-23, 2026-10-01 |
-| Medium | [994. Rotting Oranges](https://leetcode.com/problems/rotting-oranges/) | 🟢 | 1 | 2026-10-31 | 2026-10-01 | 2026-07-05, 2026-08-06, 2026-08-16, 2026-09-19, 2026-10-01 |
-| Medium | [55. Jump Game](https://leetcode.com/problems/jump-game/) | 🟢 | 2 | 2026-11-29 | 2026-09-30 | 2026-08-26, 2026-09-30 |
-| Medium | [424. Longest Repeating Character Replacement](https://leetcode.com/problems/longest-repeating-character-replacement/) | 🟢 | 2 | 2026-11-29 | 2026-09-30 | 2026-08-30, 2026-09-30 |
-| Hard | [332. Reconstruct Itinerary](https://leetcode.com/problems/reconstruct-itinerary/) | 🟢 | 2 | 2026-11-28 | 2026-09-29 | 2026-08-14, 2026-08-25, 2026-09-29 |
-| Medium | [98. Validate Binary Search Tree](https://leetcode.com/problems/validate-binary-search-tree/) | 🎓 | 3 | 2027-03-28 | 2026-09-29 | 2026-06-17, 2026-06-27, 2026-07-31, 2026-09-29 |
-| Medium | [74. Search a 2D Matrix](https://leetcode.com/problems/search-a-2d-matrix/) | 🟢 | 2 | 2026-11-25 | 2026-09-26 | 2026-08-21, 2026-09-26 |
-| Medium | [1011. Capacity To Ship Packages Within D Days](https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/) | 🟢 | 2 | 2026-11-25 | 2026-09-26 | 2026-08-24, 2026-09-26 |
-| Medium | [146. LRU Cache](https://leetcode.com/problems/lru-cache/) | 🟢 | 2 | 2026-11-24 | 2026-09-25 | 2026-06-25, 2026-07-25, 2026-08-05, 2026-08-15, 2026-08-20, 2026-09-25 |
-| Medium | [153. Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/) | 🎓 | 3 | 2027-03-24 | 2026-09-25 | 2026-06-15, 2026-06-22, 2026-07-25, 2026-09-25 |
-| Medium | [133. Clone Graph](https://leetcode.com/problems/clone-graph/) | 🟢 | 2 | 2026-11-23 | 2026-09-24 | 2026-08-20, 2026-08-24, 2026-09-24 |
-| Easy | [206. Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/) | 🎓 | 3 | 2027-03-23 | 2026-09-24 | 2026-06-20, 2026-07-20, 2026-09-24 |
-| Medium | [853. Car Fleet](https://leetcode.com/problems/car-fleet/) | 🎓 | 3 | 2027-03-22 | 2026-09-23 | 2026-06-24, 2026-07-24, 2026-09-23 |
-| Hard | [84. Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) | 🎓 | 3 | 2027-03-21 | 2026-09-22 | 2026-06-22, 2026-07-23, 2026-09-22 |
-| Easy | [242. Valid Anagram](https://leetcode.com/problems/valid-anagram/) | 🟢 | 2 | 2026-11-20 | 2026-09-21 | 2026-08-10, 2026-08-18, 2026-09-21 |
-| Medium | [235. Lowest Common Ancestor of BST](https://leetcode.com/problems/lowest-common-ancestor-of-bst/) | 🎓 | 3 | 2027-03-16 | 2026-09-17 | 2026-06-19, 2026-07-19, 2026-09-17 |
-| Medium | [53. Maximum Subarray](https://leetcode.com/problems/maximum-subarray/) | 🟢 | 2 | 2026-11-15 | 2026-09-16 | 2026-07-01, 2026-07-31, 2026-08-04, 2026-08-10, 2026-08-17, 2026-09-16 |
-| Medium | [2. Add Two Numbers](https://leetcode.com/problems/add-two-numbers/) | 🎓 | 3 | 2027-03-15 | 2026-09-16 | 2026-06-16, 2026-07-17, 2026-09-16 |
-| Easy | [1. Two Sum](https://leetcode.com/problems/two-sum/) | 🎓 | 3 | 2027-03-14 | 2026-09-15 | 2026-06-17, 2026-07-17, 2026-09-15 |
-| Medium | [75. Sort Colors](https://leetcode.com/problems/sort-colors/) | 🟢 | 2 | 2026-11-13 | 2026-09-14 | 2026-08-15, 2026-09-14 |
-| Easy | [21. Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) | 🟢 | 2 | 2026-11-11 | 2026-09-12 | 2026-08-13, 2026-09-12 |
-| Medium | [743. Network Delay Time](https://leetcode.com/problems/network-delay-time/) | 🟢 | 2 | 2026-11-03 | 2026-09-04 | 2026-06-15, 2026-07-16, 2026-07-30, 2026-08-03, 2026-09-04 |
-| Medium | [560. Subarray Sum Equals K](https://leetcode.com/problems/subarray-sum-equals-k/) | 🟢 | 2 | 2026-11-01 | 2026-09-02 | 2026-06-24, 2026-06-29, 2026-07-06, 2026-07-19, 2026-08-02, 2026-09-02 |
-| Medium | [875. Koko Eating Bananas](https://leetcode.com/problems/koko-eating-bananas/) | 🟢 | 2 | 2026-10-30 | 2026-08-31 | 2026-06-30, 2026-07-07, 2026-07-17, 2026-08-01, 2026-08-31 |
-| Easy | [283. Move Zeroes](https://leetcode.com/problems/move-zeroes/) | 🟢 | 2 | 2026-10-26 | 2026-08-27 | 2026-07-04, 2026-07-15, 2026-07-28, 2026-08-27 |
+| Medium | [648. Replace Words](https://leetcode.com/problems/replace-words/) | 🎓 | 3 | 2027-04-22 | 2026-10-24 | 2026-07-03, 2026-07-14, 2026-07-24, 2026-08-23, 2026-10-24 |
 
 ## Knowledge Expansion Queue
 

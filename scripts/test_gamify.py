@@ -1353,6 +1353,26 @@ class ParseCurrentWeekScheduleTests(unittest.TestCase):
         self.assertIsNone(primer["file"])                     # no number → no lookup
 
 
+class ParseWeekDraftTests(unittest.TestCase):
+    """_parse_week() emits `isDraft: True` only when the file has the draft marker line."""
+
+    BODY = "## Daily Schedule\n\n| Problem | S | E | Next | Technique |\n|---|:-:|:-:|:-:|---|\n"
+
+    def test_is_draft_key(self):
+        cases = (
+            ("marker present", f"# Week\n\n<!-- built-by: build_week.py -->\n{gamify.DRAFT_MARKER}\n\n", True),
+            ("marker absent", "# Week\n\n<!-- built-by: build_week.py -->\n\n", False),
+        )
+        for name, head, is_draft in cases:
+            with self.subTest(name), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "20260921_schedule.md"
+                path.write_text(head + self.BODY, encoding="utf-8")
+                week = gamify._parse_week(path, dt.date(2026, 9, 21), {}, {}, {}, None)
+                self.assertEqual("isDraft" in week, is_draft)
+                if is_draft:
+                    self.assertIs(week["isDraft"], True)
+
+
 class ParseScheduleHistoryTests(unittest.TestCase):
     """parse_schedule_history() over a two-file fixture folder: one CURRENT-layout week
     (a real `▸ **Mon ...** · N units` day header, one item) and one OLD-layout week (an

@@ -302,6 +302,7 @@
       "required": ["weekOf", "days"],
       "properties": {
         "weekOf": { "type": "string", "format": "date", "description": "ISO date of the week's Monday." },
+        "isDraft": { "const": true, "description": "Present only while the week file carries the build's draft marker, until the learner approves it on the site." },
         "days": { "type": "array", "minItems": 7, "maxItems": 7, "items": { "$ref": "#/definitions/scheduleDay" } }
       }
     },

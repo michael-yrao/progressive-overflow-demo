@@ -85,6 +85,7 @@ CATALOGUE_YML = REPO / "curriculum/dsa/techniques.yml"
 ROADMAP_YML = REPO / "docs/foundations/dsa/mastery/roadmap.yml"
 PROBES_README = REPO / "dsa/probes/README.md"
 LEETCODE = REPO / "dsa/leetcode"
+DRAFT_MARKER = "<!-- status: draft -->"  # the same line build_week.py writes
 # The generated contract lives under dashboard/, keeping the repo root uncluttered. The
 # website fetches dashboard/progress-summary.json first.
 DASHBOARD = REPO / "dashboard"
@@ -746,7 +747,13 @@ def _parse_week(path: Path, week_start: dt.date, difficulty_by_num: dict[int, st
             "units": units,
             "items": items,
         })
-    return {"weekOf": week_start.isoformat(), "days": _credit_pulled_earlier(days)}
+    week = {"weekOf": week_start.isoformat(), "days": _credit_pulled_earlier(days)}
+    return {**week, "isDraft": True} if _is_draft_week(path) else week
+
+
+def _is_draft_week(path: Path) -> bool:
+    """True when the week file carries the build's `<!-- status: draft -->` line."""
+    return DRAFT_MARKER in path.read_text(encoding="utf-8").splitlines()
 
 
 def _difficulty_by_num() -> dict[int, str]:

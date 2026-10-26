@@ -195,7 +195,8 @@ def test_main_week_bypasses_off_gate(tmp_path, capsys):
     _config(tmp_path, weekly_build=False)
     assert _main(tmp_path, "--week", "2026-10-26", "--now", "2026-10-21T10:00") == 0
     assert "built: 2026-10-26" in capsys.readouterr().out
-    assert (tmp_path / bw.LIVE_DIR / "20261026_schedule.md").is_file()
+    built = (tmp_path / bw.LIVE_DIR / "20261026_schedule.md").read_text(encoding="utf-8")
+    assert f"\n{bw.BUILT_BY_MARKER}\n{bw.DRAFT_MARKER}\n" in built
 
 
 TOP_UP_MONDAY = D(2026, 10, 26)
