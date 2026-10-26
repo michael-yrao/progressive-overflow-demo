@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.12.1 — 2026-10-26
+
+- The saved complexity "why" text per bound now allows up to 2000 characters (was 500).
+
 ## v0.12.0 — 2026-10-22
 
 - The DSA technique catalogue now ships as `curriculum/dsa/techniques.yml`, and `neetcode.yml` as

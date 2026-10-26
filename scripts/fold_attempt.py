@@ -90,7 +90,7 @@ COMPLEXITY_FILE = MASTERY_DIR / "complexity_gotchas.md"
 APPLIED_PREFIX = "applied: "
 COMPLEXITY_KEYS = ("time", "space", "whyTime", "whySpace")
 LABEL_MAX_CHARS = 200
-WHY_MAX_CHARS = 500
+WHY_MAX_CHARS = 2000
 COMPLEXITY_MAX_CHARS = {"time": LABEL_MAX_CHARS, "space": LABEL_MAX_CHARS,
                         "whyTime": WHY_MAX_CHARS, "whySpace": WHY_MAX_CHARS}
 REFUSED_FILE = "refused.json"

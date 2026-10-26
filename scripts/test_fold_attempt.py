@@ -87,6 +87,9 @@ class FoldAttemptTests(unittest.TestCase):
             ("coached, no complexity", attempt_text(tests="4/5", complexity=None), True, "needs exactly"),
             ("legacy recognition key is ignored",
              attempt_text(recognition={"picked": "X", "at": "2026-10-20T00:00:00Z"}), False, None),
+            ("why at the cap", attempt_text(complexity={**COMPLEXITY, "whyTime": "x" * 2000}), False, None),
+            ("why one char over the cap", attempt_text(complexity={**COMPLEXITY, "whyTime": "x" * 2001}),
+             False, "whyTime"),
         ]
         for label, text, is_coached, refusal in cases:
             with self.subTest(label):
