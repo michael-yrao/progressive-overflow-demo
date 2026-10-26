@@ -8,7 +8,7 @@ workflow does). Exit 2 (`refused: ...`): no cse.config.yml, unknown timezone, a 
 out-of-range `automation` key, a --week that is not a Monday. Exit 0 skips: `skipped: weekly
 build is off`, `skipped: <file> exists` (live or archive), `skipped: boundary <iso> not
 reached`. Success prints `built: YYYY-MM-DD`. `--dry-run` prints the week instead, writes and
-moves nothing. `--dry-run` and an explicit `--week` (an operator request) both ignore
+moves nothing. `--dry-run`, an explicit `--week` and `--early` (operator requests) all ignore
 `automation.weekly_build: false`.
 
 `--top-up` seats into the newest live week every due tracker row that has no cell there and
@@ -604,7 +604,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--week", type=dt.date.fromisoformat, help="build this Monday")
     parser.add_argument("--now", type=dt.datetime.fromisoformat, help="local time, naive")
-    parser.add_argument("--early", action="store_true", help="ignore the boundary")
+    parser.add_argument("--early", action="store_true", help="ignore the boundary and the weekly_build switch")
     parser.add_argument("--dry-run", action="store_true", help="print, write nothing")
     parser.add_argument("--top-up", action="store_true",
                         help="seat missing due rows into the newest live week")
@@ -669,7 +669,7 @@ def run(args: argparse.Namespace, repo: Path, opener: Opener) -> str:
     root_cfg = load_root_config(repo)
     zone = check_timezone(str(root_cfg.get("timezone") or DEFAULT_TIMEZONE))
     automation = load_automation(root_cfg, is_required=args.dry_run)
-    is_operator_request = args.dry_run or args.week is not None
+    is_operator_request = args.dry_run or args.week is not None or args.early
     if not automation.is_enabled and not is_operator_request:
         return "skipped: weekly build is off"
     now = args.now or dt.datetime.now(zone).replace(tzinfo=None)

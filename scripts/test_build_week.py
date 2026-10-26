@@ -150,12 +150,25 @@ def test_main_no_config(tmp_path, capsys):
     assert "refused: no cse.config.yml — onboard first" in capsys.readouterr().out
 
 
-def test_main_off_writes_nothing(tmp_path, capsys):
+OFF_SKIP = "skipped: weekly build is off"
+
+
+# (flags, is the off-skip expected) with weekly_build false
+OFF_GATE_CASES = [
+    pytest.param([], True, id="cron-no-flags-skips"),
+    pytest.param(["--top-up"], True, id="top-up-alone-skips"),
+    pytest.param(["--early"], False, id="early-is-operator-request"),
+]
+
+
+@pytest.mark.parametrize(("flags", "is_skipped"), OFF_GATE_CASES)
+def test_main_off_gate(tmp_path, capsys, flags, is_skipped):
     _config(tmp_path, weekly_build=False)
     before = _files(tmp_path)
-    assert _main(tmp_path, "--now", "2026-10-21T10:00") == 0
-    assert "skipped: weekly build is off" in capsys.readouterr().out
-    assert _files(tmp_path) == before
+    assert _main(tmp_path, *flags, "--now", "2026-10-21T10:00") == 0
+    assert (OFF_SKIP in capsys.readouterr().out) is is_skipped
+    if is_skipped:
+        assert _files(tmp_path) == before
 
 
 def test_main_file_exists(tmp_path, capsys):

@@ -6,9 +6,14 @@
 
 > The tracker is keyed by **problem**; this is keyed by **technique**. Use it at the weekly build to decide what to pull, and at phase exit to check the per-algorithm bar (recognition + execution, ≥1 🟢 each).
 
-> **29/109** techniques started &nbsp;·&nbsp; **0** with no 🟢 &nbsp;·&nbsp; **13** thin &nbsp;·&nbsp; **1** unqueued variant gaps
+> **29/109** techniques started &nbsp;·&nbsp; **2** with no 🟢 &nbsp;·&nbsp; **15** thin &nbsp;·&nbsp; **1** unqueued variant gaps
 
 ## ⚠️ Action list
+
+**No 🟢 — blocks per-algorithm phase exit.** Execution is unproven.
+
+- **Prefix/Suffix Products** (arrays_and_hash) — best 🔴 across 238
+- **Tree DFS with Postorder Return** (trees) — best 🔴 across 124
 
 **Thin — below its computed coverage bar** (`cse.config.yml`'s `coverage_threshold`). One instance trains recall of that problem, not the skill.
 
@@ -16,6 +21,8 @@
 - **Binary Search (max boundary)** (binary_search) — 1/2: 74
 - **Fast/Slow In-Place Write** (two_pointers) — 1/2: 283
 - **Multi-source BFS** (graphs) — 1/2: 994
+- **Prefix/Suffix Products** (arrays_and_hash) — 1/2: 238
+- **Tree DFS with Postorder Return** (trees) — 1/2: 124
 - **Trie** (tries) — 1/3: 648
 - **Greedy (single pass)** (greedy) — 2/4: 55, 134
 - **Sliding Window** (sliding_window) — 2/3: 121, 424
@@ -50,12 +57,12 @@ Every declared technique gets a row, started or not — a not-started row's Gaps
 | Hash Set Membership | arrays_and_hash | core | 2 (2+0) | 2 (36, 128) | 🟢 | ✅ | — | — |
 | In-Place Array Rotation | arrays_and_hash | core | 1 (1+0) | 0 (—) | — | ❌ | — | *not started* |
 | Length-Prefix Encoding | arrays_and_hash | core | 1 (1+0) | 0 (—) | — | ❌ | — | *not started* |
-| Prefix/Suffix Products | arrays_and_hash | core | 1 (1+0) | 1 (238) | 🟢 | ✅ | — | — |
+| Prefix/Suffix Products | arrays_and_hash | core | 2 (1+1) | 1 (238) | 🔴 | ❌ | — | **no-green** · thin (1/2) |
 | Backtracking | backtracking | core | 5 (5+0) | 1 (22) | 🎓 | ✅ | — | thin (1/5) |
 | Binary Search (exact match) | binary_search | core | 2 (1+1) | 2 (33, 704) | 🟢 | ✅ | — | — |
 | Binary Search (max boundary) | binary_search | core | 2 (2+0) | 1 (74) | 🟢 | ✅ | — | thin (1/2) |
 | Binary Search (min boundary) | binary_search | core | 4 (4+0) | 3 (153, 875, 1011) | 🎓 | ✅ | — | thin (3/4) |
-| Binary Search on Answer | binary_search | core | 2 (2+0) | 2 (875, 1011) | 🎓 | ✅ | — | — |
+| Binary Search on Answer | binary_search | core | 2 (2+0) | 2 (875, 1011) | 🟢 | ✅ | — | — |
 | Bit Manipulation | bit_manipulation | core | 3 (3+0) | 0 (—) | — | ❌ | — | *not started* |
 | Design (composed data structures) | design | core | 2 (2+0) | 0 (—) | — | ❌ | — | *not started* |
 | 1D Dynamic Programming | dynamic_programming | dp | 5 (5+0) | 0 (—) | — | ❌ | — | *not started* |
@@ -139,10 +146,10 @@ Every declared technique gets a row, started or not — a not-started row's Gaps
 | Tree BFS (level order) | trees | core | 1 (1+0) | 1 (199) | 🟢 | ✅ | — | — |
 | Tree Construction (Divide & Conquer) | trees | core | 1 (1+0) | 0 (—) | — | ❌ | — | *not started* |
 | Tree DFS (recursive) | trees | core | 5 (4+1) | 2 (100, 104) | 🟢 | ✅ | — | thin (2/5) |
-| Tree DFS with Postorder Return | trees | core | 1 (1+0) | 1 (124) | 🟢 | ✅ | — | — |
+| Tree DFS with Postorder Return | trees | core | 2 (1+1) | 1 (124) | 🔴 | ❌ | — | **no-green** · thin (1/2) |
 | Trie | tries | core | 3 (3+0) | 1 (648) | 🎓 | ✅ | — | thin (1/3) |
 | Dutch National Flag | two_pointers | core | 1 (1+0) | 0 (—) | — | ❌ | — | *not started* |
-| Fast/Slow In-Place Write | two_pointers | core | 2 (2+0) | 1 (283) | 🎓 | ✅ | — | thin (1/2) |
+| Fast/Slow In-Place Write | two_pointers | core | 2 (2+0) | 1 (283) | 🟢 | ✅ | — | thin (1/2) |
 | Prefix/Suffix Max | two_pointers | core | 1 (1+0) | 0 (—) | — | ❌ | **Array ×0** · **Two Pointer ×0** | *not started* |
 | Two Pointers (converging) | two_pointers | core | 5 (4+1) | 2 (125, 167) | 🟢 | ✅ | — | thin (2/5) |
 

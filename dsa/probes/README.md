@@ -64,12 +64,12 @@ table to fold rowless probes into the tracker's summary counts (the `+N` suffix)
 
 | # | Date | Problem | Technique | Result | Tracker row? |
 |---|---|---|---|---|---|
-| 1 | 2026-08-03 | 242 Valid Anagram | Hashing | 🔴 | ✅ earned |
-| 2 | 2026-08-11 | 15 3Sum | Two-pointers | 🟢 | — |
-| 3 | 2026-08-28 | 567 Permutation in String | Sliding-window | 🟢 | — |
-| 4 | 2026-09-19 | 703 Kth Largest Element in a Stream | Heap | 🟡 | ✅ earned |
-| 5 | 2026-10-04 | 102 Binary Tree Level Order Traversal | Tree-DFS | 🟢 | — |
-| 6 | 2026-10-10 | 19 Remove Nth Node From End of List | Linked-list | 🟡 | ✅ earned |
+| 1 | 2026-08-10 | 242 Valid Anagram | Hashing | 🔴 | ✅ earned |
+| 2 | 2026-08-18 | 15 3Sum | Two-pointers | 🟢 | — |
+| 3 | 2026-09-04 | 567 Permutation in String | Sliding-window | 🟢 | — |
+| 4 | 2026-09-26 | 703 Kth Largest Element in a Stream | Heap | 🟡 | ✅ earned |
+| 5 | 2026-10-11 | 102 Binary Tree Level Order Traversal | Tree-DFS | 🟢 | — |
+| 6 | 2026-10-17 | 19 Remove Nth Node From End of List | Linked-list | 🟡 | ✅ earned |
 
 _Add one row per probe. Result is 🟢 / 🟡 / 🔴; "Tracker row?" is `—` for a disposable 🟢 or `✅ earned`
 for a 🟡/🔴._
