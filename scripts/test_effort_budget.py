@@ -152,5 +152,34 @@ class UnprovenOverdueTests(unittest.TestCase):
                                  (count, expected_triggered))
 
 
+def _due_row(num: str, comfort: str, streak: int) -> dict:
+    return {"num": num, "comfort": comfort, "streak": streak, "diff": "Easy",
+            "title": "T", "due": _OVERDUE}
+
+
+_DUE_ROWS = [_due_row("1", "🟢", 2), _due_row("2", "🟡", 0), _due_row("3", "🟢", 2),
+             _due_row("4", "🔴", 0), _due_row("5", "🟢", 0), _due_row("6", "🟢", 2)]
+
+
+class FilterDueTests(unittest.TestCase):
+    def test_filter_due(self):
+        cases = [
+            ("grade only", ["s2"], None, ["1", "3", "6"]),
+            ("two grades", ["red", "yellow"], None, ["2", "4"]),
+            ("limit only", None, 2, ["1", "2"]),
+            ("grade + limit keeps the most overdue", ["s2"], 2, ["1", "3"]),
+            ("limit above match count", ["red"], 5, ["4"]),
+        ]
+        for name, grades, limit, expected in cases:
+            with self.subTest(name):
+                kept = eb.filter_due(_DUE_ROWS, grades, limit)
+                self.assertEqual([r["num"] for r in kept], expected)
+
+    def test_summary_counts_filtered_rows_and_names_filter(self):
+        kept = eb.filter_due(_DUE_ROWS, ["s2"], 2)
+        line = eb.due_summary(kept, _CFG, _TODAY, ["s2"], 2)
+        self.assertTrue(line.startswith(f"2 due on/before {_TODAY} (grade s2, limit 2)"))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -27,7 +27,11 @@ import re
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[1]
+import _console
+
+_console.force_utf8()
+
+REPO =Path(__file__).resolve().parents[1]
 TRACKER = REPO / "docs" / "foundations" / "dsa" / "mastery" / "dsa_progress.md"
 PROBES_DIR = REPO / "dsa" / "probes"
 # solutions.roots from cse.config.yml — where a tracked file is allowed to live. Read cheaply;

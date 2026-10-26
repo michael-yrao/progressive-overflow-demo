@@ -22,6 +22,8 @@ Usage:
     python scripts/effort_budget.py --day 19 110 42     # price a HYPOTHETICAL day
     python scripts/effort_budget.py --day 269 560       # (--sd is retired: SD is unpriced)
     python scripts/effort_budget.py --due 2026-08-08    # what is due on a date, priced
+    python scripts/effort_budget.py --due 2026-11-01 --grade s2 --limit 2   # the 2 most overdue 🟢 s2
+                                    # --grade red|yellow|s0|s1|s2|graduated (repeat or comma-separate)
 """
 from __future__ import annotations
 
@@ -963,16 +965,67 @@ def price_schedule_day(day: dt.date, rows: list[dict], cfg: dict) -> None:
 
 
 
-def report_due(rows: list[dict], cfg: dict, day: dt.date) -> None:
+COMFORT_GRADE = {"🔴": "red", "🟡": "yellow", "🎓": "graduated"}
+GREEN_GRADE = re.compile(r"s\d+")
+
+
+def grade_of(row: dict) -> str:
+    """The --grade name of a row: red, yellow, graduated, or s<streak> for a 🟢."""
+    if row["comfort"] == "🟢":
+        return f"s{row['streak']}"
+    return COMFORT_GRADE[row["comfort"]]
+
+
+def parse_grades(arg: str) -> list[str]:
+    """argparse type for --grade: comma-separated grade names, each validated."""
+    grades = [g.strip() for g in arg.split(",") if g.strip()]
+    bad = [g for g in grades if g not in COMFORT_GRADE.values() and not GREEN_GRADE.fullmatch(g)]
+    if bad or not grades:
+        raise argparse.ArgumentTypeError(
+            f"unknown grade {','.join(bad) or repr(arg)} "
+            f"(use red, yellow, graduated, or s0/s1/s2…)")
+    return grades
+
+
+def positive_int(arg: str) -> int:
+    """argparse type for --limit: an integer >= 1."""
+    try:
+        value = int(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{arg!r} is not an integer") from None
+    if value < 1:
+        raise argparse.ArgumentTypeError("must be >= 1")
+    return value
+
+
+def filter_due(due: list[dict], grades: list[str] | None, limit: int | None) -> list[dict]:
+    """Keep rows of the given grades, then the first `limit` of them (order kept)."""
+    kept = [r for r in due if not grades or grade_of(r) in grades]
+    return kept if limit is None else kept[:limit]
+
+
+def filter_note(grades: list[str] | None, limit: int | None) -> str:
+    parts = ([f"grade {','.join(grades)}"] if grades else []) + \
+            ([f"limit {limit}"] if limit is not None else [])
+    return f" ({', '.join(parts)})" if parts else ""
+
+
+def due_summary(due: list[dict], cfg: dict, day: dt.date,
+                grades: list[str] | None = None, limit: int | None = None) -> str:
+    total = sum(units(r, cfg) for r in due)
+    return (f"{len(due)} due on/before {day}{filter_note(grades, limit)} · {total:.1f} units "
+            f"= {total / cfg['ceiling']:.1f} days at the ceiling")
+
+
+def report_due(rows: list[dict], cfg: dict, day: dt.date,
+               grades: list[str] | None = None, limit: int | None = None) -> None:
     due = [r for r in rows if dt.date.fromisoformat(r["due"]) <= day]
     due.sort(key=lambda r: (r["due"], -units(r, cfg)))
-    total = 0.0
+    due = filter_due(due, grades, limit)
     for r in due:
-        total += units(r, cfg)
         print(f"  {r['due']}  {units(r, cfg):4.1f}  {label(r):8} {r['num']:>5} "
               f"{r['title'][:40]}")
-    print(f"\n  {len(due)} due on/before {day} · {total:.1f} units "
-          f"= {total / cfg['ceiling']:.1f} days at the ceiling")
+    print(f"\n  {due_summary(due, cfg, day, grades, limit)}")
 
 
 def main() -> None:
@@ -991,10 +1044,19 @@ def main() -> None:
                          "Accepted so the flag explains itself; adds 0 units")
     ap.add_argument("--due", metavar="YYYY-MM-DD",
                     help="list everything due on or before this date, priced")
+    ap.add_argument("--grade", action="append", type=parse_grades, metavar="G",
+                    help="with --due: keep only rows of this grade (red, yellow, graduated, "
+                         "s0/s1/s2); repeatable or comma-separated")
+    ap.add_argument("--limit", type=positive_int, metavar="N",
+                    help="with --due: keep the first N rows after the grade filter "
+                         "(most overdue first)")
     ap.add_argument("--today", metavar="YYYY-MM-DD",
                     help="override the resolved session date (default: detected session "
                          "date, not just the system clock — see session_date.py)")
     args = ap.parse_args()
+    if (args.grade or args.limit) and not args.due:
+        ap.error("--grade and --limit apply only with --due")
+    grades = [g for group in args.grade for g in group] if args.grade else None
 
     cfg = load_config()
     rows = parse_rows()
@@ -1012,7 +1074,7 @@ def main() -> None:
     elif args.day:
         price_day(args.day, rows, cfg, args.sd, today)
     elif args.due:
-        report_due(rows, cfg, dt.date.fromisoformat(args.due))
+        report_due(rows, cfg, dt.date.fromisoformat(args.due), grades, args.limit)
     else:
         report_demand(rows, cfg, today)
 
