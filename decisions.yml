@@ -1726,3 +1726,14 @@ decisions:
       and it is not genuine". Same reason as `recognition-block-removed-from-scaffold` (Aug 22).
       No `cse.config.yml` value changed.
     affects: [recognition, practice, review-workflow]
+
+  - id: schedule-balance-by-units
+    date: 2026-11-02
+    summary: >-
+      `build_week.seat()` seats each row on the least-loaded fitting day (smallest priced units,
+      ties to the earliest) instead of the earliest fitting day; `--top-up` reuses `seat`, so it
+      inherits the rule. Seat order, `fits`, `earliest_index`, the ceiling and the row cap are
+      unchanged, as are the carry and forced-over-cap branches. Why: a build with every row
+      overdue filled Mon and Tue to 7.6 units while Fri and Sat held 2.4. `scheduling/SKILL.md`
+      and `weekly-build.md` say "least-loaded days with room". No `cse.config.yml` value changed.
+    affects: [scheduling]

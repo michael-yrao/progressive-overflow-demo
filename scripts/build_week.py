@@ -381,12 +381,13 @@ def place(plan: WeekPlan, item: SeatItem, index: int, note: str | None = None) -
 
 
 def seat(plan: WeekPlan, item: SeatItem, ctx: PlanContext) -> WeekPlan:
-    """A new plan with `item` on its earliest fitting day. Nothing fits: a priority item is
-    forced onto the least-loaded eligible day (noted); any other is carried."""
+    """A new plan with `item` on its least-loaded fitting day (ties: the earliest). Nothing
+    fits: a priority item is forced onto the least-loaded eligible day (noted); any other is
+    carried."""
     start = earliest_index(plan, item)
-    for index in range(start, len(plan.days)):
-        if fits(plan.days[index], item, ctx):
-            return place(plan, item, index)
+    fitting = [index for index in range(start, len(plan.days)) if fits(plan.days[index], item, ctx)]
+    if fitting:
+        return place(plan, item, min(fitting, key=lambda index: plan.days[index].units))
     if not item.is_priority:
         return replace(plan, carried=(*plan.carried, item))
     forced = min(range(start, len(plan.days)), key=lambda index: plan.days[index].units)

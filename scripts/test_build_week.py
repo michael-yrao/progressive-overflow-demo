@@ -90,33 +90,43 @@ def _plan(items, first_offset=0, ceiling=8.0, max_rows=8):
     return seated, [i.number for i in plan.carried], plan.notes, [d.day.weekday() for d in plan.days]
 
 
-def test_plan_week():
-    at_cap, _, _, _ = _plan([_item(1), _item(2)], max_rows=2)
-    assert at_cap == {"Mon": ["1", "2"]}
-    over_cap, _, _, _ = _plan([_item(1), _item(2), _item(3)], max_rows=2)
-    assert over_cap == {"Mon": ["1", "2"], "Tue": ["3"]}
+SATURDAY = 5
+WEDNESDAY = 2
+THURSDAY = 3
 
-    at_ceiling, _, _, _ = _plan([_item(1, cost=4.0), _item(2, cost=4.0)])
-    assert at_ceiling == {"Mon": ["1", "2"]}
-    past_ceiling, _, _, _ = _plan([_item(1, cost=4.0), _item(2, cost=4.0), _item(3, cost=0.5)])
-    assert past_ceiling == {"Mon": ["1", "2"], "Tue": ["3"]}
+# (items, _plan kwargs) -> (seated by day, carried, notes, weekdays or None to skip)
+PLAN_WEEK_CASES = [
+    pytest.param([_item(1), _item(2)], {"first_offset": 6, "max_rows": 2},
+                 {"Sun": ["1", "2"]}, [], (), None, id="row-cap"),
+    pytest.param([_item(1), _item(2), _item(3)], {"first_offset": 6, "max_rows": 2},
+                 {"Sun": ["1", "2"]}, ["3"], (), None, id="over-row-cap"),
+    pytest.param([_item(1, cost=4.0), _item(2, cost=4.0)], {"first_offset": 6},
+                 {"Sun": ["1", "2"]}, [], (), None, id="ceiling"),
+    pytest.param([_item(1, cost=4.0), _item(2, cost=4.0), _item(3, cost=0.5)],
+                 {"first_offset": 6}, {"Sun": ["1", "2"]}, ["3"], (), None, id="past-ceiling"),
+    pytest.param([_item(n, SATURDAY, is_priority=True) for n in (1, 2, 3)], {"max_rows": 1},
+                 {"Sat": ["1", "3"], "Sun": ["2"]}, [], ("forced over cap: Sat",), None,
+                 id="forced-over-cap"),
+    pytest.param([_item(n, SATURDAY) for n in (1, 2, 3)], {"max_rows": 1},
+                 {"Sat": ["1"], "Sun": ["2"]}, ["3"], (), None, id="carry-overflow"),
+    pytest.param([_item(1)], {"first_offset": WEDNESDAY},
+                 {"Wed": ["1"]}, [], (), [2, 3, 4, 5, 6], id="late-start"),
+    pytest.param([_item(1, THURSDAY)], {}, {"Thu": ["1"]}, [], (), None, id="not-early"),
+    pytest.param([_item(n) for n in range(1, 8)], {},
+                 {day: [str(n)] for n, day in enumerate(
+                     ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"), start=1)},
+                 [], (), None, id="spreads-due-monday-one-per-day"),
+]
 
-    saturday = 5
-    forced, carried, notes, _ = _plan([_item(n, saturday, is_priority=True) for n in (1, 2, 3)],
-                                      max_rows=1)
-    assert forced == {"Sat": ["1", "3"], "Sun": ["2"]}
-    assert carried == [] and notes == ("forced over cap: Sat",)
 
-    _, overflow, notes, _ = _plan([_item(n, saturday) for n in (1, 2, 3)], max_rows=1)
-    assert overflow == ["3"] and notes == ()
-
-    wednesday = 2
-    late_start, _, _, weekdays = _plan([_item(1)], first_offset=wednesday)
-    assert weekdays == [2, 3, 4, 5, 6] and late_start == {"Wed": ["1"]}
-
-    thursday = 3
-    not_early, _, _, _ = _plan([_item(1, thursday)])
-    assert not_early == {"Thu": ["1"]}
+@pytest.mark.parametrize(("items", "kwargs", "seated", "carried", "notes", "weekdays"),
+                         PLAN_WEEK_CASES)
+def test_plan_week(items, kwargs, seated, carried, notes, weekdays):
+    got_seated, got_carried, got_notes, got_weekdays = _plan(items, **kwargs)
+    assert got_seated == seated
+    assert got_carried == carried and got_notes == notes
+    if weekdays is not None:
+        assert got_weekdays == weekdays
 
 
 @pytest.mark.parametrize(("opener", "expected"), [
