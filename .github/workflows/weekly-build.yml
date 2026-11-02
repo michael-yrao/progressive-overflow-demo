@@ -2,13 +2,19 @@ name: Weekly build
 
 # Builds the next week's schedule when automation.weekly_build is on (a manual run builds regardless),
 # commits it through the repo's pre-commit hook, pushes, then tells the site. A refused build fails
-# the job and pushes nothing.
+# the job and pushes nothing. A manual run with rebuild_week set discards that Monday's draft week
+# (refused if it holds any rep or saved attempt) and builds it again.
 
 on:
   schedule:
     - cron: '7 * * * 0,1'
     - cron: '7 */6 * * 2-6'
   workflow_dispatch:
+    inputs:
+      rebuild_week:
+        description: 'Monday (YYYY-MM-DD) of a draft week to discard and rebuild'
+        required: false
+        default: ''
 
 concurrency:
   group: weekly-build
@@ -53,13 +59,24 @@ jobs:
             echo 'on=false' >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Discard the draft
+        if: steps.gate.outputs.on == 'true' && inputs.rebuild_week != ''
+        env:
+          REBUILD_WEEK: ${{ inputs.rebuild_week }}
+        run: python scripts/rebuild_week.py "$REBUILD_WEEK"
+
       - name: Build the week
         if: steps.gate.outputs.on == 'true'
         env:
           EARLY_FLAG: ${{ github.event_name == 'workflow_dispatch' && '--early' || '' }}
+          REBUILD_WEEK: ${{ inputs.rebuild_week }}
         run: |
           set -o pipefail
-          python scripts/build_week.py $EARLY_FLAG 2>&1 | tee "$RUNNER_TEMP/build.log"
+          if [ -n "$REBUILD_WEEK" ]; then
+            python scripts/build_week.py --week "$REBUILD_WEEK" --early 2>&1 | tee "$RUNNER_TEMP/build.log"
+          else
+            python scripts/build_week.py $EARLY_FLAG 2>&1 | tee "$RUNNER_TEMP/build.log"
+          fi
           python scripts/build_week.py --top-up 2>&1 | tee -a "$RUNNER_TEMP/build.log"
 
       - name: Job summary
@@ -75,12 +92,18 @@ jobs:
       - name: Build commit message
         id: message
         if: steps.gate.outputs.on == 'true'
+        env:
+          REBUILD_WEEK: ${{ inputs.rebuild_week }}
         run: |
           date=$(grep -oE '^built: [0-9]{4}-[0-9]{2}-[0-9]{2}' "$RUNNER_TEMP/build.log" | head -n 1 | sed 's/^built: //' || true)
           topped=$(grep -oE '^topped-up: [1-9][0-9]* rows into [0-9]{4}-[0-9]{2}-[0-9]{2}' "$RUNNER_TEMP/build.log" | head -n 1 | sed 's/^.* into //' || true)
           if [ -n "$date" ]; then
             echo 'built=true' >> "$GITHUB_OUTPUT"
-            echo "text=chore(schedule): week of ${date}" >> "$GITHUB_OUTPUT"
+            if [ -n "$REBUILD_WEEK" ]; then
+              echo "text=chore(schedule): rebuild week of ${date}" >> "$GITHUB_OUTPUT"
+            else
+              echo "text=chore(schedule): week of ${date}" >> "$GITHUB_OUTPUT"
+            fi
           elif [ -n "$topped" ]; then
             echo 'built=true' >> "$GITHUB_OUTPUT"
             echo "text=chore(schedule): top up week of ${topped}" >> "$GITHUB_OUTPUT"
